@@ -1,0 +1,306 @@
+// import { Link, useNavigate } from 'react-router-dom'
+// import { removeUser } from '../store/authStore'
+// import { useState, useEffect } from 'react'
+
+// export default function Navbar({ user, setUser }) {
+//   const navigate = useNavigate()
+//   const [dark, setDark] = useState(() => {
+//     return localStorage.getItem('theme') === 'dark'
+//   })
+
+//   useEffect(() => {
+//     if (dark) {
+//       document.documentElement.classList.add('dark')
+//       localStorage.setItem('theme', 'dark')
+//     } else {
+//       document.documentElement.classList.remove('dark')
+//       localStorage.setItem('theme', 'light')
+//     }
+//   }, [dark])
+
+//   const handleLogout = () => {
+//     removeUser()
+//     setUser(null)
+//     navigate('/login')
+//   }
+
+//   return (
+//     <nav className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 px-6 py-3 flex items-center justify-between transition-colors duration-200">
+
+//       {/* Logo */}
+//       <Link to="/dashboard"
+//         className="font-bold text-purple-700 dark:text-purple-400 text-lg">
+//         🤖 StandupBot
+//       </Link>
+
+//       {/* Nav Links */}
+//       <div className="flex items-center gap-4 text-sm">
+//         <Link to="/standup/new"
+//           className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+//           + New Standup
+//         </Link>
+//         <Link to="/history"
+//           className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+//           History
+//         </Link>
+
+//         {(user?.role === 'manager' || user?.role === 'admin') && (
+//           <>
+//             <Link to="/team"
+//               className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+//               Team
+//             </Link>
+//             <Link to="/blockers"
+//               className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+//               Blockers
+//             </Link>
+//           </>
+//         )}
+
+//         {user?.role === 'admin' && (
+//           <Link to="/admin"
+//             className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+//             Admin
+//           </Link>
+//         )}
+
+//         {/* Dark / Light Toggle */}
+//         <button
+//           onClick={() => setDark(!dark)}
+//           className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-lg"
+//           title={dark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+//         >
+//           {dark ? '☀️' : '🌙'}
+//         </button>
+
+//         {/* User + Logout */}
+//         <div className="flex items-center gap-2">
+//           <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xs font-bold">
+//             {user?.name?.charAt(0).toUpperCase()}
+//           </div>
+//           <span className="text-gray-500 dark:text-gray-400 text-sm">
+//             {user?.name}
+//           </span>
+//           <button onClick={handleLogout}
+//             className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-xs hover:bg-purple-200 dark:hover:bg-purple-800 transition">
+//             Logout
+//           </button>
+//         </div>
+//       </div>
+//     </nav>
+//   )
+// }
+
+
+import { Link, useNavigate } from 'react-router-dom'
+import { removeUser } from '../store/authStore'
+import { useState, useEffect } from 'react'
+import socket from '../socket'
+import API from '../api/axios'
+
+export default function Navbar({ user, setUser }) {
+  const navigate = useNavigate()
+  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark')
+  const [notifications, setNotifications] = useState([])
+  const [showDropdown, setShowDropdown] = useState(false)
+
+  const unreadCount = notifications.filter(n => !n.isRead).length
+
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  }, [dark])
+
+  useEffect(() => {
+    if (!user) return
+
+    // Socket connect karo
+    socket.connect()
+    socket.emit('join', user._id)
+
+    // Purani notifications fetch karo
+    const fetchNotifications = async () => {
+      try {
+        const { data } = await API.get('/notifications')
+        setNotifications(data)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    fetchNotifications()
+
+    // Real-time notification sunno
+    socket.on('new-notification', (notif) => {
+      setNotifications(prev => [notif, ...prev])
+    })
+
+    return () => {
+      socket.off('new-notification')
+      socket.disconnect()
+    }
+  }, [user])
+
+  const markAllRead = async () => {
+    try {
+      await API.put('/notifications/read-all')
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const markRead = async (id, link) => {
+    try {
+      await API.put(`/notifications/${id}/read`)
+      setNotifications(prev =>
+        prev.map(n => n._id === id ? { ...n, isRead: true } : n)
+      )
+      setShowDropdown(false)
+      navigate(link)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleLogout = () => {
+    removeUser()
+    setUser(null)
+    socket.disconnect()
+    navigate('/login')
+  }
+
+  return (
+    <nav className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 px-6 py-3 flex items-center justify-between transition-colors duration-200">
+
+      {/* Logo */}
+      <Link to="/dashboard"
+        className="font-bold text-purple-700 dark:text-purple-400 text-lg">
+        🤖 StandupBot
+      </Link>
+
+      {/* Nav Links */}
+      <div className="flex items-center gap-4 text-sm">
+        <Link to="/standup/new"
+          className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+          + New Standup
+        </Link>
+        <Link to="/history"
+          className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+          History
+        </Link>
+
+        {(user?.role === 'manager' || user?.role === 'admin') && (
+          <>
+            <Link to="/team"
+              className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+              Team
+            </Link>
+            <Link to="/blockers"
+              className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+              Blockers
+            </Link>
+          </>
+        )}
+
+        {user?.role === 'admin' && (
+          <Link to="/admin"
+            className="text-gray-600 dark:text-gray-300 hover:text-purple-700 dark:hover:text-purple-400 transition">
+            Admin
+          </Link>
+        )}
+
+        {/* 🔔 Notification Bell */}
+        <div className="relative">
+          <button
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="relative w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+          >
+            <span className="text-lg">🔔</span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Dropdown */}
+          {showDropdown && (
+            <div className="absolute right-0 top-11 w-80 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden">
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                <span className="font-semibold text-gray-800 dark:text-gray-100 text-sm">
+                  Notifications
+                </span>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs text-purple-700 dark:text-purple-400 hover:underline"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+
+              {/* List */}
+              <div className="max-h-72 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="text-center text-gray-400 dark:text-gray-500 py-8 text-sm">
+                    No notifications yet
+                  </div>
+                ) : (
+                  notifications.map(n => (
+                    <button
+                      key={n._id}
+                      onClick={() => markRead(n._id, n.link)}
+                      className={`w-full text-left px-4 py-3 border-b border-gray-50 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800 transition ${
+                        !n.isRead ? 'bg-purple-50 dark:bg-purple-950' : ''
+                      }`}
+                    >
+                      <p className="text-sm text-gray-800 dark:text-gray-100">
+                        {n.message}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        {new Date(n.createdAt).toLocaleTimeString('en-US', {
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </p>
+                    </button>
+                  ))
+                )}
+              </div>
+
+            </div>
+          )}
+        </div>
+
+        {/* Dark / Light Toggle */}
+        <button
+          onClick={() => setDark(!dark)}
+          className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition text-lg"
+        >
+          {dark ? '☀️' : '🌙'}
+        </button>
+
+        {/* User + Logout */}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xs font-bold">
+            {user?.name?.charAt(0).toUpperCase()}
+          </div>
+          <span className="text-gray-500 dark:text-gray-400 text-sm">
+            {user?.name}
+          </span>
+          <button onClick={handleLogout}
+            className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-xs hover:bg-purple-200 dark:hover:bg-purple-800 transition">
+            Logout
+          </button>
+        </div>
+      </div>
+    </nav>
+  )
+}
