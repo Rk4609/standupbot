@@ -10,5 +10,8 @@ router.post(
   allowRoles('manager', 'admin'),
   analyzeTeam
 )
+router.get('/test', (req, res) => {
+  res.json({ ok: true })
+})
 
 module.exports = router
