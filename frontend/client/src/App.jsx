@@ -33,7 +33,7 @@ export default function App() {
 
         <Route element={<ProtectedRoute user={user} roles={['manager', 'admin']} />}>
           <Route path="/team" element={<TeamView />} />
-          <Route path="/blockers" element={<Blockers />} />
+          <Route path="/blockers" element={<Blockers user={user}/>} />
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={['admin']} />}>

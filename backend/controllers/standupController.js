@@ -403,10 +403,51 @@ const getTeamStats = async (req, res) => {
   }
 }
 
+//  PUT /api/standups/:id/blocker — Blocker edit karo (admin)
+const updateBlocker = async (req, res) => {
+  try {
+    const { blockers } = req.body
+
+    const standup = await Standup.findById(req.params.id)
+    if (!standup) {
+      return res.status(404).json({ message: 'Standup not found' })
+    }
+
+    const hasBlocker = blockers && blockers.trim() !== '' && blockers.toLowerCase() !== 'none'
+
+    standup.blockers = blockers || 'None'
+    standup.hasBlocker = hasBlocker
+    await standup.save()
+
+    res.json({ message: 'Blocker updated successfully', standup })
+  } catch (err) {
+    console.error('Update blocker error:', err)
+    res.status(500).json({ message: err.message })
+  }
+}
+
+//  DELETE /api/standups/:id — Standup delete karo (admin)
+const deleteBlocker = async (req, res) => {
+  try {
+    const standup = await Standup.findById(req.params.id)
+    if (!standup) {
+      return res.status(404).json({ message: 'Standup not found' })
+    }
+
+    await Standup.findByIdAndDelete(req.params.id)
+    res.json({ message: 'Standup deleted successfully' })
+  } catch (err) {
+    console.error('Delete standup error:', err)
+    res.status(500).json({ message: err.message })
+  }
+}
+
 module.exports = {
   submitStandup,
   getMyStandups,
   getTeamStandups,
   getBlockers,
-  getTeamStats
+  getTeamStats,
+  updateBlocker,
+  deleteBlocker
 }
