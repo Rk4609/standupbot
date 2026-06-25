@@ -60,6 +60,7 @@ app.use('/api/teams', teamRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/notifications', notificationRoutes)
 const aiRoutes = require('./routes/aiRoutes')
+console.log("✅ AI routes registered")
 app.use('/api/ai', aiRoutes)
 
 // ✅ Socket.io events
