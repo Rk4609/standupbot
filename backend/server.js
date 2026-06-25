@@ -59,6 +59,8 @@ app.use('/api/standups', standupRoutes)
 app.use('/api/teams', teamRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/notifications', notificationRoutes)
+const aiRoutes = require('./routes/aiRoutes')
+app.use('/api/ai', aiRoutes)
 
 // ✅ Socket.io events
 io.on('connection', (socket) => {
