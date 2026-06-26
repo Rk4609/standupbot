@@ -115,6 +115,8 @@ router.put('/change-password', protect, async (req, res) => {
   }
 })
 
+
+
 // POST /api/users/avatar — avatar upload 
 router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
   try {

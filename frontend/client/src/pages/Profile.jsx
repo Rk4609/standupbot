@@ -1,22 +1,20 @@
-import { useState, useEffect, useRef } from "react"
-import { useNavigate } from "react-router-dom"
-import API from "../api/axios"
-import toast from "react-hot-toast"
-import { saveUser } from "../store/authStore"
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import API from '../api/axios'
+import toast from 'react-hot-toast'
+import { saveUser } from '../store/authStore'
 
 export default function Profile({ user, setUser }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [nameForm, setNameForm] = useState({ name: "" })
+  const [nameForm, setNameForm] = useState({ name: '' })
   const [passForm, setPassForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
+    currentPassword: '', newPassword: '', confirmPassword: ''
   })
   const [nameLoading, setNameLoading] = useState(false)
   const [passLoading, setPassLoading] = useState(false)
   const [avatarLoading, setAvatarLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("profile")
+  const [activeTab, setActiveTab] = useState('profile')
   const fileRef = useRef(null)
   const navigate = useNavigate()
 
@@ -26,7 +24,7 @@ export default function Profile({ user, setUser }) {
 
   const fetchProfile = async () => {
     try {
-      const { data } = await API.get("/users/profile")
+      const { data } = await API.get('/users/profile')
       setProfile(data)
       setNameForm({ name: data.name })
     } catch (err) {
@@ -42,34 +40,26 @@ export default function Profile({ user, setUser }) {
     if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
-      return toast.error("Image 5MB se badi nahi honi chahiye!")
+      return toast.error('Image 5MB se badi nahi honi chahiye!')
     }
 
     setAvatarLoading(true)
     try {
       const formData = new FormData()
-      formData.append("avatar", file)
+      formData.append('avatar', file)
 
-      const { data } = await API.post("/users/avatar", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      const { data } = await API.post('/users/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
 
       // Update local state + localStorage
       const updatedUser = { ...user, avatar: data.avatar }
       saveUser(updatedUser)
       setUser(updatedUser)
-      setProfile((prev) => ({ ...prev, avatar: data.avatar }))
-      toast.success("Avatar updated! 🎉")
+      setProfile(prev => ({ ...prev, avatar: data.avatar }))
+      toast.success('Avatar updated! 🎉')
     } catch (err) {
-      console.error("========== AVATAR ERROR ==========")
-      console.error(err)
-      console.error(err.message)
-      console.error(err.stack)
-
-      res.status(500).json({
-        message: err.message,
-        error: err.toString(),
-      })
+      toast.error(err.response?.data?.message || 'Upload failed')
     } finally {
       setAvatarLoading(false)
     }
@@ -80,14 +70,14 @@ export default function Profile({ user, setUser }) {
     e.preventDefault()
     setNameLoading(true)
     try {
-      const { data } = await API.put("/users/profile", nameForm)
+      const { data } = await API.put('/users/profile', nameForm)
       const updatedUser = { ...user, name: data.name }
       saveUser(updatedUser)
       setUser(updatedUser)
-      setProfile((prev) => ({ ...prev, name: data.name }))
-      toast.success("Name updated! ✅")
+      setProfile(prev => ({ ...prev, name: data.name }))
+      toast.success('Name updated! ✅')
     } catch (err) {
-      toast.error(err.response?.data?.message || "Update failed")
+      toast.error(err.response?.data?.message || 'Update failed')
     } finally {
       setNameLoading(false)
     }
@@ -97,37 +87,31 @@ export default function Profile({ user, setUser }) {
   const handlePasswordChange = async (e) => {
     e.preventDefault()
     if (passForm.newPassword !== passForm.confirmPassword) {
-      return toast.error("New passwords does not match!")
+      return toast.error('New passwords does not match!')
     }
     setPassLoading(true)
     try {
-      await API.put("/users/change-password", {
+      await API.put('/users/change-password', {
         currentPassword: passForm.currentPassword,
-        newPassword: passForm.newPassword,
+        newPassword: passForm.newPassword
       })
-      toast.success("Password changed! 🔒")
-      setPassForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      toast.success('Password changed! 🔒')
+      setPassForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (err) {
-      toast.error(err.response?.data?.message || "Password change failed")
+      toast.error(err.response?.data?.message || 'Password change failed')
     } finally {
       setPassLoading(false)
     }
   }
 
   const roleColor = {
-    admin: "bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400",
-    manager:
-      "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400",
-    member:
-      "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400",
+    admin: 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400',
+    manager: 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400',
+    member: 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400'
   }
 
   const moodEmoji = {
-    great: "🚀",
-    good: "😊",
-    okay: "😐",
-    bad: "😔",
-    stressed: "😰",
+    great: '🚀', good: '😊', okay: '😐', bad: '😔', stressed: '😰'
   }
 
   // Last 7 days activity
@@ -135,7 +119,7 @@ export default function Profile({ user, setUser }) {
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
     d.setDate(d.getDate() - i)
-    last7Days.push(d.toISOString().split("T")[0])
+    last7Days.push(d.toISOString().split('T')[0])
   }
 
   if (loading) {
@@ -149,6 +133,7 @@ export default function Profile({ user, setUser }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-6 px-4 transition-colors duration-200">
       <div className="max-w-2xl mx-auto">
+
         {/* Header */}
         <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">
           My Profile 👤
@@ -157,6 +142,7 @@ export default function Profile({ user, setUser }) {
         {/* Avatar + Info Card */}
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-6 mb-5">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               {profile?.avatar ? (
@@ -178,7 +164,7 @@ export default function Profile({ user, setUser }) {
                 className="absolute -bottom-1 -right-1 w-8 h-8 bg-purple-700 dark:bg-purple-600 text-white rounded-full flex items-center justify-center text-sm hover:bg-purple-800 transition shadow-md disabled:opacity-60"
                 title="Change avatar"
               >
-                {avatarLoading ? "⏳" : "📷"}
+                {avatarLoading ? '⏳' : '📷'}
               </button>
               <input
                 ref={fileRef}
@@ -198,9 +184,7 @@ export default function Profile({ user, setUser }) {
                 {profile?.email}
               </p>
               <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
-                <span
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${roleColor[profile?.role]}`}
-                >
+                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${roleColor[profile?.role]}`}>
                   {profile?.role}
                 </span>
                 {profile?.team && (
@@ -210,10 +194,8 @@ export default function Profile({ user, setUser }) {
                 )}
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                Member since{" "}
-                {new Date(profile?.createdAt).toLocaleDateString("en-US", {
-                  month: "long",
-                  year: "numeric",
+                Member since {new Date(profile?.createdAt).toLocaleDateString('en-US', {
+                  month: 'long', year: 'numeric'
                 })}
               </p>
             </div>
@@ -253,24 +235,20 @@ export default function Profile({ user, setUser }) {
               Last 7 Days Activity
             </p>
             <div className="flex gap-2 justify-between">
-              {last7Days.map((day) => {
+              {last7Days.map(day => {
                 const submitted = profile?.submittedDates?.includes(day)
-                const isToday = day === new Date().toISOString().split("T")[0]
+                const isToday = day === new Date().toISOString().split('T')[0]
                 return (
                   <div key={day} className="flex flex-col items-center gap-1.5">
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium transition ${
-                        submitted
-                          ? "bg-purple-500 dark:bg-purple-600 text-white"
-                          : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
-                      } ${isToday ? "ring-2 ring-purple-400 ring-offset-1" : ""}`}
-                    >
-                      {submitted ? "✓" : "–"}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium transition ${
+                      submitted
+                        ? 'bg-purple-500 dark:bg-purple-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
+                    } ${isToday ? 'ring-2 ring-purple-400 ring-offset-1' : ''}`}>
+                      {submitted ? '✓' : '–'}
                     </div>
                     <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {new Date(day).toLocaleDateString("en-US", {
-                        weekday: "narrow",
-                      })}
+                      {new Date(day).toLocaleDateString('en-US', { weekday: 'narrow' })}
                     </span>
                   </div>
                 )
@@ -281,23 +259,23 @@ export default function Profile({ user, setUser }) {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-4">
-          {["profile", "password"].map((tab) => (
+          {['profile', 'password'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition ${
                 activeTab === tab
-                  ? "bg-purple-700 dark:bg-purple-600 text-white"
-                  : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  ? 'bg-purple-700 dark:bg-purple-600 text-white'
+                  : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
-              {tab === "profile" ? "✏️ Edit Profile" : "🔒 Change Password"}
+              {tab === 'profile' ? '✏️ Edit Profile' : '🔒 Change Password'}
             </button>
           ))}
         </div>
 
         {/* Edit Profile Tab */}
-        {activeTab === "profile" && (
+        {activeTab === 'profile' && (
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
             <h2 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
               Edit Profile
@@ -311,7 +289,7 @@ export default function Profile({ user, setUser }) {
                   type="text"
                   required
                   value={nameForm.name}
-                  onChange={(e) => setNameForm({ name: e.target.value })}
+                  onChange={e => setNameForm({ name: e.target.value })}
                   className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
                 />
               </div>
@@ -345,14 +323,14 @@ export default function Profile({ user, setUser }) {
                 disabled={nameLoading}
                 className="w-full bg-purple-700 dark:bg-purple-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-purple-800 dark:hover:bg-purple-700 transition disabled:opacity-60"
               >
-                {nameLoading ? "Saving..." : "✅ Save Changes"}
+                {nameLoading ? 'Saving...' : '✅ Save Changes'}
               </button>
             </form>
           </div>
         )}
 
         {/* Change Password Tab */}
-        {activeTab === "password" && (
+        {activeTab === 'password' && (
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-5">
             <h2 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
               Change Password
@@ -366,12 +344,7 @@ export default function Profile({ user, setUser }) {
                   type="password"
                   required
                   value={passForm.currentPassword}
-                  onChange={(e) =>
-                    setPassForm({
-                      ...passForm,
-                      currentPassword: e.target.value,
-                    })
-                  }
+                  onChange={e => setPassForm({ ...passForm, currentPassword: e.target.value })}
                   className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
                   placeholder="••••••••"
                 />
@@ -384,9 +357,7 @@ export default function Profile({ user, setUser }) {
                   type="password"
                   required
                   value={passForm.newPassword}
-                  onChange={(e) =>
-                    setPassForm({ ...passForm, newPassword: e.target.value })
-                  }
+                  onChange={e => setPassForm({ ...passForm, newPassword: e.target.value })}
                   className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
                   placeholder="Min 6 characters"
                 />
@@ -399,41 +370,29 @@ export default function Profile({ user, setUser }) {
                   type="password"
                   required
                   value={passForm.confirmPassword}
-                  onChange={(e) =>
-                    setPassForm({
-                      ...passForm,
-                      confirmPassword: e.target.value,
-                    })
-                  }
+                  onChange={e => setPassForm({ ...passForm, confirmPassword: e.target.value })}
                   className={`w-full border rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 transition ${
-                    passForm.confirmPassword &&
-                    passForm.newPassword !== passForm.confirmPassword
-                      ? "border-red-300 focus:ring-red-200"
-                      : "border-gray-200 dark:border-gray-600 focus:ring-purple-300 dark:focus:ring-purple-600"
+                    passForm.confirmPassword && passForm.newPassword !== passForm.confirmPassword
+                      ? 'border-red-300 focus:ring-red-200'
+                      : 'border-gray-200 dark:border-gray-600 focus:ring-purple-300 dark:focus:ring-purple-600'
                   }`}
                   placeholder="Repeat new password"
                 />
-                {passForm.confirmPassword &&
-                  passForm.newPassword !== passForm.confirmPassword && (
-                    <p className="text-xs text-red-500 mt-1">
-                      Passwords match nahi karte!
-                    </p>
-                  )}
+                {passForm.confirmPassword && passForm.newPassword !== passForm.confirmPassword && (
+                  <p className="text-xs text-red-500 mt-1">Passwords match nahi karte!</p>
+                )}
               </div>
               <button
                 type="submit"
-                disabled={
-                  passLoading ||
-                  (passForm.confirmPassword &&
-                    passForm.newPassword !== passForm.confirmPassword)
-                }
+                disabled={passLoading || (passForm.confirmPassword && passForm.newPassword !== passForm.confirmPassword)}
                 className="w-full bg-purple-700 dark:bg-purple-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-purple-800 dark:hover:bg-purple-700 transition disabled:opacity-60"
               >
-                {passLoading ? "Changing..." : "🔒 Change Password"}
+                {passLoading ? 'Changing...' : '🔒 Change Password'}
               </button>
             </form>
           </div>
         )}
+
       </div>
     </div>
   )
