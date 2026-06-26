@@ -142,53 +142,77 @@ router.put('/change-password', protect, async (req, res) => {
 //   }
 // })
 
-const { Readable } = require('stream')
+// const { Readable } = require('stream')
 
+// router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
+//   try {
+//     console.log('Avatar upload hit')
+//     console.log(req.file);
+
+
+//     if (!req.file) {
+//       return res.status(400).json({ message: 'Image required hai' })
+//     }
+     
+//     // ✅ Buffer ko stream mein convert karo
+//     const uploadToCloudinary = () => {
+//       return new Promise((resolve, reject) => {
+//         const { cloudinary } = require('../config/cloudinary')
+
+//         const uploadStream = cloudinary.uploader.upload_stream(
+//           {
+//             folder: 'standupbot/avatars',
+//             transformation: [{ width: 200, height: 200, crop: 'fill' }]
+//           },
+//           (error, result) => {
+//             if (error) reject(error)
+//             else resolve(result)
+//           }
+//         )
+
+//         const readable = new Readable()
+//         readable.push(req.file.buffer)
+//         readable.push(null)
+//         readable.pipe(uploadStream)
+//       })
+//     }
+
+//     const result = await uploadToCloudinary()
+//     console.log('Cloudinary upload result:', result.secure_url)
+
+//     const user = await User.findByIdAndUpdate(
+//       req.user._id,
+//       { avatar: result.secure_url },
+//       { new: true }
+//     ).select('-password')
+
+//     res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
+//   } catch (err) {
+//     console.error('Avatar upload error:', err.message)
+//     res.status(500).json({ message: err.message })
+//   }
+// })
 router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
   try {
-    console.log('Avatar upload hit')
+    console.log("===== Avatar Upload Hit =====");
+
+    console.log("REQ.FILE:");
+    console.log(req.file);
 
     if (!req.file) {
-      return res.status(400).json({ message: 'Image required hai' })
+      return res.status(400).json({ message: "No file received" });
     }
 
-    // ✅ Buffer ko stream mein convert karo
-    const uploadToCloudinary = () => {
-      return new Promise((resolve, reject) => {
-        const { cloudinary } = require('../config/cloudinary')
+    console.log("Cloudinary Config:");
+    console.log({
+      cloud_name: cloudinary.config().cloud_name,
+      api_key: cloudinary.config().api_key
+    });
 
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: 'standupbot/avatars',
-            transformation: [{ width: 200, height: 200, crop: 'fill' }]
-          },
-          (error, result) => {
-            if (error) reject(error)
-            else resolve(result)
-          }
-        )
-
-        const readable = new Readable()
-        readable.push(req.file.buffer)
-        readable.push(null)
-        readable.pipe(uploadStream)
-      })
-    }
-
-    const result = await uploadToCloudinary()
-    console.log('Cloudinary upload result:', result.secure_url)
-
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { avatar: result.secure_url },
-      { new: true }
-    ).select('-password')
-
-    res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
+    // yahan upload code
   } catch (err) {
-    console.error('Avatar upload error:', err.message)
-    res.status(500).json({ message: err.message })
+    console.error(err);
   }
-})
+});
 
 module.exports = router
