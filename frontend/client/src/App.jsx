@@ -13,7 +13,7 @@ import Blockers from "./pages/Blockers"
 import AdminPanel from "./pages/AdminPanel"
 import Navbar from "./components/Navbar"
 import ProtectedRoute from "./components/ProtectedRoute"
-import Profile from './pages/Profile'
+// import Profile from './pages/Profile'
 
 export default function App() {
   const [user, setUser] = useState(getUser())
@@ -53,10 +53,10 @@ export default function App() {
           <Route path="/blockers" element={<Blockers user={user} />} />
         </Route>
 
-        <Route
+        {/* <Route
           path="/profile"
           element={<Profile user={user} setUser={setUser} />}
-        />
+        /> */}
 
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
           <Route path="/admin" element={<AdminPanel />} />
