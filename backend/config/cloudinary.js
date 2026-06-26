@@ -8,6 +8,11 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 })
 
+const storagePackage = require("multer-storage-cloudinary");
+
+console.log(storagePackage);
+process.exit();
+
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -17,10 +22,7 @@ const storage = new CloudinaryStorage({
   }
 })
 
-const storagePackage = require("multer-storage-cloudinary");
 
-console.log(storagePackage);
-process.exit();
 
 const upload = multer({ storage })
 
