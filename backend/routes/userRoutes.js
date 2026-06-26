@@ -118,6 +118,13 @@ router.put('/change-password', protect, async (req, res) => {
 // POST /api/users/avatar — avatar upload karo
 router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
   try {
+    console.log('Avatar upload request received')
+    console.log('File:', req.file)
+    console.log('Cloudinary config:', {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET',
+      api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET'
+    })
     if (!req.file) {
       return res.status(400).json({ message: 'Image required hai' })
     }
@@ -130,6 +137,7 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
 
     res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
   } catch (err) {
+    console.error('Avatar upload error:', err)
     res.status(500).json({ message: err.message })
   }
 })
