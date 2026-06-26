@@ -115,9 +115,7 @@ router.put('/change-password', protect, async (req, res) => {
   }
 })
 
-
-
-// POST /api/users/avatar — avatar upload 
+// POST /api/users/avatar — avatar upload karo
 router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
   try {
     if (!req.file) {
@@ -132,15 +130,8 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
 
     res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
   } catch (err) {
-  console.log("========== AVATAR ERROR ==========");
-  console.log(err);
-  console.log("message:", err.message);
-  console.log("stack:", err.stack);
-
-  res.status(500).json({
-    message: err.message,
-  });
-}
+    res.status(500).json({ message: err.message })
+  }
 })
 
 module.exports = router
