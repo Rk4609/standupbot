@@ -13,8 +13,8 @@ router.get('/team', protect, allowRoles('manager', 'admin'), getTeamStandups)
 router.get('/blockers', protect, allowRoles('manager', 'admin'), getBlockers)
 router.get('/stats', protect, allowRoles('manager', 'admin'), getTeamStats)
 //  New — Edit & Delete blocker
-router.put('/:id/blocker', protect, allowRoles('admin'), updateBlocker)
-router.delete('/:id', protect, allowRoles('admin'), deleteBlocker)
+router.put('/:id/blocker', protect, allowRoles('admin','manager'), updateBlocker)
+router.delete('/:id', protect, allowRoles('admin','manager'), deleteBlocker)
 
 
 module.exports = router
