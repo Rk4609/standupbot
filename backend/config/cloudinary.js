@@ -17,6 +17,11 @@ const storage = new CloudinaryStorage({
   }
 })
 
+const storagePackage = require("multer-storage-cloudinary");
+
+console.log(storagePackage);
+process.exit();
+
 const upload = multer({ storage })
 
 module.exports = { cloudinary, upload }
