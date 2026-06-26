@@ -87,7 +87,7 @@ export default function Profile({ user, setUser }) {
   const handlePasswordChange = async (e) => {
     e.preventDefault()
     if (passForm.newPassword !== passForm.confirmPassword) {
-      return toast.error('New passwords does not match!')
+      return toast.error('New passwords match nahi karte!')
     }
     setPassLoading(true)
     try {

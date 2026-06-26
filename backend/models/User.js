@@ -9,7 +9,7 @@
     team:     { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
     streak:   { type: Number, default: 0 },
     lastSubmission: { type: Date, default: null },
-     avatar:   { type: String, default: '' }
+    avatar:   { type: String, default: '' }
   }, { timestamps: true })
 
   // async/await
