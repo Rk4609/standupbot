@@ -116,28 +116,77 @@ router.put('/change-password', protect, async (req, res) => {
 })
 
 // POST /api/users/avatar — avatar upload karo
+// router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
+//   try {
+//     console.log('Avatar upload request received')
+//     console.log('File:', req.file)
+//     console.log('Cloudinary config:', {
+//       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+//       api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET',
+//       api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET'
+//     })
+//     if (!req.file) {
+//       return res.status(400).json({ message: 'Image required hai' })
+//     }
+
+//     const user = await User.findByIdAndUpdate(
+//       req.user._id,
+//       { avatar: req.file.path },
+//       { new: true }
+//     ).select('-password')
+
+//     res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
+//   } catch (err) {
+//     console.error('Avatar upload error:', err)
+//     res.status(500).json({ message: err.message })
+//   }
+// })
+
+const { Readable } = require('stream')
+
 router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
   try {
-    console.log('Avatar upload request received')
-    console.log('File:', req.file)
-    console.log('Cloudinary config:', {
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET',
-      api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET'
-    })
+    console.log('Avatar upload hit')
+
     if (!req.file) {
       return res.status(400).json({ message: 'Image required hai' })
     }
 
+    // ✅ Buffer ko stream mein convert karo
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const { cloudinary } = require('../config/cloudinary')
+
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'standupbot/avatars',
+            transformation: [{ width: 200, height: 200, crop: 'fill' }]
+          },
+          (error, result) => {
+            if (error) reject(error)
+            else resolve(result)
+          }
+        )
+
+        const readable = new Readable()
+        readable.push(req.file.buffer)
+        readable.push(null)
+        readable.pipe(uploadStream)
+      })
+    }
+
+    const result = await uploadToCloudinary()
+    console.log('Cloudinary upload result:', result.secure_url)
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { avatar: req.file.path },
+      { avatar: result.secure_url },
       { new: true }
     ).select('-password')
 
     res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
   } catch (err) {
-    console.error('Avatar upload error:', err)
+    console.error('Avatar upload error:', err.message)
     res.status(500).json({ message: err.message })
   }
 })
