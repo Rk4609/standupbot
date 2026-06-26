@@ -130,16 +130,8 @@ router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
 
     res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
   } catch (err) {
-  console.error("========== AVATAR ERROR ==========");
-  console.error(err);
-  console.error(err.message);
-  console.error(err.stack);
-
-  res.status(500).json({
-    message: err.message,
-    error: err.toString()
-  });
-}
+    res.status(500).json({ message: err.message })
+  }
 })
 
 module.exports = router
