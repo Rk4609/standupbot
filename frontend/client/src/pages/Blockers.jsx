@@ -27,7 +27,7 @@ export default function Blockers({ user }) {
     }
   }
 
-  // ✅ Edit blocker
+  //  Edit blocker
   const handleEdit = (blocker) => {
     setEditId(blocker._id)
     setEditText(blocker.blockers)
@@ -51,7 +51,7 @@ export default function Blockers({ user }) {
     }
   }
 
-  // ✅ Delete standup
+  //  Delete standup
   const handleDelete = async (id) => {
     setActionLoading(true)
     try {
@@ -171,7 +171,7 @@ export default function Blockers({ user }) {
                   {b.today}
                 </div>
 
-                {/* ✅ Admin Actions */}
+                {/*  Admin Actions */}
                 {isAdmin && editId !== b._id && (
                   <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
 

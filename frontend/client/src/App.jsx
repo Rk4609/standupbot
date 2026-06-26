@@ -1,18 +1,19 @@
-import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
-import { getUser } from './store/authStore'
+import { useState } from "react"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { Toaster } from "react-hot-toast"
+import { getUser } from "./store/authStore"
 
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import NewStandup from './pages/NewStandup'
-import History from './pages/History'
-import TeamView from './pages/TeamView'
-import Blockers from './pages/Blockers'
-import AdminPanel from './pages/AdminPanel'
-import Navbar from './components/Navbar'
-import ProtectedRoute from './components/ProtectedRoute'
+import Login from "./pages/Login"
+import Register from "./pages/Register"
+import Dashboard from "./pages/Dashboard"
+import NewStandup from "./pages/NewStandup"
+import History from "./pages/History"
+import TeamView from "./pages/TeamView"
+import Blockers from "./pages/Blockers"
+import AdminPanel from "./pages/AdminPanel"
+import Navbar from "./components/Navbar"
+import ProtectedRoute from "./components/ProtectedRoute"
+import Profile from './pages/Profile'
 
 export default function App() {
   const [user, setUser] = useState(getUser())
@@ -22,8 +23,22 @@ export default function App() {
       <Toaster position="top-right" />
       {user && <Navbar user={user} setUser={setUser} />}
       <Routes>
-        <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/dashboard" />} />
-        <Route path="/register" element={!user ? <Register setUser={setUser} /> : <Navigate to="/dashboard" />} />
+        <Route
+          path="/login"
+          element={
+            !user ? <Login setUser={setUser} /> : <Navigate to="/dashboard" />
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            !user ? (
+              <Register setUser={setUser} />
+            ) : (
+              <Navigate to="/dashboard" />
+            )
+          }
+        />
 
         <Route element={<ProtectedRoute user={user} />}>
           <Route path="/dashboard" element={<Dashboard user={user} />} />
@@ -31,16 +46,26 @@ export default function App() {
           <Route path="/history" element={<History />} />
         </Route>
 
-        <Route element={<ProtectedRoute user={user} roles={['manager', 'admin']} />}>
+        <Route
+          element={<ProtectedRoute user={user} roles={["manager", "admin"]} />}
+        >
           <Route path="/team" element={<TeamView />} />
-          <Route path="/blockers" element={<Blockers user={user}/>} />
+          <Route path="/blockers" element={<Blockers user={user} />} />
         </Route>
 
-        <Route element={<ProtectedRoute user={user} roles={['admin']} />}>
+        <Route
+          path="/profile"
+          element={<Profile user={user} setUser={setUser} />}
+        />
+
+        <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
           <Route path="/admin" element={<AdminPanel />} />
         </Route>
 
-        <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} />} />
+        <Route
+          path="*"
+          element={<Navigate to={user ? "/dashboard" : "/login"} />}
+        />
       </Routes>
     </BrowserRouter>
   )
