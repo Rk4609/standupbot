@@ -304,7 +304,7 @@ export default function Profile({ user, setUser }) {
                   className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                 />
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                  Email change nahi ho sakta
+                 Email cannot be changed.
                 </p>
               </div>
               <div>
