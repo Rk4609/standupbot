@@ -1,5 +1,4 @@
-const cloudinary = require('cloudinary').v2  // v1 mein bhi .v2 kaam karta hai
-const { CloudinaryStorage } = require('multer-storage-cloudinary')
+const cloudinary = require('cloudinary').v2
 const multer = require('multer')
 
 cloudinary.config({
@@ -8,15 +7,17 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 })
 
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'standupbot/avatars',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 200, height: 200, crop: 'fill' }]
+// Memory storage — file disk pe nahi jaati
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only images allowed!'), false)
+    }
   }
 })
-
-const upload = multer({ storage })
 
 module.exports = { cloudinary, upload }

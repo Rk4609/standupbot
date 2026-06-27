@@ -102,20 +102,65 @@ router.put('/change-password', protect, async (req, res) => {
 })
 
 // POST /api/users/avatar — avatar upload karo
+// router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: 'Image required hai' })
+//     }
+
+//     const user = await User.findByIdAndUpdate(
+//       req.user._id,
+//       { avatar: req.file.path },
+//       { new: true }
+//     ).select('-password')
+
+//     res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
+//   } catch (err) {
+//     res.status(500).json({ message: err.message })
+//   }
+// })
+
+const { Readable } = require('stream')
+
 router.post('/avatar', protect, upload.single('avatar'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Image required hai' })
     }
 
+    const { cloudinary } = require('../config/cloudinary')
+
+    // ✅ Buffer se stream banao aur Cloudinary pe upload karo
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'standupbot/avatars',
+            transformation: [{ width: 200, height: 200, crop: 'fill' }]
+          },
+          (error, result) => {
+            if (error) reject(error)
+            else resolve(result)
+          }
+        )
+        const readable = new Readable()
+        readable.push(req.file.buffer)
+        readable.push(null)
+        readable.pipe(uploadStream)
+      })
+    }
+
+    const result = await uploadToCloudinary()
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { avatar: req.file.path },
+      { avatar: result.secure_url },
       { new: true }
     ).select('-password')
 
     res.json({ avatar: user.avatar, message: 'Avatar updated! ✅' })
   } catch (err) {
+    console.error('Avatar upload error:', err.message)
     res.status(500).json({ message: err.message })
   }
 })
