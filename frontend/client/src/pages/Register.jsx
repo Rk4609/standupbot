@@ -72,7 +72,6 @@ export default function Register({ setUser }) {
             >
               <option value="member">Member — Submit daily standups</option>
               <option value="manager">Manager — View team progress</option>
-              <option value="admin">Admin — Manage teams & users</option>
             </select>
           </div>
           <button type="submit" disabled={loading}
