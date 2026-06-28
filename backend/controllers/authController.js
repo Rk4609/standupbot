@@ -12,12 +12,12 @@ const register = async (req, res) => {
     if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ message: "Name, email aur password required hain" })
+        .json({ message: "Name, email and password required " })
     }
 
     const exists = await User.findOne({ email })
     if (exists) {
-      return res.status(400).json({ message: "Email already registered hai" })
+      return res.status(400).json({ message: "Email already registered " })
     }
 
     // Role validate karo
@@ -60,12 +60,12 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res
         .status(400)
-        .json({ message: "Email aur password required hain" })
+        .json({ message: "Email aur password required " })
     }
 
     const user = await User.findOne({ email })
     if (!user || !(await user.matchPassword(password))) {
-      return res.status(401).json({ message: "Invalid email ya password" })
+      return res.status(401).json({ message: "Invalid email or password" })
     }
 
     res.json({

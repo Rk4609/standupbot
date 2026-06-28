@@ -12,7 +12,7 @@ const createTeam = async (req, res) => {
 const addMember = async (req, res) => {
   const { userId } = req.body
   const team = await Team.findById(req.params.id)
-  if (!team) return res.status(404).json({ message: 'Team nahi mili' })
+  if (!team) return res.status(404).json({ message: 'Team not found' })
 
   team.members.addToSet(userId)
   await team.save()
