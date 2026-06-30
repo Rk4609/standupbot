@@ -247,5 +247,105 @@ const sendManagerSummary = async (managerEmail, managerName, standups, teamName)
     `,
   })
 }
+// ✅ Reset password email
+const sendResetPasswordEmail = async (toEmail, name, resetUrl) => {
+  await transporter.sendMail({
+    from: {
+      name: 'StandupBot',
+      address: process.env.EMAIL_USER
+    },
+    to: toEmail,
+    subject: 'Reset Your StandupBot Password',
+    headers: {
+      'X-Priority': '3',
+      'X-Mailer': 'StandupBot Mailer'
+    },
+    text: `Hello ${name}, click this link to reset your password: ${resetUrl}. This link expires in 1 hour. If you didn't request this, please ignore this email.`,
+    html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reset Password</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f9fafb; font-family:Arial, Helvetica, sans-serif;">
 
-module.exports = { sendReminderEmail, sendManagerSummary }
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb; padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden;">
+
+          <tr>
+            <td style="background:#7c3aed; padding:24px 32px;">
+              <h1 style="margin:0; color:#ffffff; font-size:22px; font-weight:700;">
+                🤖 StandupBot
+              </h1>
+              <p style="margin:4px 0 0; color:#ddd6fe; font-size:13px;">
+                Password Reset Request
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px; color:#1f2937; font-size:20px;">
+                Hello ${name}! 🔒
+              </h2>
+
+              <p style="margin:0 0 12px; color:#4b5563; font-size:15px; line-height:1.7;">
+                We received a request to reset your password. Click the button below
+                to set a new password for your account.
+              </p>
+
+              <p style="margin:0 0 24px; color:#4b5563; font-size:15px; line-height:1.7;">
+                This link is valid for <strong>1 hour</strong>. If you didn't request
+                this, you can safely ignore this email.
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <a href="${resetUrl}"
+                      style="display:inline-block; background:#7c3aed; color:#ffffff;
+                             text-decoration:none; padding:14px 32px; border-radius:8px;
+                             font-size:15px; font-weight:700;">
+                      Reset Password →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:24px 0 0; color:#9ca3af; font-size:12px; word-break:break-all;">
+                Or copy this link: ${resetUrl}
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:20px 32px; background:#f9fafb; border-top:1px solid #e5e7eb;">
+              <p style="margin:0; color:#9ca3af; font-size:12px; text-align:center; line-height:1.6;">
+                If you didn't request a password reset, please ignore this email
+                or contact support if you have concerns.<br/><br/>
+                © 2025 StandupBot · All rights reserved
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+    `
+  })
+}
+
+//  Export update 
+module.exports = {
+  sendReminderEmail,
+  sendManagerSummary,
+  sendResetPasswordEmail  
+}
