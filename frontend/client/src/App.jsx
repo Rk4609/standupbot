@@ -13,7 +13,9 @@ import Blockers from "./pages/Blockers"
 import AdminPanel from "./pages/AdminPanel"
 import Navbar from "./components/Navbar"
 import ProtectedRoute from "./components/ProtectedRoute"
-import Profile from './pages/Profile'
+import Profile from "./pages/Profile"
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 export default function App() {
   const [user, setUser] = useState(getUser())
@@ -65,6 +67,14 @@ export default function App() {
         <Route
           path="*"
           element={<Navigate to={user ? "/dashboard" : "/login"} />}
+        />
+        <Route
+          path="/forgot-password"
+          element={!user ? <ForgotPassword /> : <Navigate to="/dashboard" />}
+        />
+        <Route
+          path="/reset-password/:token"
+          element={!user ? <ResetPassword /> : <Navigate to="/dashboard" />}
         />
       </Routes>
     </BrowserRouter>
