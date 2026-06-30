@@ -1,16 +1,31 @@
 const nodemailer = require('nodemailer')
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  family: 4,    
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 10000,  // 10 second timeout
+  greetingTimeout: 10000,
+  socketTimeout: 10000
 })
 // emailService.js mein top pe yeh add karo temporarily
 console.log('Email config check:', {
   user: process.env.EMAIL_USER,
   pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET'
+})
+
+// connection verify on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('❌ Email transporter error:', error.message)
+  } else {
+    console.log('✅ Email server ready to send messages')
+  }
 })
 
 // ✅ Reminder email — member ko
