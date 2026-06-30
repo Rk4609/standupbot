@@ -7,6 +7,11 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 })
+// emailService.js mein top pe yeh add karo temporarily
+console.log('Email config check:', {
+  user: process.env.EMAIL_USER,
+  pass: process.env.EMAIL_PASS ? 'SET' : 'NOT SET'
+})
 
 // ✅ Reminder email — member ko
 const sendReminderEmail = async (toEmail, name) => {

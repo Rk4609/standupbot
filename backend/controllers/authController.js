@@ -77,43 +77,47 @@ const login = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body
+    console.log('Forgot password request for:', email)
+
     if (!email) {
       return res.status(400).json({ message: 'Email required hai' })
     }
 
     const user = await User.findOne({ email })
+    console.log('User found:', !!user)
 
-    // Security — user exist nahi karta toh bhi same message do
     if (!user) {
       return res.json({
         message: 'Agar yeh email registered hai, toh reset link bhej diya gaya hai'
       })
     }
 
-    // ✅ Random token generate karo
     const resetToken = crypto.randomBytes(32).toString('hex')
-
-    // Token ko hash karke DB mein store karo (security)
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(resetToken)
-      .digest('hex')
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex')
 
     user.resetPasswordToken = hashedToken
-    user.resetPasswordExpire = Date.now() + 60 * 60 * 1000 // 1 hour
+    user.resetPasswordExpire = Date.now() + 60 * 60 * 1000
     await user.save()
+    console.log('Token saved to DB')
 
-    // ✅ Reset URL banao — plain token URL mein jayega
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`
-
-    await sendResetPasswordEmail(user.email, user.name, resetUrl)
+    console.log('Reset URL:', resetUrl)
 
     res.json({
       message: 'Agar yeh email registered hai, toh reset link bhej diya gaya hai'
     })
+
+    // Background mein email bhejo
+    sendResetPasswordEmail(user.email, user.name, resetUrl)
+      .then(() => console.log('✅ Reset email sent successfully'))
+      .catch(err => console.error('❌ Reset email failed:', err.message))
+
   } catch (err) {
-    console.error('Forgot password error:', err)
-    res.status(500).json({ message: 'Email bhejne mein error aaya' })
+    console.error('❌ Forgot password error:', err.message)
+    console.error(err.stack)
+    if (!res.headersSent) {
+      res.status(500).json({ message: err.message || 'Email bhejne mein error aaya' })
+    }
   }
 }
 
