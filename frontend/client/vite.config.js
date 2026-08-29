@@ -28,6 +28,32 @@ export default defineConfig({
             purpose: 'any'
           }
         ]
+      },
+
+      workbox: {
+        runtimeCaching: [
+          {
+            // StandupBot backend API cache
+            urlPattern: /^https:\/\/standupbot-backend\.onrender\.com\/api\/.*$/i,
+
+            handler: 'NetworkFirst',
+
+            options: {
+              cacheName: 'standupbot-api-cache',
+
+              networkTimeoutSeconds: 10,
+
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24
+              },
+
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
       }
     })
   ],

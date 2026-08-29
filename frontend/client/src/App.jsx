@@ -14,16 +14,25 @@ import AdminPanel from "./pages/AdminPanel"
 import Navbar from "./components/Navbar"
 import ProtectedRoute from "./components/ProtectedRoute"
 import Profile from "./pages/Profile"
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
+import ForgotPassword from "./pages/ForgotPassword"
+import ResetPassword from "./pages/ResetPassword"
+
+// NEW
+import OfflineIndicator from "./components/OfflineIndicator"
 
 export default function App() {
   const [user, setUser] = useState(getUser())
 
   return (
     <BrowserRouter>
+
+      {/* Offline status banner */}
+      <OfflineIndicator />
+
       <Toaster position="top-right" />
+
       {user && <Navbar user={user} setUser={setUser} />}
+
       <Routes>
         <Route
           path="/login"
@@ -31,6 +40,7 @@ export default function App() {
             !user ? <Login setUser={setUser} /> : <Navigate to="/dashboard" />
           }
         />
+
         <Route
           path="/register"
           element={
@@ -65,16 +75,18 @@ export default function App() {
         </Route>
 
         <Route
-          path="*"
-          element={<Navigate to={user ? "/dashboard" : "/login"} />}
-        />
-        <Route
           path="/forgot-password"
           element={!user ? <ForgotPassword /> : <Navigate to="/dashboard" />}
         />
+
         <Route
           path="/reset-password/:token"
           element={!user ? <ResetPassword /> : <Navigate to="/dashboard" />}
+        />
+
+        <Route
+          path="*"
+          element={<Navigate to={user ? "/dashboard" : "/login"} />}
         />
       </Routes>
     </BrowserRouter>
