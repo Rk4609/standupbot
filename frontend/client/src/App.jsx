@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { Suspense, lazy, useState } from "react"
 import {
   BrowserRouter,
   Routes,
@@ -10,22 +10,45 @@ import { AnimatePresence, MotionConfig } from "framer-motion"
 import { Toaster } from "react-hot-toast"
 import { getUser } from "./store/authStore"
 
-import Login from "./pages/Login"
-import Register from "./pages/Register"
-import Dashboard from "./pages/Dashboard"
-import NewStandup from "./pages/NewStandup"
-import History from "./pages/History"
-import TeamView from "./pages/TeamView"
-import Blockers from "./pages/Blockers"
-import AdminPanel from "./pages/AdminPanel"
-import Profile from "./pages/Profile"
-import ForgotPassword from "./pages/ForgotPassword"
-import ResetPassword from "./pages/ResetPassword"
-import Retro from "./pages/Retro"
-
 import Navbar from "./components/Navbar"
 import ProtectedRoute from "./components/ProtectedRoute"
 import OfflineIndicator from "./components/OfflineIndicator"
+import Skeleton from "./components/ui/Skeleton"
+
+/**
+ * Pages are loaded on demand so the first paint does not ship every screen.
+ * This keeps recharts (only used by Team and Admin) out of the entry bundle.
+ */
+const Login = lazy(() => import("./pages/Login"))
+const Register = lazy(() => import("./pages/Register"))
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"))
+const ResetPassword = lazy(() => import("./pages/ResetPassword"))
+const Dashboard = lazy(() => import("./pages/Dashboard"))
+const NewStandup = lazy(() => import("./pages/NewStandup"))
+const History = lazy(() => import("./pages/History"))
+const Profile = lazy(() => import("./pages/Profile"))
+const TeamView = lazy(() => import("./pages/TeamView"))
+const Blockers = lazy(() => import("./pages/Blockers"))
+const Retro = lazy(() => import("./pages/Retro"))
+const AdminPanel = lazy(() => import("./pages/AdminPanel"))
+
+/** Shown while a route chunk is in flight — mirrors the page layout. */
+function RouteFallback() {
+  return (
+    <div className="min-h-screen bg-surface-muted px-4 py-6 md:py-8">
+      <div className="mx-auto max-w-3xl">
+        <Skeleton className="mb-2 h-7 w-56" />
+        <Skeleton className="mb-6 h-4 w-40" />
+        <div className="mb-5 grid grid-cols-3 gap-3">
+          {[0, 1, 2].map(i => (
+            <Skeleton key={i} className="h-[76px] rounded-card md:h-[88px]" />
+          ))}
+        </div>
+        <Skeleton className="h-64 rounded-card" />
+      </div>
+    </div>
+  )
+}
 
 /**
  * Routes live in their own component so they can read the location — the key
@@ -109,7 +132,9 @@ export default function App() {
 
         {user && <Navbar user={user} setUser={setUser} />}
 
-        <AnimatedRoutes user={user} setUser={setUser} />
+        <Suspense fallback={<RouteFallback />}>
+          <AnimatedRoutes user={user} setUser={setUser} />
+        </Suspense>
       </BrowserRouter>
     </MotionConfig>
   )
