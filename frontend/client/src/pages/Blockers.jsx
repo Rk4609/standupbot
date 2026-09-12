@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 export default function Blockers({ user }) {
   const [blockers, setBlockers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [editId, setEditId] = useState(null)
   const [editText, setEditText] = useState('')
   const [deleteId, setDeleteId] = useState(null)
@@ -18,10 +19,12 @@ export default function Blockers({ user }) {
   const fetchBlockers = async () => {
     try {
       setLoading(true)
+      setError('')
       const { data } = await API.get('/standups/blockers')
       setBlockers(data)
     } catch (err) {
       console.error(err)
+      setError(err.response?.data?.message || 'Blockers load nahi ho paaye')
     } finally {
       setLoading(false)
     }
@@ -89,6 +92,15 @@ export default function Blockers({ user }) {
         {loading ? (
           <div className="text-center text-gray-400 dark:text-gray-500 py-10">
             Loading...
+          </div>
+
+        /* Error */
+        ) : error ? (
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl p-6 md:p-8 text-center">
+            <p className="text-2xl mb-2">⚠️</p>
+            <p className="font-medium text-red-700 dark:text-red-400 text-sm md:text-base">
+              {error}
+            </p>
           </div>
 
         /* No Blockers */

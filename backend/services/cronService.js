@@ -8,7 +8,7 @@ const startCronJobs = () => {
   // console.log('✅ Cron jobs registered!')
 
   // ⏰ Morning Reminder — Every day at 9:00 AM IST (Mon-Fri)
-  cron.schedule('30 3 * * 1-5', async () => {
+  cron.schedule('0 9 * * 1-5', async () => {
     console.log('⏰ Morning reminder cron running...')
     try {
       const today = new Date().toISOString().split('T')[0]

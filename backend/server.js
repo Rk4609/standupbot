@@ -2,6 +2,7 @@ const express = require('express')
 const dotenv = require('dotenv')
 const cors = require('cors')
 const http = require('http')
+const jwt = require('jsonwebtoken')
 const { Server } = require('socket.io')
 const connectDB = require('./config/db')
 
@@ -64,14 +65,27 @@ const aiRoutes = require('./routes/aiRoutes')
 console.log("✅ AI routes registered")
 app.use('/api/ai', aiRoutes)
 
+// ✅ Socket.io auth — handshake mein JWT verify karo
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token
+  if (!token) return next(new Error('Authentication required'))
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    socket.userId = decoded.id
+    next()
+  } catch {
+    next(new Error('Invalid token'))
+  }
+})
+
 // ✅ Socket.io events
 io.on('connection', (socket) => {
   console.log(`✅ User connected: ${socket.id}`)
 
-  socket.on('join', (userId) => {
-    socket.join(userId)
-    console.log(`User ${userId} joined their room`)
-  })
+  // ✅ Sirf apne hi room mein join — client se userId nahi lete
+  socket.join(socket.userId)
+  console.log(`User ${socket.userId} joined their room`)
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`)

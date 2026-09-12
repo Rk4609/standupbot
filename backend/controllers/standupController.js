@@ -13,6 +13,15 @@ const getTeamId = async (user) => {
   return null // admin
 }
 
+// ✅ Helper — kya yeh user is standup ko modify kar sakta hai?
+// Admin sab kuch, manager sirf apni team ka
+const canModifyStandup = async (user, standup) => {
+  if (user.role === 'admin') return true
+  const teamId = await getTeamId(user)
+  if (!teamId || !standup.team) return false
+  return standup.team.toString() === teamId.toString()
+}
+
 // POST /api/standups
 const submitStandup = async (req, res) => {
   try {
@@ -151,7 +160,10 @@ const getBlockers = async (req, res) => {
 
     if (req.user.role !== 'admin') {
       const teamId = await getTeamId(req.user)
-      if (teamId) filter.team = teamId
+      if (!teamId) {
+        return res.status(400).json({ message: 'You are not part of any team!' })
+      }
+      filter.team = teamId
     }
 
     const standups = await Standup.find(filter)
@@ -181,8 +193,10 @@ const getTeamStats = async (req, res) => {
       console.log('Admin — showing all stats')
     } else {
       const teamId = await getTeamId(req.user)
-      if (teamId) filter.team = teamId
-      console.log('Resolved teamId:', teamId)
+      if (!teamId) {
+        return res.status(400).json({ message: 'You are not part of any team!' })
+      }
+      filter.team = teamId
     }
 
     const stats = await Promise.all(last7.map(async (date) => {
@@ -208,6 +222,10 @@ const updateBlocker = async (req, res) => {
       return res.status(404).json({ message: 'Standup not found' })
     }
 
+    if (!(await canModifyStandup(req.user, standup))) {
+      return res.status(403).json({ message: 'Access denied — this standup is not from your team' })
+    }
+
     const hasBlocker = blockers && blockers.trim() !== '' && blockers.toLowerCase() !== 'none'
 
     standup.blockers = blockers || 'None'
@@ -227,6 +245,10 @@ const deleteBlocker = async (req, res) => {
     const standup = await Standup.findById(req.params.id)
     if (!standup) {
       return res.status(404).json({ message: 'Standup not found' })
+    }
+
+    if (!(await canModifyStandup(req.user, standup))) {
+      return res.status(403).json({ message: 'Access denied — this standup is not from your team' })
     }
 
     await Standup.findByIdAndDelete(req.params.id)

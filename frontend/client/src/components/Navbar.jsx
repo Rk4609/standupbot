@@ -26,7 +26,7 @@ export default function Navbar({ user, setUser }) {
   useEffect(() => {
     if (!user) return
     socket.connect()
-    socket.emit('join', user._id)
+    // Room join server side pe JWT se hota hai — yahan userId bhejne ki zarurat nahi
 
     const fetchNotifications = async () => {
       try {
@@ -42,8 +42,13 @@ export default function Navbar({ user, setUser }) {
       setNotifications(prev => [notif, ...prev])
     })
 
+    socket.on('connect_error', (err) => {
+      console.error('Socket connection failed:', err.message)
+    })
+
     return () => {
       socket.off('new-notification')
+      socket.off('connect_error')
       socket.disconnect()
     }
   }, [user])
