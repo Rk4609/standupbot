@@ -19,6 +19,7 @@ import {
   IconShield,
   IconSparkles,
   IconSun,
+  IconTrendUp,
   IconUsers
 } from './ui/icons'
 
@@ -41,6 +42,7 @@ const navGroups = (user) => {
         { to: '/team', label: 'Overview', icon: IconChart },
         { to: '/employees', label: 'Employees', icon: IconUsers },
         { to: '/blockers', label: 'Blockers', icon: IconAlert },
+        { to: '/analytics', label: 'Analytics', icon: IconTrendUp },
         { to: '/retro', label: 'Weekly retro', icon: IconSparkles }
       ]
     },

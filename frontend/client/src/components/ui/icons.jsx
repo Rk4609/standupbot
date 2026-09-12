@@ -185,6 +185,9 @@ export const IconSun = (p) => (
 export const IconMoon = (p) => (
   <Svg {...p}><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></Svg>
 )
+export const IconTrendUp = (p) => (
+  <Svg {...p}><path d="M3 17l6.5-6.5 4 4L21 7" /><path d="M21 12.5V7h-5.5" /></Svg>
+)
 export const IconTrendDown = (p) => (
   <Svg {...p}><path d="M3 7l6.5 6.5 4-4L21 17" /><path d="M21 12.5V17h-4.5" /></Svg>
 )

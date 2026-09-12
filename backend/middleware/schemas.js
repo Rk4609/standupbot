@@ -81,6 +81,14 @@ const listEmployees = {
   }).strip()
 }
 
+/* analytics -------------------------------------------------------- */
+
+const analyticsRange = {
+  query: z.object({
+    days: z.coerce.number().int().positive().optional()
+  }).strip()
+}
+
 /* ai / retro ------------------------------------------------------- */
 
 const analyzeTeam = z.object({ date: isoDate.optional() }).strict()
@@ -101,6 +109,7 @@ module.exports = {
   changePassword,
   setRole,
   listEmployees,
+  analyticsRange,
   analyzeTeam,
   generateRetro
 }
