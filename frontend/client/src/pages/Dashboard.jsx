@@ -12,6 +12,7 @@ import StreakHeatmap from '../components/StreakHeatmap'
 import { MOOD_EMOJI } from '../lib/moods'
 import { itemVariants } from '../lib/motion'
 import { cn } from '../lib/cn'
+import { IconTarget } from '../components/ui/icons'
 
 const isoToday = () => new Date().toISOString().split('T')[0]
 
@@ -205,7 +206,7 @@ export default function Dashboard({ user }) {
 
         {recent.length === 0 ? (
           <EmptyState
-            icon="🎯"
+            icon={<IconTarget className="h-6 w-6" />}
             title="No standups yet"
             description="Submit your first one and start a streak."
             action={

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import Badge from './ui/Badge'
 import Skeleton from './ui/Skeleton'
 import { cn } from '../lib/cn'
+import { IconAlert, IconCheck, IconClose, IconCopy, IconRefresh, IconSparkles } from './ui/icons'
 
 // Capturing group keeps the delimiters, so split() returns the markers too
 const INLINE = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`)/g
@@ -142,16 +143,19 @@ export default function AiReport({
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span aria-hidden="true" className="text-xl">
-            🧠
-          </span>
+          <IconSparkles className="h-[18px] w-[18px] text-brand-600 dark:text-brand-400" />
           <span className="text-sm font-semibold text-content md:text-base">{title}</span>
           {loading && (
             <Badge tone="brand" className="animate-pulse">
               Generating…
             </Badge>
           )}
-          {!loading && text && <Badge tone="positive">✅ Complete</Badge>}
+          {!loading && text && (
+            <Badge tone="positive">
+              <IconCheck className="h-3 w-3" />
+              Complete
+            </Badge>
+          )}
         </div>
 
         {onClose && (
@@ -160,14 +164,17 @@ export default function AiReport({
             aria-label="Close report"
             className="no-print -mr-1 -mt-1 rounded-lg p-1 text-lg leading-none text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content"
           >
-            ✕
+            <IconClose className="h-4 w-4" />
           </button>
         )}
       </div>
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/50">
-          <p className="text-sm text-red-600 dark:text-red-400">❌ {error}</p>
+          <p className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
+            <IconAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            {error}
+          </p>
         </div>
       )}
 
@@ -211,7 +218,8 @@ export default function AiReport({
                 onClick={onRegenerate}
                 className="text-xs text-content-muted transition-colors hover:text-brand-600 dark:hover:text-brand-400"
               >
-                🔄 Regenerate
+                <IconRefresh className="h-3.5 w-3.5" />
+                Regenerate
               </button>
             )}
             {onCopy && (
@@ -219,7 +227,8 @@ export default function AiReport({
                 onClick={onCopy}
                 className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
               >
-                📋 Copy
+                <IconCopy className="h-3.5 w-3.5" />
+                Copy
               </button>
             )}
           </div>

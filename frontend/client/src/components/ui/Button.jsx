@@ -16,6 +16,9 @@ const VARIANTS = {
     'bg-red-600 text-white hover:bg-red-700',
   'danger-subtle':
     'border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-900 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900',
+  // Destructive but not shouting — reads as an option, not a warning
+  'quiet-danger':
+    'border border-line text-content-muted hover:border-red-400/50 hover:bg-red-500/[0.07] hover:text-red-600 dark:hover:text-red-400',
   ghost:
     'text-content-muted hover:bg-surface-sunken hover:text-content'
 }

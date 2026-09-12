@@ -14,7 +14,7 @@ import { MOOD_OPTIONS } from '../lib/moods'
 
 
 
-function Question({ step, icon, label, optional, children }) {
+function Question({ step, label, optional, children }) {
   return (
     <Card>
       <label className="mb-3 flex items-start gap-3">
@@ -22,9 +22,6 @@ function Question({ step, icon, label, optional, children }) {
           {step}
         </span>
         <span className="text-sm font-medium text-content md:text-base">
-          <span aria-hidden="true" className="mr-1.5">
-            {icon}
-          </span>
           {label}
           {optional && (
             <span className="ml-1.5 text-xs font-normal text-content-subtle">(optional)</span>
@@ -53,7 +50,7 @@ export default function NewStandup() {
     setLoading(true)
     try {
       await API.post('/standups', form)
-      toast.success('Standup submitted! 🎉')
+      toast.success('Standup submitted')
       navigate('/dashboard')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong')
@@ -71,10 +68,10 @@ export default function NewStandup() {
 
   return (
     <PageShell width="sm">
-      <PageHeader title="Daily standup 📋" subtitle={dateLabel} />
+      <PageHeader title="Daily standup" subtitle={dateLabel} />
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Question step={1} icon="✅" label="What did you accomplish yesterday?">
+        <Question step={1} label="What did you accomplish yesterday?">
           <Textarea
             required
             rows={3}
@@ -84,7 +81,7 @@ export default function NewStandup() {
           />
         </Question>
 
-        <Question step={2} icon="🎯" label="What are you working on today?">
+        <Question step={2} label="What are you working on today?">
           <Textarea
             required
             rows={3}
@@ -94,7 +91,7 @@ export default function NewStandup() {
           />
         </Question>
 
-        <Question step={3} icon="🚨" label="Any blockers or impediments?" optional>
+        <Question step={3} label="Any blockers or impediments?" optional>
           <Textarea
             rows={2}
             value={form.blockers}
@@ -109,9 +106,6 @@ export default function NewStandup() {
               4
             </span>
             <span className="text-sm font-medium text-content md:text-base">
-              <span aria-hidden="true" className="mr-1.5">
-                💭
-              </span>
               How are you feeling today?
             </span>
           </label>
@@ -159,7 +153,7 @@ export default function NewStandup() {
         </Card>
 
         <Button type="submit" size="lg" full loading={loading}>
-          {loading ? 'Submitting…' : '🚀 Submit standup'}
+          {loading ? 'Submitting…' : 'Submit standup'}
         </Button>
       </form>
     </PageShell>

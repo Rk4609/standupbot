@@ -10,6 +10,7 @@ import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { Textarea } from '../components/ui/Field'
+import { IconAlert, IconCheck, IconHourglass, IconPencil, IconTrash } from '../components/ui/icons'
 import { DURATION, EASE, collapseVariants } from '../lib/motion'
 
 const loadBlockers = () => API.get('/standups/blockers').then(res => res.data)
@@ -78,7 +79,7 @@ export default function Blockers({ user }) {
     setActionLoading(true)
     try {
       await API.put(`/standups/${id}/blocker`, { blockers: editText })
-      toast.success('Blocker updated ✅')
+      toast.success('Blocker updated')
       setEditId(null)
       refresh()
     } catch (err) {
@@ -92,7 +93,7 @@ export default function Blockers({ user }) {
     setActionLoading(true)
     try {
       await API.delete(`/standups/${id}`)
-      toast.success('Standup deleted 🗑️')
+      toast.success('Standup deleted')
       setDeleteId(null)
       setBlockers(prev => prev.filter(b => b._id !== id))
     } catch (err) {
@@ -108,12 +109,13 @@ export default function Blockers({ user }) {
   return (
     <PageShell>
       <PageHeader
-        title="🚨 Active blockers"
+        title="Active blockers"
         subtitle="Everything currently slowing your team down"
         actions={
           canManage && (
-            <Badge tone="danger">
-              {user?.role === 'admin' ? 'Admin' : 'Manager'} — edit &amp; delete enabled
+            <Badge tone="neutral">
+              <IconPencil className="h-3 w-3" />
+              {user?.role === 'admin' ? 'Admin' : 'Manager'} — can edit &amp; delete
             </Badge>
           )
         }
@@ -123,11 +125,11 @@ export default function Blockers({ user }) {
         <motion.div
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-4 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/50"
+          className="mb-5 flex items-center gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-4 py-3"
         >
-          <span aria-hidden="true">⏳</span>
-          <p className="text-sm text-amber-800 dark:text-amber-300">
-            <strong>{agingCount}</strong>{' '}
+          <IconHourglass className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            <strong className="font-semibold">{agingCount}</strong>{' '}
             {agingCount === 1 ? 'blocker has' : 'blockers have'} been open for 3+ days
           </p>
         </motion.div>
@@ -140,10 +142,10 @@ export default function Blockers({ user }) {
           ))}
         </div>
       ) : error ? (
-        <EmptyState icon="⚠️" tone="danger" title={error} />
+        <EmptyState icon={<IconAlert className="h-7 w-7" />} tone="danger" title={error} />
       ) : blockers.length === 0 ? (
         <EmptyState
-          icon="🎉"
+          icon={<IconCheck className="h-6 w-6" />}
           tone="positive"
           title="No blockers reported"
           description="Everything is running smoothly."
@@ -163,10 +165,10 @@ export default function Blockers({ user }) {
                   exit={{ opacity: 0, x: -24, scale: 0.97 }}
                   transition={{ duration: DURATION.base, ease: EASE }}
                 >
-                  <Card className="border-red-100 p-4 dark:border-red-950 md:p-5">
+                  <Card className="p-4 md:p-5">
                     {/* Author row */}
                     <div className="mb-3 flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-sm font-semibold text-red-600 dark:bg-red-950 dark:text-red-400">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600/12 text-sm font-semibold text-brand-700 dark:text-brand-300">
                         {b.user.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -177,7 +179,7 @@ export default function Blockers({ user }) {
                           {b.user.email} · {b.date}
                         </p>
                       </div>
-                      <Badge tone={aging ? 'warning' : 'danger'}>
+                      <Badge tone={aging ? 'warning' : 'neutral'}>
                         {age === 0 ? 'Today' : `${age}d old`}
                       </Badge>
                     </div>
@@ -208,7 +210,7 @@ export default function Blockers({ user }) {
                               loading={actionLoading}
                               onClick={() => handleSaveEdit(b._id)}
                             >
-                              {actionLoading ? 'Saving…' : '✅ Save changes'}
+                              {actionLoading ? 'Saving…' : 'Save changes'}
                             </Button>
                             <Button
                               size="sm"
@@ -226,9 +228,13 @@ export default function Blockers({ user }) {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="rounded-xl border-l-[3px] border-l-red-500 bg-red-50 px-4 py-3 dark:bg-red-950/50"
+                          className="rounded-lg border-l-2 border-red-500/70 bg-red-500/[0.055] py-2.5 pl-3.5 pr-4"
                         >
-                          <p className="text-sm text-red-700 dark:text-red-300">{b.blockers}</p>
+                          <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-red-600 dark:text-red-400">
+                            <IconAlert className="h-3.5 w-3.5" />
+                            Blocker
+                          </p>
+                          <p className="text-sm leading-relaxed text-content">{b.blockers}</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -243,11 +249,12 @@ export default function Blockers({ user }) {
                       <div className="mt-3 flex gap-2 border-t border-line pt-3">
                         <Button
                           size="sm"
-                          variant="subtle"
+                          variant="outline"
                           full
                           onClick={() => handleEdit(b)}
                         >
-                          ✏️ Edit blocker
+                          <IconPencil className="h-3.5 w-3.5" />
+                          Edit
                         </Button>
 
                         {deleteId === b._id ? (
@@ -273,14 +280,15 @@ export default function Blockers({ user }) {
                         ) : (
                           <Button
                             size="sm"
-                            variant="danger-subtle"
+                            variant="quiet-danger"
                             full
                             onClick={() => {
                               setDeleteId(b._id)
                               setEditId(null)
                             }}
                           >
-                            🗑️ Delete
+                            <IconTrash className="h-3.5 w-3.5" />
+                            Delete
                           </Button>
                         )}
                       </div>

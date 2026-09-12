@@ -13,6 +13,7 @@ import Skeleton from '../components/ui/Skeleton'
 import { Field, Input } from '../components/ui/Field'
 import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING } from '../lib/motion'
+import { IconCamera, IconHourglass, IconLock, IconPencil } from '../components/ui/icons'
 
 const ROLE_TONE = { admin: 'danger', manager: 'positive', member: 'brand' }
 
@@ -75,7 +76,7 @@ export default function Profile({ user, setUser }) {
       saveUser(updatedUser)
       setUser(updatedUser)
       setProfile(prev => ({ ...prev, avatar: data.avatar }))
-      toast.success('Avatar updated! 🎉')
+      toast.success('Avatar updated')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Upload failed')
     } finally {
@@ -93,7 +94,7 @@ export default function Profile({ user, setUser }) {
       saveUser(updatedUser)
       setUser(updatedUser)
       setProfile(prev => ({ ...prev, name: data.name }))
-      toast.success('Name updated ✅')
+      toast.success('Name updated')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed')
     } finally {
@@ -115,7 +116,7 @@ export default function Profile({ user, setUser }) {
         currentPassword: passForm.currentPassword,
         newPassword: passForm.newPassword
       })
-      toast.success('Password changed 🔒')
+      toast.success('Password changed')
       setPassForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Password change failed')
@@ -148,7 +149,7 @@ export default function Profile({ user, setUser }) {
 
   return (
     <PageShell width="sm">
-      <PageHeader title="My profile 👤" />
+      <PageHeader title="My profile" />
 
       <Card className="mb-5">
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
@@ -176,7 +177,11 @@ export default function Profile({ user, setUser }) {
               aria-label="Change avatar"
               className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm text-white shadow-brand transition-colors hover:bg-brand-700 disabled:opacity-60"
             >
-              {avatarLoading ? '⏳' : '📷'}
+              {avatarLoading ? (
+                <IconHourglass className="h-3.5 w-3.5" />
+              ) : (
+                <IconCamera className="h-3.5 w-3.5" />
+              )}
             </motion.button>
             <input
               ref={fileRef}
@@ -211,7 +216,7 @@ export default function Profile({ user, setUser }) {
         <div className="mt-6 grid grid-cols-3 gap-3 border-t border-line pt-5">
           <StatCard
             value={profile?.streak || 0}
-            label="Day streak 🔥"
+            label="Day streak"
             tone="brand"
             className="border-0 bg-transparent p-0 shadow-none"
           />
@@ -270,8 +275,8 @@ export default function Profile({ user, setUser }) {
       {/* Tabs */}
       <motion.div className="mb-4 flex gap-2">
         {[
-          { id: 'profile', label: '✏️ Edit profile' },
-          { id: 'password', label: '🔒 Change password' }
+          { id: 'profile', label: 'Edit profile', icon: IconPencil },
+          { id: 'password', label: 'Change password', icon: IconLock }
         ].map(tab => (
           <button
             key={tab.id}
@@ -288,7 +293,10 @@ export default function Profile({ user, setUser }) {
                 className="absolute inset-0 rounded-xl bg-brand-600 shadow-brand"
               />
             )}
-            <span className="relative">{tab.label}</span>
+            <span className="relative flex items-center justify-center gap-1.5">
+              <tab.icon className="h-3.5 w-3.5" />
+              {tab.label}
+            </span>
           </button>
         ))}
       </motion.div>
@@ -321,7 +329,7 @@ export default function Profile({ user, setUser }) {
                   <Input type="text" disabled value={profile?.role || ''} className="capitalize" />
                 </Field>
                 <Button type="submit" full loading={nameLoading}>
-                  {nameLoading ? 'Saving…' : '✅ Save changes'}
+                  {nameLoading ? 'Saving…' : 'Save changes'}
                 </Button>
               </form>
             </div>
@@ -373,7 +381,7 @@ export default function Profile({ user, setUser }) {
                   loading={passLoading}
                   disabled={passMismatch || passTooShort}
                 >
-                  {passLoading ? 'Changing…' : '🔒 Change password'}
+                  {passLoading ? 'Changing…' : 'Change password'}
                 </Button>
               </form>
             </div>

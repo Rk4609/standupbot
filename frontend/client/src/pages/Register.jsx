@@ -24,7 +24,7 @@ export default function Register({ setUser }) {
       const { data } = await API.post('/auth/register', form)
       saveUser(data)
       setUser(data)
-      toast.success(`Welcome aboard, ${data.name}! 🎉`)
+      toast.success(`Welcome aboard, ${data.name}`)
       navigate('/dashboard')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed')

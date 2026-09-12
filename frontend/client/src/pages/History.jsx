@@ -11,14 +11,15 @@ import { SkeletonCard } from '../components/ui/Skeleton'
 import { Input } from '../components/ui/Field'
 import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, collapseVariants, itemVariants } from '../lib/motion'
+import { IconFilter, IconInbox, IconSearch } from '../components/ui/icons'
 
 const MOODS = ['all', 'great', 'good', 'okay', 'bad', 'stressed']
-const MOOD_ICON = { all: '🔍', ...MOOD_EMOJI }
+const MOOD_ICON = MOOD_EMOJI
 
 const BLOCKER_OPTIONS = [
-  { value: 'all', label: '📋 All' },
-  { value: 'blocker', label: '🚨 Has blocker' },
-  { value: 'no-blocker', label: '✅ No blocker' }
+  { value: 'all', label: 'All' },
+  { value: 'blocker', label: 'Has blocker' },
+  { value: 'no-blocker', label: 'No blocker' }
 ]
 
 function Chip({ active, onClick, children, className }) {
@@ -134,7 +135,7 @@ export default function History() {
   return (
     <PageShell>
       <PageHeader
-        title="📅 My history"
+        title="My history"
         subtitle="A complete record of all your standups"
         actions={
           <div className="text-right">
@@ -148,12 +149,7 @@ export default function History() {
 
       {/* Search */}
       <motion.div variants={itemVariants} className="relative mb-3">
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm"
-        >
-          🔍
-        </span>
+        <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-subtle" />
         <Input
           type="search"
           value={search}
@@ -170,7 +166,8 @@ export default function History() {
           size="sm"
           onClick={() => setShowFilters(v => !v)}
         >
-          ⚙️ Filters
+          <IconFilter className="h-3.5 w-3.5" />
+          Filters
           {activeFilters > 0 && (
             <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-brand-700">
               {activeFilters}
@@ -214,7 +211,7 @@ export default function History() {
                       active={moodFilter === mood}
                       onClick={() => setMoodFilter(mood)}
                     >
-                      <span aria-hidden="true">{MOOD_ICON[mood]}</span>
+                      {mood !== 'all' && <span aria-hidden="true">{MOOD_ICON[mood]}</span>}
                       <span className="capitalize">{mood}</span>
                     </Chip>
                   ))}
@@ -274,7 +271,8 @@ export default function History() {
           <AnimatePresence initial={false}>
             {search && (
               <FilterTag key="search" onClear={() => setSearch('')}>
-                🔍 &ldquo;{search}&rdquo;
+                <IconSearch className="h-3 w-3" />
+                &ldquo;{search}&rdquo;
               </FilterTag>
             )}
             {moodFilter !== 'all' && (
@@ -284,7 +282,7 @@ export default function History() {
             )}
             {blockerFilter !== 'all' && (
               <FilterTag key="blocker" tone="danger" onClear={() => setBlockerFilter('all')}>
-                {blockerFilter === 'blocker' ? '🚨 Has blocker' : '✅ No blocker'}
+                {blockerFilter === 'blocker' ? 'Has blocker' : 'No blocker'}
               </FilterTag>
             )}
             {dateFrom && (
@@ -310,13 +308,13 @@ export default function History() {
         </div>
       ) : standups.length === 0 ? (
         <EmptyState
-          icon="📭"
+          icon={<IconInbox className="h-6 w-6" />}
           title="No standups submitted yet"
           description="Once you start submitting, your full history shows up here."
         />
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon="🔍"
+          icon={<IconSearch className="h-6 w-6" />}
           title="No standups match your filters"
           action={
             <Button variant="outline" size="sm" onClick={resetFilters}>

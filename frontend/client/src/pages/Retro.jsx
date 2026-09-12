@@ -15,6 +15,7 @@ import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, itemVariants } from '../lib/motion'
 import { streamAi } from '../lib/streamAi'
 import { AI_MODEL_LABEL } from '../lib/ai'
+import { IconAlert, IconCalendar, IconPrinter, IconRefresh, IconSparkles } from '../components/ui/icons'
 
 const loadCurrent = () => API.get('/retro/current').then(r => r.data)
 const loadHistory = () => API.get('/retro').then(r => r.data)
@@ -100,7 +101,7 @@ export default function Retro() {
       const current = await loadCurrent()
       setSaved(current.retro)
       setHistory(await loadHistory())
-      toast.success('Retro generated 🗓️')
+      toast.success('Retro generated')
     } catch (err) {
       if (err.name !== 'AbortError') setError(err.message || 'Retro generation failed')
     } finally {
@@ -121,7 +122,7 @@ export default function Retro() {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(shownText)
-      toast.success('Retro copied to clipboard 📋')
+      toast.success('Retro copied to clipboard')
     } catch {
       toast.error('Copy failed — please select the text manually')
     }
@@ -144,8 +145,8 @@ export default function Retro() {
   if (loadError) {
     return (
       <PageShell width="lg">
-        <PageHeader title="🗓️ Weekly retro" />
-        <EmptyState icon="⚠️" tone="danger" title={loadError} />
+        <PageHeader title="Weekly retro" />
+        <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={loadError} />
       </PageShell>
     )
   }
@@ -153,7 +154,7 @@ export default function Retro() {
   return (
     <PageShell width="lg">
       <PageHeader
-        title="🗓️ Weekly retro"
+        title="Weekly retro"
         subtitle={
           viewing
             ? `Viewing ${viewing.weekLabel}`
@@ -163,11 +164,23 @@ export default function Retro() {
           <div className="no-print flex flex-wrap gap-2">
             {shownText && (
               <Button variant="outline" onClick={() => window.print()}>
-                🖨️ Save as PDF
+                <IconPrinter className="h-3.5 w-3.5" />
+                Save as PDF
               </Button>
             )}
             <Button onClick={generate} loading={streaming} disabled={streaming}>
-              {streaming ? 'Generating…' : saved || viewing ? '🔄 Regenerate' : '✨ Generate retro'}
+              {streaming ? (
+                'Generating…'
+              ) : (
+                <>
+                  {saved || viewing ? (
+                    <IconRefresh className="h-4 w-4" />
+                  ) : (
+                    <IconSparkles className="h-4 w-4" />
+                  )}
+                  {saved || viewing ? 'Regenerate' : 'Generate retro'}
+                </>
+              )}
             </Button>
           </div>
         }
@@ -244,12 +257,13 @@ export default function Retro() {
         </motion.div>
       ) : (
         <EmptyState
-          icon="🗓️"
+          icon={<IconCalendar className="h-6 w-6" />}
           title="No retro for this week yet"
           description="It generates automatically on Friday evening — or create it now from the standups submitted so far."
           action={
             <Button onClick={generate} loading={streaming}>
-              ✨ Generate retro
+              <IconSparkles className="h-4 w-4" />
+              Generate retro
             </Button>
           }
           className="mb-5"

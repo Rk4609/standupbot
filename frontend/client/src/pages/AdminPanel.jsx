@@ -23,6 +23,7 @@ import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
 import { Field, Input, Select } from '../components/ui/Field'
+import { IconUser, IconUsers } from '../components/ui/icons'
 
 const loadAdminData = async () => {
   const [t, u] = await Promise.all([API.get('/teams'), API.get('/users')])
@@ -99,7 +100,7 @@ export default function AdminPanel() {
     setCreating(true)
     try {
       await API.post('/teams', teamForm)
-      toast.success('Team created ✅')
+      toast.success('Team created')
       setTeamForm({ name: '', managerId: '' })
       refresh()
     } catch (err) {
@@ -116,7 +117,7 @@ export default function AdminPanel() {
     setAdding(true)
     try {
       await API.post(`/teams/${memberForm.teamId}/members`, { userId: memberForm.userId })
-      toast.success('Member added ✅')
+      toast.success('Member added')
       setMemberForm({ teamId: '', userId: '' })
       refresh()
     } catch (err) {
@@ -148,7 +149,7 @@ export default function AdminPanel() {
 
   return (
     <PageShell width="xl">
-      <PageHeader title="Admin panel 🛡️" subtitle="Teams, members and role distribution" />
+      <PageHeader title="Admin panel" subtitle="Teams, members and role distribution" />
 
       <div className="mb-5 grid grid-cols-3 gap-3">
         <StatCard value={users.length} label="Total users" tone="brand" />
@@ -221,7 +222,7 @@ export default function AdminPanel() {
       {/* Forms */}
       <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
-          <CardTitle>➕ Create a team</CardTitle>
+          <CardTitle>Create a team</CardTitle>
           <div className="space-y-3">
             <Field label="Team name">
               <Input
@@ -254,7 +255,7 @@ export default function AdminPanel() {
         </Card>
 
         <Card>
-          <CardTitle>👤 Add a member to a team</CardTitle>
+          <CardTitle>Add a member to a team</CardTitle>
           <div className="space-y-3">
             <Field label="Team">
               <Select
@@ -291,10 +292,10 @@ export default function AdminPanel() {
 
       {/* Teams */}
       <Card className="mb-4">
-        <CardTitle>📋 All teams</CardTitle>
+        <CardTitle>All teams</CardTitle>
         {teams.length === 0 ? (
           <EmptyState
-            icon="🏗️"
+            icon={<IconUsers className="h-6 w-6" />}
             title="No teams yet"
             description="Create your first team above."
             className="border-0 bg-transparent py-6"
@@ -335,10 +336,10 @@ export default function AdminPanel() {
 
       {/* Users */}
       <Card>
-        <CardTitle>👥 All users</CardTitle>
+        <CardTitle>All users</CardTitle>
         {users.length === 0 ? (
           <EmptyState
-            icon="👤"
+            icon={<IconUser className="h-6 w-6" />}
             title="No users found"
             className="border-0 bg-transparent py-6"
           />

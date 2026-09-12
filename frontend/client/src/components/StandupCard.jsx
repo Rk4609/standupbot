@@ -2,6 +2,7 @@ import BlockerBadge from './BlockerBadge'
 import Card from './ui/Card'
 import Badge from './ui/Badge'
 import { MOOD_EMOJI, MOOD_TONE } from '../lib/moods'
+import { IconFlame } from './ui/icons'
 
 function Section({ label, children }) {
   return (
@@ -31,7 +32,10 @@ export default function StandupCard({ standup, showUser = false }) {
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-content">{user.name}</p>
                 {user.streak > 0 && (
-                  <p className="text-xs text-content-subtle">🔥 {user.streak} day streak</p>
+                  <p className="flex items-center gap-1 text-xs text-content-subtle">
+                    <IconFlame className="h-3 w-3" />
+                    {user.streak} day streak
+                  </p>
                 )}
               </div>
             </div>

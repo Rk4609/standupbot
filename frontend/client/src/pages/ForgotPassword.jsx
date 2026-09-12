@@ -7,6 +7,7 @@ import AuthLayout from '../components/AuthLayout'
 import Button from '../components/ui/Button'
 import { Field, Input } from '../components/ui/Field'
 import { DURATION, EASE } from '../lib/motion'
+import { IconMail } from '../components/ui/icons'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -19,7 +20,7 @@ export default function ForgotPassword() {
     try {
       await API.post('/auth/forgot-password', { email })
       setSent(true)
-      toast.success('Reset link sent! Check your inbox 📧')
+      toast.success('Reset link sent — check your inbox')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong')
     } finally {
@@ -82,15 +83,15 @@ export default function ForgotPassword() {
             transition={{ duration: DURATION.base, ease: EASE }}
             className="text-center"
           >
-            <motion.p
+            <motion.div
               aria-hidden="true"
-              className="mb-4 text-4xl"
+              className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-500/12 text-brand-600 dark:text-brand-400"
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.1 }}
             >
-              📧
-            </motion.p>
+              <IconMail className="h-6 w-6" />
+            </motion.div>
             <p className="text-sm text-content-muted">
               If <strong className="text-content">{email}</strong> is registered, a reset
               link is on its way. It expires in 1 hour.

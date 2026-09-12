@@ -7,6 +7,7 @@ import AuthLayout from '../components/AuthLayout'
 import Button from '../components/ui/Button'
 import { Field, Input } from '../components/ui/Field'
 import Skeleton from '../components/ui/Skeleton'
+import { IconCheck } from '../components/ui/icons'
 
 export default function ResetPassword() {
   const { token } = useParams()
@@ -47,7 +48,7 @@ export default function ResetPassword() {
     try {
       await API.put(`/auth/reset-password/${token}`, { password })
       setSuccess(true)
-      toast.success('Password reset successfully! 🎉')
+      toast.success('Password reset successfully')
       setTimeout(() => navigate('/login'), 2500)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Reset failed')
@@ -86,12 +87,12 @@ export default function ResetPassword() {
       <AuthLayout title="Password reset" subtitle="Redirecting you to sign in…">
         <div className="text-center">
           <motion.div
-            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl dark:bg-emerald-950"
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/12 text-emerald-600 dark:text-emerald-400"
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 16 }}
           >
-            ✅
+            <IconCheck className="h-7 w-7" />
           </motion.div>
         </div>
       </AuthLayout>

@@ -23,6 +23,7 @@ import { Input } from '../components/ui/Field'
 import { DURATION, EASE, itemVariants } from '../lib/motion'
 import { streamAi } from '../lib/streamAi'
 import { AI_MODEL_LABEL } from '../lib/ai'
+import { IconAlert, IconCalendar, IconSparkles, IconTrendDown } from '../components/ui/icons'
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
@@ -103,7 +104,7 @@ export default function TeamView() {
   const copyReport = async () => {
     try {
       await navigator.clipboard.writeText(aiResult)
-      toast.success('Report copied to clipboard 📋')
+      toast.success('Report copied to clipboard')
     } catch {
       toast.error('Copy failed — please select the text manually')
     }
@@ -114,11 +115,18 @@ export default function TeamView() {
   return (
     <PageShell width="lg">
       <PageHeader
-        title="Team dashboard 📊"
+        title="Team dashboard"
         subtitle="Daily submissions, participation and blockers at a glance"
         actions={
           <Button onClick={analyzeTeam} loading={aiLoading} disabled={aiLoading}>
-            {aiLoading ? 'Analyzing…' : '🧠 Analyze with AI'}
+            {aiLoading ? (
+              'Analyzing…'
+            ) : (
+              <>
+                <IconSparkles className="h-4 w-4" />
+                Analyze with AI
+              </>
+            )}
           </Button>
         }
       />
@@ -160,9 +168,7 @@ export default function TeamView() {
           // With an all-zero series recharts draws an empty frame with no axis,
           // which reads as a broken chart rather than "no data"
           <div className="flex h-[180px] flex-col items-center justify-center text-center">
-            <span aria-hidden="true" className="mb-2 text-2xl">
-              📉
-            </span>
+            <IconTrendDown className="mb-2.5 h-6 w-6 text-content-subtle" />
             <p className="text-sm font-medium text-content">No submissions this week</p>
             <p className="mt-1 text-xs text-content-subtle">
               Participation shows up here once your team starts submitting.
@@ -231,10 +237,10 @@ export default function TeamView() {
           ))}
         </div>
       ) : loadError ? (
-        <EmptyState icon="⚠️" tone="danger" title={loadError} />
+        <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={loadError} />
       ) : standups.length === 0 ? (
         <EmptyState
-          icon="🗓️"
+          icon={<IconCalendar className="h-6 w-6" />}
           title="No standups for this date"
           description="Pick another date, or nudge your team to submit."
         />
