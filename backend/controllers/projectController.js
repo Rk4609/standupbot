@@ -1,6 +1,7 @@
 const Project = require('../models/Project')
 const Standup = require('../models/Standup')
 const Team = require('../models/Team')
+const { ownTeam } = require('../utils/teams')
 
 /** The team a lead owns, or every team for an admin. */
 const leadTeam = async (user) => {
@@ -53,6 +54,13 @@ const listAllProjects = async (req, res) => {
       .sort({ active: -1, name: 1 })
       .lean()
 
+    // An admin can put a project on any team, so they need the list to
+    // choose from. A manager has one and is not offered a choice.
+    const teams = scope.admin
+      ? await Team.find().select('name').sort({ name: 1 }).lean()
+      : []
+    const defaultTeam = scope.admin ? await ownTeam(req.user) : scope.team
+
     // How much has been booked to each, so a lead can see what is actually
     // in use before archiving something
     const usage = await Standup.aggregate([
@@ -61,11 +69,16 @@ const listAllProjects = async (req, res) => {
     ])
     const usageBy = new Map(usage.map(u => [String(u._id), u]))
 
-    res.json(projects.map(p => ({
-      ...p,
-      hours: Number((usageBy.get(String(p._id))?.hours || 0).toFixed(2)),
-      entries: usageBy.get(String(p._id))?.entries || 0
-    })))
+    res.json({
+      projects: projects.map(p => ({
+        ...p,
+        hours: Number((usageBy.get(String(p._id))?.hours || 0).toFixed(2)),
+        entries: usageBy.get(String(p._id))?.entries || 0
+      })),
+      teams,
+      defaultTeam: defaultTeam ? String(defaultTeam) : null,
+      canShare: Boolean(scope.admin)
+    })
   } catch (err) {
     console.error('List all projects error:', err.message)
     res.status(500).json({ message: err.message })
@@ -83,10 +96,17 @@ const createProject = async (req, res) => {
     // A manager cannot create a project for somebody else's team, and cannot
     // create a shared one — shared projects affect every team, so they are an
     // admin's call
-    let owner = scope.admin ? (team ?? null) : scope.team
     if (!scope.admin && team && String(team) !== String(scope.team)) {
       return res.status(400).json({ message: 'That team is not yours' })
     }
+
+    // `team: null` asks for a shared project; leaving it out means "mine".
+    // Defaulting an admin to shared made every client project visible to
+    // every team, which is the opposite of what naming a client implies.
+    let owner
+    if (!scope.admin) owner = scope.team
+    else if (team !== undefined) owner = team
+    else owner = await ownTeam(req.user)
 
     const project = await Project.create({
       name,

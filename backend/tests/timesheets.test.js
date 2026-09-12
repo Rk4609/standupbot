@@ -4,6 +4,7 @@ import { createApp } from '../app.js'
 import AuditLog from '../models/AuditLog.js'
 import Project from '../models/Project.js'
 import StandupTemplate from '../models/StandupTemplate.js'
+import Team from '../models/Team.js'
 import Timesheet from '../models/Timesheet.js'
 import { authHeader, joinTeam, makeTeam, makeUser } from './helpers.js'
 
@@ -99,7 +100,7 @@ describe('the project catalogue', () => {
     vi.useRealTimers()
 
     const res = await request(app).get('/api/projects/all').set(...authHeader(manager))
-    const row = res.body.find(p => p.name === 'In use')
+    const row = res.body.projects.find(p => p.name === 'In use')
     expect(row.hours).toBe(3)
     expect(row.entries).toBe(1)
   })
@@ -488,5 +489,44 @@ describe('Timesheet records', () => {
       .set(...authHeader(member)).send({ weekStart: MONDAY })
 
     expect(await Timesheet.countDocuments({ user: member._id, weekStart: MONDAY })).toBe(1)
+  })
+})
+
+describe('who a project belongs to', () => {
+  it('gives a new project to the team the admin runs, not to everyone', async () => {
+    // Defaulting to shared put a named client in front of every team
+    const { team } = await withTeam()
+    const admin = await makeUser({ role: 'admin' })
+    await Team.updateOne({ _id: team._id }, { manager: admin._id })
+
+    const res = await request(app).post('/api/projects').set(...authHeader(admin))
+      .send({ name: 'Zephyr Systems', client: 'Zephyr' })
+
+    expect(res.status).toBe(201)
+    expect(String(res.body.team)).toBe(String(team._id))
+  })
+
+  it('still makes a shared one when that is asked for', async () => {
+    const admin = await makeUser({ role: 'admin' })
+
+    const res = await request(app).post('/api/projects').set(...authHeader(admin))
+      .send({ name: 'Leave', team: null, billable: false })
+
+    expect(res.status).toBe(201)
+    expect(res.body.team).toBeNull()
+  })
+
+  it('offers an admin the teams to choose from, and a manager none', async () => {
+    const { manager, team } = await withTeam()
+    const admin = await makeUser({ role: 'admin' })
+
+    const asAdmin = await request(app).get('/api/projects/all').set(...authHeader(admin))
+    expect(asAdmin.body.canShare).toBe(true)
+    expect(asAdmin.body.teams.map(t => String(t._id))).toContain(String(team._id))
+
+    const asManager = await request(app).get('/api/projects/all').set(...authHeader(manager))
+    expect(asManager.body.canShare).toBe(false)
+    expect(asManager.body.teams).toEqual([])
+    expect(String(asManager.body.defaultTeam)).toBe(String(team._id))
   })
 })

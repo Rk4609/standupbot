@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
@@ -9,7 +9,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
-import { Checkbox, Field, Input } from '../components/ui/Field'
+import { Checkbox, Field, Input, Select } from '../components/ui/Field'
 import { IconAlert, IconBriefcase, IconPlus } from '../components/ui/icons'
 import { cn } from '../lib/cn'
 import { DURATION, EASE } from '../lib/motion'
@@ -17,16 +17,25 @@ import { apiErrorMessage } from '../lib/apiError'
 
 const blank = { name: '', code: '', client: '', billable: true }
 
+/** The value the picker uses for "every team can book to this". */
+const SHARED = '__shared__'
+
 export default function Projects() {
-  const [projects, setProjects] = useState(null)
+  const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [form, setForm] = useState(blank)
+  const [team, setTeam] = useState(null)
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const load = () =>
     API.get('/projects/all')
-      .then(res => setProjects(res.data))
+      .then(res => {
+        setData(res.data)
+        // Default to the team this person runs, not to "shared" — a project
+        // with a client's name on it belongs to a team
+        setTeam(t => t ?? (res.data.defaultTeam || SHARED))
+      })
       .catch(err => setError(apiErrorMessage(err, 'Could not load projects')))
 
   useEffect(() => {
@@ -41,7 +50,9 @@ export default function Projects() {
         name: form.name.trim(),
         code: form.code.trim(),
         client: form.client.trim(),
-        billable: form.billable
+        billable: form.billable,
+        // Only sent when there is a choice to make. null means shared.
+        ...(data.canShare ? { team: team === SHARED ? null : team } : {})
       })
       setForm(blank)
       setAdding(false)
@@ -73,7 +84,7 @@ export default function Projects() {
     )
   }
 
-  if (!projects) {
+  if (!data) {
     return (
       <PageShell width="md">
         <Skeleton className="mb-2 h-9 w-40" />
@@ -83,8 +94,8 @@ export default function Projects() {
     )
   }
 
-  const open = projects.filter(p => p.active)
-  const archived = projects.filter(p => !p.active)
+  const open = data.projects.filter(p => p.active)
+  const archived = data.projects.filter(p => !p.active)
 
   return (
     <PageShell width="md">
@@ -105,61 +116,81 @@ export default function Projects() {
 
       <AnimatePresence initial={false}>
         {adding && (
-          <motion.div
+          <Card
+            // On the Card itself, not on a wrapper around it. Card carries
+            // `variants` and takes its labels from the nearest motion parent;
+            // a wrapper animating to plain objects gives it no label to
+            // resolve, so it sits at its own initial state — invisible — and
+            // only when it mounts on demand, which is why the list of cards
+            // above looks fine.
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: DURATION.fast, ease: EASE }}
             className="mb-4"
           >
-            <Card>
-              <CardTitle>New project</CardTitle>
-              <form onSubmit={create} className="space-y-4">
-                <Field label="Name">
+            <CardTitle>New project</CardTitle>
+            <form onSubmit={create} className="space-y-4">
+              <Field label="Name">
+                <Input
+                  required
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Acme rebuild"
+                  maxLength={120}
+                />
+              </Field>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Client" hint="Who it is for. Leave empty for internal work.">
                   <Input
-                    required
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="Acme rebuild"
+                    value={form.client}
+                    onChange={e => setForm(f => ({ ...f, client: e.target.value }))}
+                    placeholder="Acme Ltd"
                     maxLength={120}
                   />
                 </Field>
+                <Field label="Short code" hint="Shown in the timesheet grid.">
+                  <Input
+                    value={form.code}
+                    onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
+                    placeholder="ACME"
+                    maxLength={12}
+                  />
+                </Field>
+              </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Client" hint="Who it is for. Leave empty for internal work.">
-                    <Input
-                      value={form.client}
-                      onChange={e => setForm(f => ({ ...f, client: e.target.value }))}
-                      placeholder="Acme Ltd"
-                      maxLength={120}
-                    />
-                  </Field>
-                  <Field label="Short code" hint="Shown in the timesheet grid.">
-                    <Input
-                      value={form.code}
-                      onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
-                      placeholder="ACME"
-                      maxLength={12}
-                    />
-                  </Field>
-                </div>
+              {data.canShare && (
+                <Field
+                  label="Who books to it"
+                  hint="Shared projects appear for every team — that is for internal work, not for a client."
+                >
+                  <Select value={team || SHARED} onChange={e => setTeam(e.target.value)}>
+                    {data.teams.map(t => (
+                      <option key={t._id} value={t._id}>
+                        {t.name}
+                      </option>
+                    ))}
+                    <option value={SHARED}>Shared — every team</option>
+                  </Select>
+                </Field>
+              )}
 
-                <Checkbox
-                  label="Billable"
-                  checked={form.billable}
-                  onChange={e => setForm(f => ({ ...f, billable: e.target.checked }))}
-                />
+              <Checkbox
+                label="Billable"
+                checked={form.billable}
+                onChange={e => setForm(f => ({ ...f, billable: e.target.checked }))}
+              />
 
-                <Button type="submit" loading={saving} disabled={!form.name.trim()}>
-                  Add project
-                </Button>
-              </form>
-            </Card>
-          </motion.div>
+              <Button type="submit" loading={saving} disabled={!form.name.trim()}>
+                Add project
+              </Button>
+            </form>
+          </Card>
         )}
       </AnimatePresence>
 
-      {projects.length === 0 ? (
+      {data.projects.length === 0 ? (
         <EmptyState
           icon={<IconBriefcase className="h-6 w-6" />}
           title="No projects yet"

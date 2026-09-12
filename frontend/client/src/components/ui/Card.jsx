@@ -5,6 +5,15 @@ import { itemVariants } from '../../lib/motion'
 /**
  * Surface container. Inherits its entrance animation from the nearest motion
  * parent (usually <PageShell>), so cards stagger in automatically.
+ *
+ * That inheritance is by variant *label*. A parent that animates to plain
+ * objects instead gives this nothing to resolve `variants` against, and the
+ * card is left at its own initial state — fully transparent. It shows up as a
+ * card-shaped hole in the page, and only for cards that mount on demand,
+ * since one that mounts with its list skips the initial state anyway.
+ *
+ * So: to animate a card yourself, put the motion props on the Card — they
+ * pass through — rather than wrapping it in another motion element.
  */
 export default function Card({
   className,
