@@ -149,8 +149,8 @@ export default function Blockers({ user }) {
           description="Everything is running smoothly."
         />
       ) : (
-        <motion.div layout className="space-y-4">
-          <AnimatePresence mode="popLayout">
+        <div className="space-y-4">
+          <AnimatePresence initial={false}>
             {blockers.map(b => {
               const age = ageInDays(b.date)
               const aging = age >= 3
@@ -158,7 +158,6 @@ export default function Blockers({ user }) {
               return (
                 <motion.div
                   key={b._id}
-                  layout
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -24, scale: 0.97 }}
@@ -291,7 +290,7 @@ export default function Blockers({ user }) {
               )
             })}
           </AnimatePresence>
-        </motion.div>
+        </div>
       )}
     </PageShell>
   )

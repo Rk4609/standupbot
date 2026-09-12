@@ -24,14 +24,31 @@ export default {
         surface: {
           DEFAULT: 'rgb(var(--surface) / <alpha-value>)',
           muted: 'rgb(var(--surface-muted) / <alpha-value>)',
+          raised: 'rgb(var(--surface-raised) / <alpha-value>)',
           sunken: 'rgb(var(--surface-sunken) / <alpha-value>)'
         },
-        line: 'rgb(var(--line) / <alpha-value>)',
+        line: {
+          DEFAULT: 'rgb(var(--line) / <alpha-value>)',
+          strong: 'rgb(var(--line-strong) / <alpha-value>)'
+        },
         content: {
           DEFAULT: 'rgb(var(--content) / <alpha-value>)',
           muted: 'rgb(var(--content-muted) / <alpha-value>)',
           subtle: 'rgb(var(--content-subtle) / <alpha-value>)'
         }
+      },
+
+      // Type scale — headings get tighter tracking as they grow, which is what
+      // makes large text read as designed rather than merely enlarged
+      fontSize: {
+        display: ['2.125rem', { lineHeight: '2.4rem', letterSpacing: '-0.025em' }],
+        title: ['1.625rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],
+        heading: ['1.125rem', { lineHeight: '1.6rem', letterSpacing: '-0.011em' }],
+        metric: ['1.75rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }]
+      },
+
+      spacing: {
+        sidebar: '15rem'
       },
 
       borderRadius: {
@@ -49,16 +66,11 @@ export default {
       keyframes: {
         shimmer: {
           '100%': { transform: 'translateX(100%)' }
-        },
-        'pulse-ring': {
-          '0%': { transform: 'scale(1)', opacity: '0.55' },
-          '100%': { transform: 'scale(2.2)', opacity: '0' }
         }
       },
 
       animation: {
-        shimmer: 'shimmer 1.6s infinite',
-        'pulse-ring': 'pulse-ring 1.6s ease-out infinite'
+        shimmer: 'shimmer 1.6s infinite'
       }
     }
   },

@@ -239,12 +239,11 @@ export default function TeamView() {
           description="Pick another date, or nudge your team to submit."
         />
       ) : (
-        <motion.div layout className="space-y-3">
-          <AnimatePresence mode="popLayout">
+        <div className="space-y-3">
+          <AnimatePresence initial={false}>
             {standups.map(s => (
               <motion.div
                 key={s._id}
-                layout
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97 }}
@@ -254,7 +253,7 @@ export default function TeamView() {
               </motion.div>
             ))}
           </AnimatePresence>
-        </motion.div>
+        </div>
       )}
     </PageShell>
   )

@@ -10,7 +10,7 @@ import { AnimatePresence, MotionConfig } from "framer-motion"
 import { Toaster } from "react-hot-toast"
 import { getUser } from "./store/authStore"
 
-import Navbar from "./components/Navbar"
+import AppShell from "./components/AppShell"
 import ProtectedRoute from "./components/ProtectedRoute"
 import OfflineIndicator from "./components/OfflineIndicator"
 import Skeleton from "./components/ui/Skeleton"
@@ -35,13 +35,13 @@ const AdminPanel = lazy(() => import("./pages/AdminPanel"))
 /** Shown while a route chunk is in flight — mirrors the page layout. */
 function RouteFallback() {
   return (
-    <div className="min-h-screen bg-surface-muted px-4 py-6 md:py-8">
-      <div className="mx-auto max-w-3xl">
-        <Skeleton className="mb-2 h-7 w-56" />
-        <Skeleton className="mb-6 h-4 w-40" />
-        <div className="mb-5 grid grid-cols-3 gap-3">
-          {[0, 1, 2].map(i => (
-            <Skeleton key={i} className="h-[76px] rounded-card md:h-[88px]" />
+    <div className="px-4 py-6 md:px-6 md:py-8">
+      <div className="mx-auto max-w-4xl">
+        <Skeleton className="mb-2 h-8 w-64" />
+        <Skeleton className="mb-7 h-4 w-44" />
+        <div className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {[0, 1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-24 rounded-card" />
           ))}
         </div>
         <Skeleton className="h-64 rounded-card" />
@@ -113,6 +113,12 @@ function AnimatedRoutes({ user, setUser }) {
 export default function App() {
   const [user, setUser] = useState(getUser())
 
+  const routes = (
+    <Suspense fallback={<RouteFallback />}>
+      <AnimatedRoutes user={user} setUser={setUser} />
+    </Suspense>
+  )
+
   return (
     // reducedMotion="user" makes every Framer animation respect the OS setting
     <MotionConfig reducedMotion="user">
@@ -124,17 +130,19 @@ export default function App() {
           toastOptions={{
             duration: 3500,
             className:
-              "!bg-surface !text-content !border !border-line !shadow-lift !text-sm",
+              "!bg-surface-raised !text-content !border !border-line !shadow-pop !text-sm",
             success: { iconTheme: { primary: "#7c3aed", secondary: "#fff" } },
             error: { iconTheme: { primary: "#dc2626", secondary: "#fff" } }
           }}
         />
 
-        {user && <Navbar user={user} setUser={setUser} />}
-
-        <Suspense fallback={<RouteFallback />}>
-          <AnimatedRoutes user={user} setUser={setUser} />
-        </Suspense>
+        {user ? (
+          <AppShell user={user} setUser={setUser}>
+            {routes}
+          </AppShell>
+        ) : (
+          routes
+        )}
       </BrowserRouter>
     </MotionConfig>
   )

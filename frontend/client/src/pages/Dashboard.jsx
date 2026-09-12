@@ -3,61 +3,87 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
-import PageHeader from '../components/ui/PageHeader'
-import Card, { CardTitle } from '../components/ui/Card'
-import StatCard from '../components/ui/StatCard'
+import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Skeleton, { SkeletonText } from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import StreakHeatmap from '../components/StreakHeatmap'
 import { MOOD_EMOJI } from '../lib/moods'
 import { itemVariants } from '../lib/motion'
+import { cn } from '../lib/cn'
 
-const today = () => new Date().toISOString().split('T')[0]
+const isoToday = () => new Date().toISOString().split('T')[0]
+
+const greeting = () => {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+/** Compact figure used in the metric column. */
+function Metric({ label, value, hint, tone = 'default' }) {
+  return (
+    <motion.div variants={itemVariants} className="min-w-0">
+      <p className="eyebrow">{label}</p>
+      <p
+        className={cn(
+          'tabular mt-1.5 text-metric font-semibold',
+          tone === 'brand' ? 'text-brand-600 dark:text-brand-400' : 'text-content'
+        )}
+      >
+        {value}
+      </p>
+      {hint && <p className="mt-0.5 truncate text-xs text-content-subtle">{hint}</p>}
+    </motion.div>
+  )
+}
 
 export default function Dashboard({ user }) {
-  const [todayStandup, setTodayStandup] = useState(null)
-  const [recentStandups, setRecentStandups] = useState([])
-  const [totalStandups, setTotalStandups] = useState(0)
+  const [standups, setStandups] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data } = await API.get('/standups/my')
-        setTodayStandup(data.find(s => s.date === today()) || null)
-        setRecentStandups(data.slice(0, 5))
-        setTotalStandups(data.length)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+    let cancelled = false
+
+    API.get('/standups/my')
+      .then(({ data }) => {
+        if (!cancelled) setStandups(data)
+      })
+      .catch(err => console.error(err))
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
     }
-    fetchData()
   }, [])
+
+  const today = standups.find(s => s.date === isoToday()) || null
+  const recent = standups.slice(0, 6)
+  const blockerCount = standups.filter(s => s.hasBlocker).length
+  const submittedDates = standups.map(s => s.date)
 
   const dateLabel = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
-    month: 'long',
-    day: 'numeric'
+    day: 'numeric',
+    month: 'long'
   })
 
   if (loading) {
     return (
       <PageShell>
-        <div className="mb-6 space-y-2">
-          <Skeleton className="h-7 w-56" />
-          <Skeleton className="h-4 w-40" />
+        <Skeleton className="mb-2 h-9 w-72" />
+        <Skeleton className="mb-7 h-4 w-40" />
+        <Skeleton className="mb-6 h-40 rounded-card" />
+        <div className="mb-6 grid gap-4 lg:grid-cols-3">
+          <Skeleton className="h-44 rounded-card lg:col-span-2" />
+          <Skeleton className="h-44 rounded-card" />
         </div>
-        <div className="mb-5 grid grid-cols-3 gap-3">
-          {[0, 1, 2].map(i => (
-            <Skeleton key={i} className="h-[76px] rounded-card md:h-[88px]" />
-          ))}
-        </div>
-        <Skeleton className="mb-5 h-28 rounded-card" />
         <Card>
-          <Skeleton className="mb-4 h-4 w-36" />
+          <Skeleton className="mb-4 h-4 w-32" />
           <SkeletonText lines={5} />
         </Card>
       </PageShell>
@@ -66,83 +92,118 @@ export default function Dashboard({ user }) {
 
   return (
     <PageShell>
-      <PageHeader title={`Welcome back, ${user?.name?.split(' ')[0]}! 👋`} subtitle={dateLabel} />
+      {/* Greeting */}
+      <motion.header variants={itemVariants} className="mb-7">
+        <h1 className="text-display font-bold text-content">
+          {greeting()}, {user?.name?.split(' ')[0]}
+        </h1>
+        <p className="mt-1.5 text-sm text-content-muted">{dateLabel}</p>
+      </motion.header>
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
-        <StatCard value={user?.streak || 0} label="Day streak 🔥" tone="brand" />
-        <StatCard value={totalStandups} label="Standups" tone="positive" />
-        <StatCard
-          value={todayStandup ? MOOD_EMOJI[todayStandup.mood] : '—'}
-          label="Today's mood"
-          tone="neutral"
-        />
-      </div>
-
-      {/* Today's status */}
-      {!todayStandup ? (
-        <motion.div
-          variants={itemVariants}
-          className="mb-5 overflow-hidden rounded-card border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100/60 p-5 dark:border-amber-900 dark:from-amber-950/60 dark:to-amber-900/30 md:p-6"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <motion.span
-                aria-hidden="true"
-                className="text-2xl"
-                animate={{ rotate: [0, -12, 12, -8, 0] }}
-                transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 3 }}
-              >
-                ⏰
-              </motion.span>
+      {/* Primary action — the one thing this page exists for */}
+      <motion.section
+        variants={itemVariants}
+        className={cn(
+          'relative mb-6 overflow-hidden rounded-card border p-6 md:p-7',
+          today
+            ? 'border-line bg-surface shadow-card'
+            : 'border-brand-700/40 bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-brand'
+        )}
+      >
+        {!today ? (
+          <>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-white/10 blur-2xl"
+            />
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="font-semibold text-amber-900 dark:text-amber-200">
-                  Today&apos;s standup is pending
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">
+                  Today
                 </p>
-                <p className="mt-0.5 text-sm text-amber-700 dark:text-amber-400">
-                  It takes about two minutes
+                <h2 className="mt-2 text-title font-semibold">Your standup is pending</h2>
+                <p className="mt-1.5 max-w-md text-sm text-white/80">
+                  Two minutes now saves your team a meeting later.
                 </p>
               </div>
+              <Button
+                to="/standup/new"
+                size="lg"
+                className="shrink-0 !bg-white !text-brand-700 !shadow-none hover:!bg-white/90"
+              >
+                Submit standup →
+              </Button>
             </div>
-            <Button to="/standup/new" className="shrink-0">
-              Submit now →
-            </Button>
+          </>
+        ) : (
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[11px] text-white">
+                  ✓
+                </span>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-600 dark:text-emerald-400">
+                  Submitted today
+                </p>
+              </div>
+              <h2 className="mt-2.5 text-heading font-semibold text-content">{today.today}</h2>
+              {today.hasBlocker && (
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                  <span className="font-medium">Blocker:</span> {today.blockers}
+                </p>
+              )}
+            </div>
+            <span className="shrink-0 text-3xl" aria-hidden="true">
+              {MOOD_EMOJI[today.mood]}
+            </span>
           </div>
-        </motion.div>
-      ) : (
-        <motion.div
-          variants={itemVariants}
-          className="mb-5 rounded-card border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900 dark:bg-emerald-950/50 md:p-6"
-        >
-          <div className="mb-2 flex items-center gap-2">
-            <motion.span
-              aria-hidden="true"
-              className="text-lg"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 14 }}
+        )}
+      </motion.section>
+
+      {/* Activity + metrics.
+          items-start so each card takes its natural height rather than the
+          heatmap card stretching to match the metric column. */}
+      <div className="mb-6 grid gap-4 lg:grid-cols-3 lg:items-start">
+        <Card className="lg:col-span-2">
+          <div className="mb-5 flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-semibold text-content">Submission activity</h2>
+            <Link
+              to="/history"
+              className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
             >
-              ✅
-            </motion.span>
-            <p className="font-semibold text-emerald-900 dark:text-emerald-200">
-              Today&apos;s standup is submitted
-            </p>
+              View history
+            </Link>
           </div>
-          <p className="text-sm text-emerald-800 dark:text-emerald-300">
-            <span className="font-medium">Today&apos;s plan:</span> {todayStandup.today}
-          </p>
-          {todayStandup.hasBlocker && (
-            <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
-              <span className="font-medium">🚨 Blocker:</span> {todayStandup.blockers}
-            </p>
+          <StreakHeatmap dates={submittedDates} />
+        </Card>
+
+        <Card className="grid grid-cols-3 gap-4 lg:grid-cols-1 lg:content-start lg:gap-6">
+          <Metric
+            label="Streak"
+            value={user?.streak || 0}
+            hint={user?.streak === 1 ? 'day' : 'days'}
+            tone="brand"
+          />
+          <Metric label="Total" value={standups.length} hint="standups" />
+          <Metric label="Blockers" value={blockerCount} hint="raised" />
+        </Card>
+      </div>
+
+      {/* Recent activity */}
+      <Card padded={false}>
+        <div className="flex items-baseline justify-between gap-3 px-4 py-4 md:px-6">
+          <h2 className="text-sm font-semibold text-content">Recent standups</h2>
+          {recent.length > 0 && (
+            <Link
+              to="/history"
+              className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+            >
+              See all {standups.length}
+            </Link>
           )}
-        </motion.div>
-      )}
+        </div>
 
-      {/* Recent standups */}
-      <Card>
-        <CardTitle>Recent standups</CardTitle>
-
-        {recentStandups.length === 0 ? (
+        {recent.length === 0 ? (
           <EmptyState
             icon="🎯"
             title="No standups yet"
@@ -152,40 +213,29 @@ export default function Dashboard({ user }) {
                 Submit your first standup
               </Button>
             }
-            className="border-0 bg-transparent py-6"
+            className="border-0 bg-transparent"
           />
         ) : (
-          <>
-            <div className="divide-y divide-line">
-              {recentStandups.map((s, i) => (
-                <motion.div
-                  key={s._id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + i * 0.06 }}
-                  className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
-                >
-                  <span aria-hidden="true" className="shrink-0 text-xl">
-                    {MOOD_EMOJI[s.mood]}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <span className="tabular text-xs text-content-subtle">{s.date}</span>
-                      {s.hasBlocker && <Badge tone="danger">Blocker</Badge>}
-                    </div>
-                    <p className="truncate text-sm text-content-muted">{s.today}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            <Link
-              to="/history"
-              className="mt-4 block text-center text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-            >
-              View full history →
-            </Link>
-          </>
+          <div className="divide-y divide-line border-t border-line">
+            {recent.map((s, i) => (
+              <motion.div
+                key={s._id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.08 + i * 0.045 }}
+                className="flex items-start gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-sunken/60 md:px-6"
+              >
+                <span aria-hidden="true" className="mt-0.5 shrink-0 text-lg">
+                  {MOOD_EMOJI[s.mood]}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-content">{s.today}</p>
+                  <p className="tabular mt-0.5 text-xs text-content-subtle">{s.date}</p>
+                </div>
+                {s.hasBlocker && <Badge tone="danger">Blocker</Badge>}
+              </motion.div>
+            ))}
+          </div>
         )}
       </Card>
     </PageShell>

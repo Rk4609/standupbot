@@ -8,34 +8,37 @@
    Semantic colours live here as raw RGB channels so Tailwind can apply its own
    opacity modifiers (bg-surface/50). Dark mode flips the values in one place
    instead of every component repeating `bg-white dark:bg-gray-900`.
+
+   Four surface levels give the interface depth: the page sits lowest, cards
+   lift off it, popovers lift off cards, and inputs sink back in.
 --------------------------------------------------------------------------- */
 @layer base {
   :root {
-    --surface:        255 255 255;  /* cards, navbar */
-    --surface-muted:  249 250 251;  /* page background */
-    --surface-sunken: 243 244 246;  /* inputs, hover states */
-    --line:           237 237 240;  /* borders, dividers */
+    --surface-muted:  247 247 249;  /* page background */
+    --surface:        255 255 255;  /* cards */
+    --surface-raised: 255 255 255;  /* popovers, dropdowns */
+    --surface-sunken: 241 241 245;  /* inputs, hover states */
+    --line:           229 229 235;  /* borders, dividers */
+    --line-strong:    214 214 222;
 
-    --content:        24 24 32;     /* headings */
-    --content-muted:  99 104 120;   /* body copy */
-    --content-subtle: 148 154 170;  /* labels, timestamps */
-
-    --ring: 139 92 246;
+    --content:        17 17 24;     /* headings */
+    --content-muted:  90 95 112;    /* body copy */
+    --content-subtle: 139 145 163;  /* labels, timestamps */
 
     color-scheme: light;
   }
 
   .dark {
-    --surface:        17 20 30;
-    --surface-muted:  9 11 18;
-    --surface-sunken: 28 32 45;
-    --line:           38 42 56;
+    --surface-muted:  10 10 14;
+    --surface:        22 22 29;
+    --surface-raised: 30 30 39;
+    --surface-sunken: 35 35 46;
+    --line:           40 40 52;
+    --line-strong:    56 56 70;
 
-    --content:        237 239 245;
-    --content-muted:  156 163 180;
-    --content-subtle: 110 116 134;
-
-    --ring: 167 139 250;
+    --content:        237 238 244;
+    --content-muted:  158 163 180;
+    --content-subtle: 112 117 134;
 
     color-scheme: dark;
   }
@@ -46,9 +49,16 @@
 
   body {
     @apply bg-surface-muted text-content antialiased;
-    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-      'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont,
+      'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Inter's disambiguated forms — a straight-sided l, open 4, single-storey g */
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Headings get optical sizing and tighter tracking as they grow */
+  h1, h2, h3 {
+    @apply text-content;
+    text-wrap: balance;
   }
 
   /* Numbers in stats and tables should not jitter as they change */
@@ -68,6 +78,11 @@
 }
 
 @layer components {
+  /* Section label above a group of content */
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-content-subtle;
+  }
+
   /* Scrollbars — default ones look out of place against the dark surfaces */
   .scroll-slim {
     scrollbar-width: thin;
@@ -113,6 +128,7 @@
   :root {
     --surface: 255 255 255;
     --surface-muted: 255 255 255;
+    --surface-raised: 255 255 255;
     --surface-sunken: 255 255 255;
     --line: 210 210 216;
     --content: 0 0 0;

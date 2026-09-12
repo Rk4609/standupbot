@@ -49,7 +49,6 @@ function FilterTag({ tone = 'brand', onClear, children }) {
   }
   return (
     <motion.span
-      layout
       initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.85 }}
@@ -272,7 +271,7 @@ export default function History() {
       {/* Active filter tags */}
       {activeFilters > 0 && (
         <div className="mb-4 flex flex-wrap gap-2">
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence initial={false}>
             {search && (
               <FilterTag key="search" onClear={() => setSearch('')}>
                 🔍 &ldquo;{search}&rdquo;
@@ -326,14 +325,13 @@ export default function History() {
           }
         />
       ) : (
-        <motion.div layout className="space-y-4">
-          <AnimatePresence mode="popLayout">
+        <div className="space-y-4">
+          <AnimatePresence initial={false}>
             {filtered.map(s => (
               // Explicit props rather than variants: this wrapper owns the
               // entrance so the Card inside does not animate on top of it.
               <motion.div
                 key={s._id}
-                layout
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.97 }}
@@ -343,7 +341,7 @@ export default function History() {
               </motion.div>
             ))}
           </AnimatePresence>
-        </motion.div>
+        </div>
       )}
     </PageShell>
   )
