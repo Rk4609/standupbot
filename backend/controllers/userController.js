@@ -3,6 +3,7 @@ const { cloudinary } = require('../config/cloudinary')
 const User = require('../models/User')
 const Standup = require('../models/Standup')
 const { isValidTimezone, lastNDates, zoneOf } = require('../utils/time')
+const audit = require('../services/auditService')
 
 // GET /api/users — admin ke liye sabhi users
 const getAllUsers = async (req, res) => {
@@ -168,7 +169,18 @@ const setUserRole = async (req, res) => {
     user.role = role
     await user.save()
 
-    console.log(`Role change: ${user.email} ${previous} -> ${role} by ${req.user.email}`)
+    // This used to be a console line only, which Render discards. Granting
+    // someone manager or admin is the most consequential thing anyone can do
+    // here, so it belongs in a record that outlives the process.
+    await audit.record({
+      action: 'user.role_changed',
+      actor: req.user,
+      subject: user,
+      team: user.team || null,
+      entityType: 'User',
+      entityId: user._id,
+      changes: [{ field: 'role', from: previous, to: role }]
+    })
 
     res.json({
       message: `${user.name} is now ${role}`,

@@ -14,6 +14,7 @@ import { itemVariants } from '../lib/motion'
 import { cn } from '../lib/cn'
 import { IconTarget } from '../components/ui/icons'
 import { todayForUser } from '../lib/timezone'
+import EditStandupDialog from '../components/EditStandupDialog'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -42,6 +43,7 @@ function Metric({ label, value, hint, tone = 'default' }) {
 
 export default function Dashboard({ user }) {
   const [standups, setStandups] = useState([])
+  const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -153,9 +155,18 @@ export default function Dashboard({ user }) {
                 </p>
               )}
             </div>
-            <span className="shrink-0 text-3xl" aria-hidden="true">
-              {MOOD_EMOJI[today.mood]}
-            </span>
+            <div className="flex shrink-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setEditing(today)}
+                className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-content-muted transition-colors hover:bg-surface-sunken hover:text-content"
+              >
+                Edit
+              </button>
+              <span className="text-3xl" aria-hidden="true">
+                {MOOD_EMOJI[today.mood]}
+              </span>
+            </div>
           </div>
         )}
       </motion.section>
@@ -238,6 +249,16 @@ export default function Dashboard({ user }) {
           </div>
         )}
       </Card>
+
+      {editing && (
+        <EditStandupDialog
+          standup={editing}
+          onClose={() => setEditing(null)}
+          onSaved={updated =>
+            setStandups(list => list.map(s => (s._id === updated._id ? updated : s)))
+          }
+        />
+      )}
     </PageShell>
   )
 }

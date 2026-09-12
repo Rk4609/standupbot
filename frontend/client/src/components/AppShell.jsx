@@ -17,6 +17,7 @@ import {
   IconMoon,
   IconPlus,
   IconShield,
+  IconList,
   IconSparkles,
   IconSun,
   IconTrendUp,
@@ -43,7 +44,8 @@ const navGroups = (user) => {
         { to: '/employees', label: 'Employees', icon: IconUsers },
         { to: '/blockers', label: 'Blockers', icon: IconAlert },
         { to: '/analytics', label: 'Analytics', icon: IconTrendUp },
-        { to: '/retro', label: 'Weekly retro', icon: IconSparkles }
+        { to: '/retro', label: 'Weekly retro', icon: IconSparkles },
+        { to: '/activity', label: 'Activity', icon: IconList }
       ]
     },
     user?.role === 'admin' && {

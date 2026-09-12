@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import API from '../api/axios'
 import StandupCard from '../components/StandupCard'
+import EditStandupDialog from '../components/EditStandupDialog'
+import { todayForUser } from '../lib/timezone'
 import { MOOD_EMOJI } from '../lib/moods'
 import PageShell from '../components/ui/PageShell'
 import PageHeader from '../components/ui/PageHeader'
@@ -81,6 +83,7 @@ export default function History() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [editing, setEditing] = useState(null)
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -335,11 +338,27 @@ export default function History() {
                 exit={{ opacity: 0, scale: 0.97 }}
                 transition={{ duration: DURATION.base, ease: EASE }}
               >
-                <StandupCard standup={s} />
+                <StandupCard
+                  standup={s}
+                  // The server only lets an author edit the day a standup
+                  // covers, so offering the button on older ones would be a
+                  // promise the API refuses
+                  onEdit={s.date === todayForUser() ? setEditing : undefined}
+                />
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
+      )}
+
+      {editing && (
+        <EditStandupDialog
+          standup={editing}
+          onClose={() => setEditing(null)}
+          onSaved={updated =>
+            setStandups(list => list.map(s => (s._id === updated._id ? updated : s)))
+          }
+        />
       )}
     </PageShell>
   )

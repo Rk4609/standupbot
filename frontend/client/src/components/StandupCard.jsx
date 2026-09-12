@@ -1,8 +1,23 @@
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import BlockerBadge from './BlockerBadge'
+import StandupHistory from './StandupHistory'
 import Card from './ui/Card'
 import Badge from './ui/Badge'
 import { MOOD_EMOJI, MOOD_TONE } from '../lib/moods'
-import { IconFlame } from './ui/icons'
+import { collapseVariants } from '../lib/motion'
+import { IconFlame, IconPencil } from './ui/icons'
+
+/**
+ * Mongoose stamps both timestamps on create, so a standup that was never
+ * touched has them within a tick of each other. A second of slack is enough
+ * to tell "saved once" from "edited later" without reading the audit trail
+ * for every card in a list.
+ */
+const wasEdited = (standup) =>
+  standup.updatedAt &&
+  standup.createdAt &&
+  new Date(standup.updatedAt) - new Date(standup.createdAt) > 1000
 
 function Section({ label, children }) {
   return (
@@ -17,8 +32,10 @@ function Section({ label, children }) {
   )
 }
 
-export default function StandupCard({ standup, showUser = false }) {
+export default function StandupCard({ standup, showUser = false, onEdit }) {
   const { user, yesterday, today, blockers, hasBlocker, mood, date } = standup
+  const [showHistory, setShowHistory] = useState(false)
+  const edited = wasEdited(standup)
 
   return (
     <Card interactive className="p-4 md:p-5">
@@ -49,7 +66,29 @@ export default function StandupCard({ standup, showUser = false }) {
           {hasBlocker && <BlockerBadge compact />}
         </div>
 
-        <span className="tabular shrink-0 text-xs font-medium text-content-subtle">{date}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          {edited && (
+            <button
+              type="button"
+              onClick={() => setShowHistory(v => !v)}
+              aria-expanded={showHistory}
+              className="rounded-md px-1.5 py-0.5 text-xs text-content-subtle underline-offset-2 transition-colors hover:text-content hover:underline"
+            >
+              Edited
+            </button>
+          )}
+          {onEdit && (
+            <button
+              type="button"
+              onClick={() => onEdit(standup)}
+              aria-label={`Edit standup for ${date}`}
+              className="rounded-md p-1 text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content"
+            >
+              <IconPencil className="h-4 w-4" />
+            </button>
+          )}
+          <span className="tabular text-xs font-medium text-content-subtle">{date}</span>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -57,6 +96,22 @@ export default function StandupCard({ standup, showUser = false }) {
         <Section label="Today's plan">{today}</Section>
         {hasBlocker && <BlockerBadge text={blockers} />}
       </div>
+
+      <AnimatePresence initial={false}>
+        {showHistory && (
+          <motion.div
+            variants={collapseVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="overflow-hidden"
+          >
+            <div className="mt-4 border-t border-line pt-4">
+              <StandupHistory standupId={standup._id} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Card>
   )
 }

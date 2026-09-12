@@ -53,6 +53,23 @@ const updateBlocker = {
   body: z.object({ blockers: z.string().trim().max(2000, 'is too long') }).strict()
 }
 
+/**
+ * Every field optional: an edit sends what changed. At least one must be
+ * present, or the request is a no-op dressed up as a change.
+ */
+const updateStandup = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    yesterday: z.string().trim().min(1, 'cannot be emptied').max(2000, 'is too long').optional(),
+    today: z.string().trim().min(1, 'cannot be emptied').max(2000, 'is too long').optional(),
+    blockers: z.string().trim().max(2000, 'is too long').optional(),
+    mood: z.enum(MOODS).optional()
+  }).strict().refine(
+    b => Object.keys(b).length > 0,
+    'Send at least one field to change'
+  )
+}
+
 const idParam = { params: z.object({ id: objectId }) }
 
 const dateQuery = { query: z.object({ date: isoDate.optional() }).strip() }
@@ -103,6 +120,16 @@ const analyticsRange = {
   }).strip()
 }
 
+/* audit ------------------------------------------------------------ */
+
+const listAudit = {
+  query: z.object({
+    page: z.coerce.number().int().positive().optional(),
+    limit: z.coerce.number().int().positive().optional(),
+    action: z.string().trim().max(60).optional()
+  }).strip()
+}
+
 /* ai / retro ------------------------------------------------------- */
 
 const analyzeTeam = z.object({ date: isoDate.optional() }).strict()
@@ -115,6 +142,8 @@ module.exports = {
   resetPassword,
   submitStandup,
   updateBlocker,
+  updateStandup,
+  listAudit,
   idParam,
   dateQuery,
   createTeam,

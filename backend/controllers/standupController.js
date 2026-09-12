@@ -2,7 +2,12 @@ const Standup = require('../models/Standup')
 const User = require('../models/User')
 const Team = require('../models/Team')
 const Notification = require('../models/Notification')
+const AuditLog = require('../models/AuditLog')
 const { addDays, lastNDates, todayIn, zoneOf } = require('../utils/time')
+const audit = require('../services/auditService')
+
+/** The fields an edit may touch, and the ones the audit trail compares. */
+const EDITABLE = ['yesterday', 'today', 'blockers', 'mood']
 
 // ✅ Helper
 const getTeamId = async (user) => {
@@ -32,6 +37,35 @@ const canModifyStandup = async (user, standup) => {
 const describesBlocker = (blockers) => {
   const text = (blockers || '').trim()
   return text !== '' && text.toLowerCase() !== 'none'
+}
+
+/**
+ * Who may edit this standup, and until when.
+ *
+ * The author gets the day the standup covers — long enough to fix a typo or
+ * add the blocker they forgot, short enough that the record of a past day is
+ * not quietly rewritten a week later. After that it takes a manager, and
+ * every edit is in the audit trail either way.
+ */
+const canEditStandup = async (user, standup) => {
+  const isAuthor = String(standup.user) === String(user._id)
+
+  if (isAuthor) {
+    if (standup.date === todayIn(zoneOf(user))) return { allowed: true }
+    return {
+      allowed: false,
+      status: 403,
+      message: 'You can only edit a standup on the day it covers. Ask your manager to change an older one.'
+    }
+  }
+
+  if (await canModifyStandup(user, standup)) return { allowed: true }
+
+  return {
+    allowed: false,
+    status: 403,
+    message: 'Access denied — this standup is not yours'
+  }
 }
 
 // POST /api/standups
@@ -258,6 +292,83 @@ const updateBlocker = async (req, res) => {
   }
 }
 
+// PUT /api/standups/:id — edit a standup, leaving a trail
+const updateStandup = async (req, res) => {
+  try {
+    const standup = await Standup.findById(req.params.id)
+    if (!standup) {
+      return res.status(404).json({ message: 'Standup not found' })
+    }
+
+    const verdict = await canEditStandup(req.user, standup)
+    if (!verdict.allowed) {
+      return res.status(verdict.status).json({ message: verdict.message })
+    }
+
+    const before = EDITABLE.reduce((acc, f) => ({ ...acc, [f]: standup[f] }), {})
+
+    for (const field of EDITABLE) {
+      if (req.body[field] !== undefined) standup[field] = req.body[field]
+    }
+    standup.blockers = standup.blockers || 'None'
+    standup.hasBlocker = describesBlocker(standup.blockers)
+
+    const after = EDITABLE.reduce((acc, f) => ({ ...acc, [f]: standup[f] }), {})
+    const changes = audit.diff(before, after, EDITABLE)
+
+    // Nothing moved, so there is nothing to record and nothing to save
+    if (changes.length === 0) {
+      return res.json({ message: 'No changes', standup })
+    }
+
+    await standup.save()
+
+    const author = await User.findById(standup.user).select('name email')
+    await audit.record({
+      action: 'standup.updated',
+      actor: req.user,
+      subject: author,
+      team: standup.team,
+      entityType: 'Standup',
+      entityId: standup._id,
+      changes,
+      note: standup.date
+    })
+
+    res.json({ message: 'Standup updated', standup })
+  } catch (err) {
+    console.error('Update standup error:', err)
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// GET /api/standups/:id/history — the edit trail for one standup
+const getStandupHistory = async (req, res) => {
+  try {
+    const standup = await Standup.findById(req.params.id)
+    if (!standup) {
+      return res.status(404).json({ message: 'Standup not found' })
+    }
+
+    // Anyone who could edit it can see how it got this way. The author reads
+    // their own trail even once their edit window has closed.
+    const isAuthor = String(standup.user) === String(req.user._id)
+    if (!isAuthor && !(await canModifyStandup(req.user, standup))) {
+      return res.status(403).json({ message: 'Access denied — this standup is not yours' })
+    }
+
+    const entries = await AuditLog.find({ entityId: standup._id })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean()
+
+    res.json(entries)
+  } catch (err) {
+    console.error('Standup history error:', err)
+    res.status(500).json({ message: err.message })
+  }
+}
+
 //  DELETE /api/standups/:id — Standup delete karo (admin)
 const deleteBlocker = async (req, res) => {
   try {
@@ -270,7 +381,23 @@ const deleteBlocker = async (req, res) => {
       return res.status(403).json({ message: 'Access denied — this standup is not from your team' })
     }
 
+    const author = await User.findById(standup.user).select('name email')
+
     await Standup.findByIdAndDelete(req.params.id)
+
+    // Recorded after the fact and with the content inline: once the document
+    // is gone the trail is the only place that says what was removed
+    await audit.record({
+      action: 'standup.deleted',
+      actor: req.user,
+      subject: author,
+      team: standup.team,
+      entityType: 'Standup',
+      entityId: standup._id,
+      changes: EDITABLE.map(f => ({ field: f, from: audit.asText(standup[f]), to: '' })),
+      note: standup.date
+    })
+
     res.json({ message: 'Standup deleted successfully' })
   } catch (err) {
     console.error('Delete standup error:', err)
@@ -285,5 +412,7 @@ module.exports = {
   getBlockers,
   getTeamStats,
   updateBlocker,
+  updateStandup,
+  getStandupHistory,
   deleteBlocker
 }
