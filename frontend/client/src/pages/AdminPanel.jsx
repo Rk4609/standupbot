@@ -390,16 +390,22 @@ export default function AdminPanel({ user }) {
                     {u.role}
                   </Badge>
                 ) : (
-                  <Select
-                    value={u.role}
-                    onChange={e => changeRole(u, e.target.value)}
-                    aria-label={`Role for ${u.name}`}
-                    className="w-32 shrink-0 py-1.5 text-xs"
-                  >
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </Select>
+                  // Select carries w-full in its base styles, so the width has
+                  // to be constrained by a wrapper — a w-32 on the control
+                  // itself loses to w-full and the dropdown pushes the name and
+                  // email out of the row.
+                  <div className="w-32 shrink-0">
+                    <Select
+                      value={u.role}
+                      onChange={e => changeRole(u, e.target.value)}
+                      aria-label={`Role for ${u.name}`}
+                      className="py-1.5 text-xs"
+                    >
+                      <option value="employee">Employee</option>
+                      <option value="manager">Manager</option>
+                      <option value="admin">Admin</option>
+                    </Select>
+                  </div>
                 )}
               </motion.div>
             ))}
