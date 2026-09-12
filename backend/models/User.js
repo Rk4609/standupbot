@@ -18,7 +18,9 @@
   // async/await
   userSchema.pre('save', async function() {
     if (!this.isModified('password')) return
-    const salt = await bcrypt.genSalt(10)
+    // bcrypt is intentionally slow. The test suite hashes hundreds of
+    // fixture passwords, so drop the work factor there — production keeps 10.
+    const salt = await bcrypt.genSalt(process.env.NODE_ENV === 'test' ? 4 : 10)
     this.password = await bcrypt.hash(this.password, salt)
   })
 
@@ -26,4 +28,7 @@
     return await bcrypt.compare(enteredPassword, this.password)
   }
 
-  module.exports = mongoose.model('User', userSchema)
+  // Reuse an already-compiled model. The same file can be reached both as CJS
+// (require, from the controllers) and as ESM (import, from the tests), which
+// would otherwise register the schema twice and throw OverwriteModelError.
+module.exports = mongoose.models.User || mongoose.model('User', userSchema)

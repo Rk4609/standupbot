@@ -7,4 +7,7 @@ const teamSchema = new mongoose.Schema({
   standupTime: { type: String, default: '09:00' } // reminder time
 }, { timestamps: true })
 
-module.exports = mongoose.model('Team', teamSchema)
+// Reuse an already-compiled model. The same file can be reached both as CJS
+// (require, from the controllers) and as ESM (import, from the tests), which
+// would otherwise register the schema twice and throw OverwriteModelError.
+module.exports = mongoose.models.Team || mongoose.model('Team', teamSchema)

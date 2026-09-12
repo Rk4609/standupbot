@@ -1,86 +1,30 @@
-const express = require('express')
 const dotenv = require('dotenv')
-const cors = require('cors')
-const helmet = require('helmet')
 const http = require('http')
 const jwt = require('jsonwebtoken')
 const { Server } = require('socket.io')
-const connectDB = require('./config/db')
 
 dotenv.config()
+
+const connectDB = require('./config/db')
+const { createApp, allowedOrigins } = require('./app')
+const { startCronJobs } = require('./services/cronService')
+
 connectDB()
 
-const app = express()
+const app = createApp()
 const server = http.createServer(app)
 
-// Render terminates TLS and forwards the client IP in X-Forwarded-For. Without
-// this the rate limiters would count every request against the proxy's own IP.
-app.set('trust proxy', 1)
-
-// Security headers. The API serves JSON and SSE, never HTML, so CSP and COEP
-// have nothing to protect here and only complicate the cross-origin setup.
-app.use(helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
-}))
-
-// ✅ Allowed origins
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:4173',
-  process.env.CLIENT_URL
-].filter(Boolean)
-
-// ✅ Socket.io setup
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: allowedOrigins(),
     methods: ['GET', 'POST'],
     credentials: true
   },
   transports: ['websocket', 'polling']
 })
 
-// ✅ Socket.io global access
+// Controllers reach the hub through req.app.get('io')
 app.set('io', io)
-
-// ✅ CORS — production ready
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman)
-    if (!origin) return callback(null, true)
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true)
-    }
-    return callback(new Error('Not allowed by CORS'))
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}))
-
-// A standup body is a few KB; the default 100kb is already generous
-app.use(express.json({ limit: '100kb' }))
-
-const { apiLimiter } = require('./middleware/rateLimiters')
-app.use('/api', apiLimiter)
-
-// Routes
-const authRoutes = require('./routes/authRoutes')
-const standupRoutes = require('./routes/standupRoutes')
-const teamRoutes = require('./routes/teamRoutes')
-const userRoutes = require('./routes/userRoutes')
-const notificationRoutes = require('./routes/notificationRoutes')
-
-app.use('/api/auth', authRoutes)
-app.use('/api/standups', standupRoutes)
-app.use('/api/teams', teamRoutes)
-app.use('/api/users', userRoutes)
-app.use('/api/notifications', notificationRoutes)
-app.use('/api/ai', require('./routes/aiRoutes'))
-app.use('/api/retro', require('./routes/retroRoutes'))
-app.use('/api/employees', require('./routes/employeeRoutes'))
 
 // ✅ Socket.io auth — handshake mein JWT verify karo
 io.use((socket, next) => {
@@ -96,7 +40,6 @@ io.use((socket, next) => {
   }
 })
 
-// ✅ Socket.io events
 io.on('connection', (socket) => {
   console.log(`✅ User connected: ${socket.id}`)
 
@@ -109,28 +52,10 @@ io.on('connection', (socket) => {
   })
 })
 
-// ✅ Health check — Render sleep se bachne ke liye
-app.get('/', (req, res) => res.send('StandupBot API ✅'))
-app.get('/health', (req, res) => res.json({
-  status: 'ok',
-  timestamp: new Date().toISOString()
-}))
-
-// ✅ Global error handler
-app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.stack)
-  res.status(500).json({
-    message: err.message || 'Server Error',
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  })
-})
-
-const { startCronJobs } = require('./services/cronService')
-
 const PORT = process.env.PORT || 5000
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT} ✅`)
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`Allowed origins: ${allowedOrigins.join(', ')}`)
+  console.log(`Allowed origins: ${allowedOrigins().join(', ')}`)
   startCronJobs()
 })

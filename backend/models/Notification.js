@@ -20,4 +20,7 @@ const notificationSchema = new mongoose.Schema({
   link: { type: String, default: '/team' }
 }, { timestamps: true })
 
-module.exports = mongoose.model('Notification', notificationSchema)
+// Reuse an already-compiled model. The same file can be reached both as CJS
+// (require, from the controllers) and as ESM (import, from the tests), which
+// would otherwise register the schema twice and throw OverwriteModelError.
+module.exports = mongoose.models.Notification || mongoose.model('Notification', notificationSchema)

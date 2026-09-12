@@ -16,7 +16,10 @@ A production-ready REST API for the StandupBot async daily standup tool, built w
 | Socket.io | Real-time notifications |
 | Resend | Transactional email |
 | node-cron | Scheduled jobs |
-| Groq (Llama 3.3 70B) | AI team health analysis |
+| Groq (GPT-OSS 120B) | AI analysis and weekly retros |
+| Vitest + supertest | Tests |
+| zod | Request validation |
+| express-rate-limit + helmet | Abuse and header hardening |
 | Cloudinary + Multer | Avatar uploads |
 
 ---
@@ -49,12 +52,21 @@ backend/
 │   ├── userRoutes.js          # /api/users
 │   ├── notificationRoutes.js  # /api/notifications
 │   └── aiRoutes.js            # /api/ai
+├── middleware/
+│   ├── rateLimiters.js        # Per-endpoint abuse limits
+│   ├── validate.js            # zod request parsing
+│   └── schemas.js             # Request schemas
 ├── services/
 │   ├── emailService.js        # Resend email templates
+│   ├── groqService.js         # Shared AI calls (stream + non-stream)
 │   └── cronService.js         # Scheduled email jobs
+├── scripts/                   # One-off migrations and seeders
+├── tests/                     # Vitest + supertest suites
+├── utils/week.js              # Mon-Fri week maths (UTC)
 ├── .env                       # Environment variables
 ├── package.json
-└── server.js                  # Entry point
+├── app.js                     # Express app (importable by tests)
+└── server.js                  # Entry: DB, socket.io, cron, listen
 ```
 
 ---
@@ -75,6 +87,8 @@ RESEND_API_KEY=re_xxxxxxxxxxxx
 
 # AI analysis
 GROQ_API_KEY=gsk_xxxxxxxxxxxx
+# Optional — defaults to openai/gpt-oss-120b
+# GROQ_MODEL=openai/gpt-oss-120b
 
 # Avatar uploads
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -124,7 +138,7 @@ Server runs at `http://localhost:5000`
 
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
-| POST | `/register` | Register new user (`member` or `manager` only) | Public |
+| POST | `/register` | Register new user - always created as `employee` | Public |
 | POST | `/login` | Login user | Public |
 | POST | `/forgot-password` | Send password reset link | Public |
 | GET | `/verify-reset-token/:token` | Check if reset link is still valid | Public |
@@ -158,6 +172,7 @@ Server runs at `http://localhost:5000`
 | Method | Endpoint | Description | Access |
 |--------|----------|-------------|--------|
 | GET | `/` | Get all users | Admin |
+| PATCH | `/:id/role` | Grant `employee` / `manager` / `admin` | Admin |
 | GET | `/profile` | Own profile + stats + last 7 days activity | Protected |
 | PUT | `/profile` | Update own name | Protected |
 | PUT | `/change-password` | Change own password | Protected |
@@ -183,6 +198,35 @@ Server runs at `http://localhost:5000`
 responds with `text/event-stream`. Each chunk is `data: {"text":"..."}` and the
 stream ends with `data: [DONE]`.
 
+### Employee Routes — `/api/employees`
+
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| GET | `/` | Paged roster (`?page&limit&search&role&team`) | Manager/Admin |
+| GET | `/summary` | Headline counts across the whole roster | Manager/Admin |
+| GET | `/:id` | One employee with their recent standups | Manager/Admin |
+
+`limit` accepts 10, 20, 50 or 100; anything else falls back to 20. A page past
+the end clamps to the last page. Admins see everyone, a manager only their own
+team.
+
+### Retro Routes — `/api/retro`
+
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| GET | `/` | Past retros, newest first | Manager/Admin |
+| GET | `/current` | This week's retro, if generated | Manager/Admin |
+| POST | `/generate` | Stream a retro for the week (SSE) and save it | Manager/Admin |
+
+### Rate Limits
+
+| Scope | Limit |
+|-------|-------|
+| Login | 10 / 15 min (successful sign-ins excluded) |
+| Register, forgot-password | 5 / hour |
+| AI and retro generation | 15 / 10 min, per user |
+| Everything under `/api` | 200 / min |
+
 ### Health Checks
 
 | Method | Endpoint | Description |
@@ -196,12 +240,14 @@ stream ends with `data: [DONE]`.
 
 | Role | Permissions |
 |------|------------|
-| **Admin** | Manage teams, users, view and edit all data |
-| **Manager** | View and manage own team's standups, blockers, analytics |
-| **Member** | Submit standup, view own history |
+| **Admin** | Manage teams, users, roles; view and edit all data |
+| **Manager** | View and manage own team's standups, blockers, analytics, retros |
+| **Employee** | Submit standup, view own history |
 
-> Admin accounts cannot be created through `/register` — they must be set
-> directly in the database.
+> Registration always creates an employee. Manager and admin are granted by an
+> existing admin through `PATCH /api/users/:id/role` — the client cannot ask for
+> a role at sign-up. An admin cannot change their own role, so an instance can
+> never be left without one.
 
 ---
 
@@ -282,6 +328,33 @@ See `package.json` for exact versions. Main ones:
 ```
 
 > `dotenv` is pinned to v16 — v17+ breaks on Render.
+
+---
+
+## 🧪 Tests
+
+```bash
+npm test              # run once
+npm run test:watch    # watch mode
+npm run test:coverage # with coverage
+```
+
+Vitest with supertest and an in-memory MongoDB, so the suite needs no running
+database and leaves no state behind. Each test file gets a fresh module
+registry and each test a clean database, so order never matters.
+
+| Suite | Covers |
+|-------|--------|
+| `auth` | registration, login, password reset, the role the client cannot set |
+| `scoping` | who may read and change whose data, across every guarded route |
+| `employees` | pagination, search, filters, and what must never be serialised |
+| `standups` | submission rules, blocker detection, streak arithmetic |
+| `roles` | granting roles, and the guards around it |
+| `rateLimit` | the credential limits — isolated, since counters are module state |
+| `week` | the date maths the weekly retro depends on |
+
+CI runs these on every push along with the frontend lint, tests and build
+(`.github/workflows/ci.yml`).
 
 ---
 

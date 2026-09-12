@@ -26,4 +26,7 @@ const retroSchema = new mongoose.Schema({
 // One retro per team per week — regenerating overwrites rather than piling up
 retroSchema.index({ team: 1, weekStart: 1 }, { unique: true })
 
-module.exports = mongoose.model('Retro', retroSchema)
+// Reuse an already-compiled model. The same file can be reached both as CJS
+// (require, from the controllers) and as ESM (import, from the tests), which
+// would otherwise register the schema twice and throw OverwriteModelError.
+module.exports = mongoose.models.Retro || mongoose.model('Retro', retroSchema)

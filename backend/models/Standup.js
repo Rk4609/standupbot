@@ -11,4 +11,7 @@ const standupSchema = new mongoose.Schema({
   date:      { type: String, required: true }
 }, { timestamps: true })
 
-module.exports = mongoose.model('Standup', standupSchema)
+// Reuse an already-compiled model. The same file can be reached both as CJS
+// (require, from the controllers) and as ESM (import, from the tests), which
+// would otherwise register the schema twice and throw OverwriteModelError.
+module.exports = mongoose.models.Standup || mongoose.model('Standup', standupSchema)

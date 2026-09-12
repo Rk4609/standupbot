@@ -52,8 +52,14 @@ const listEmployees = async (req, res) => {
 
     if (req.query.team && req.query.team !== 'all') {
       const team = await Team.findOne({ name: req.query.team }).select('_id')
-      // An unknown team name must match nothing rather than silently everything
-      filter.team = team?._id || null
+      if (team) {
+        filter.team = team._id
+      } else {
+        // An unknown team name must match nothing. `team: null` would not do
+        // it — that is a real value held by everyone without a team, so an
+        // unrecognised name used to return the unassigned users.
+        filter._id = { $in: [] }
+      }
     }
 
     if (req.query.search?.trim()) {

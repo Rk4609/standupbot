@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the previous run irrelevant
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # mongodb-memory-server downloads a mongod binary on first use; caching it
+      # keeps every run after the first from re-fetching ~100MB
+      - name: Cache mongodb-memory-server binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongo-binaries-${{ runner.os }}
+
+      - run: npm ci
+      - run: npm test
+
+  frontend:
+    name: Frontend lint, test and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/client/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+      # The build is part of the gate: a broken import or a Tailwind config
+      # that fails to load only shows up here
+      - run: npm run build
+        env:
+          VITE_API_URL: https://standupbot-backend.onrender.com/api

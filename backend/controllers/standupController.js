@@ -22,6 +22,17 @@ const canModifyStandup = async (user, standup) => {
   return standup.team.toString() === teamId.toString()
 }
 
+/**
+ * Whether a blockers field actually describes a blocker.
+ *
+ * Returns a real boolean: the chained `&&` used here before yielded the empty
+ * string when the field was blank, which mongoose then refused to cast.
+ */
+const describesBlocker = (blockers) => {
+  const text = (blockers || '').trim()
+  return text !== '' && text.toLowerCase() !== 'none'
+}
+
 // POST /api/standups
 const submitStandup = async (req, res) => {
   try {
@@ -37,7 +48,7 @@ const submitStandup = async (req, res) => {
       return res.status(400).json({ message: "Today's standup is already submitted!" })
     }
 
-    const hasBlocker = blockers && blockers.trim() !== '' && blockers.toLowerCase() !== 'none'
+    const hasBlocker = describesBlocker(blockers)
 
     const standup = await Standup.create({
       user: req.user._id,
@@ -53,6 +64,8 @@ const submitStandup = async (req, res) => {
     if (req.user.team) {
       const team = await Team.findById(req.user.team).populate('manager')
       if (team?.manager) {
+        // Absent when the app is mounted without a socket server (tests).
+        // A missing realtime hub must not fail the submission itself.
         const io = req.app.get('io')
 
         const notification = await Notification.create({
@@ -63,7 +76,7 @@ const submitStandup = async (req, res) => {
           link: '/team'
         })
 
-        io.to(team.manager._id.toString()).emit('new-notification', {
+        io?.to(team.manager._id.toString()).emit('new-notification', {
           _id: notification._id,
           message: notification.message,
           type: notification.type,
@@ -81,7 +94,7 @@ const submitStandup = async (req, res) => {
             link: '/blockers'
           })
 
-          io.to(team.manager._id.toString()).emit('new-notification', {
+          io?.to(team.manager._id.toString()).emit('new-notification', {
             _id: blockerNotif._id,
             message: blockerNotif.message,
             type: blockerNotif.type,
@@ -226,7 +239,7 @@ const updateBlocker = async (req, res) => {
       return res.status(403).json({ message: 'Access denied — this standup is not from your team' })
     }
 
-    const hasBlocker = blockers && blockers.trim() !== '' && blockers.toLowerCase() !== 'none'
+    const hasBlocker = describesBlocker(blockers)
 
     standup.blockers = blockers || 'None'
     standup.hasBlocker = hasBlocker

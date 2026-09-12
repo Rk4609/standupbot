@@ -1,13 +1,36 @@
 const { Resend } = require('resend')
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const FROM_EMAIL = 'onboarding@resend.dev'
+
+/**
+ * The Resend client is built on first use, not at import.
+ *
+ * Constructing it eagerly threw when RESEND_API_KEY was unset, which took the
+ * whole process down at startup — a missing email key should degrade email,
+ * not the API. It also made this module unimportable from tests.
+ */
+let client = null
+const getClient = () => {
+  if (client) return client
+  if (!process.env.RESEND_API_KEY) return null
+  client = new Resend(process.env.RESEND_API_KEY)
+  return client
+}
+
+/** Send, or no-op with a warning when email is not configured. */
+const send = async (payload) => {
+  const resend = getClient()
+  if (!resend) {
+    console.warn(`Email skipped (RESEND_API_KEY not set): "${payload.subject}"`)
+    return { data: null, error: null }
+  }
+  return resend.emails.send(payload)
+}
 
 // ✅ Reminder email
 const sendReminderEmail = async (toEmail, name) => {
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await send({
       from: `StandupBot <${FROM_EMAIL}>`,
       to: [toEmail],
       subject: '⏰ Daily Standup Reminder',
@@ -45,7 +68,7 @@ const sendManagerSummary = async (managerEmail, managerName, standups, teamName)
       </tr>
     `).join('')
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await send({
       from: `StandupBot <${FROM_EMAIL}>`,
       to: [managerEmail],
       subject: `📋 ${teamName} — Daily Standup Summary`,
@@ -79,7 +102,7 @@ const sendManagerSummary = async (managerEmail, managerName, standups, teamName)
 const sendResetPasswordEmail = async (toEmail, name, resetUrl) => {
   try {
     console.log('Sending reset email via Resend to:', toEmail)
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await send({
       from: `StandupBot <${FROM_EMAIL}>`,
       to: [toEmail],
       subject: '🔒 Reset Your StandupBot Password',
@@ -135,7 +158,7 @@ const sendRetroEmail = async (toEmail, managerName, teamName, week, content, sta
       })
       .join('')
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await send({
       from: `StandupBot <${FROM_EMAIL}>`,
       to: [toEmail],
       subject: `🗓️ ${teamName} — Weekly Retro (${week.weekLabel})`,
