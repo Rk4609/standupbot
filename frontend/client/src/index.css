@@ -45,6 +45,14 @@
 
   html {
     -webkit-tap-highlight-color: transparent;
+
+    /*
+     * Keep the scrollbar's space reserved whether or not a page scrolls.
+     * Without it a short page is 15px wider than a long one, and since the
+     * content column is centred, every title and card shifted about 7px
+     * sideways as you moved between pages.
+     */
+    scrollbar-gutter: stable;
   }
 
   body {

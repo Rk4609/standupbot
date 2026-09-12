@@ -96,7 +96,7 @@ export default function Dashboard({ user }) {
     <PageShell>
       {/* Greeting */}
       <motion.header variants={itemVariants} className="mb-7">
-        <h1 className="text-display font-bold text-content">
+        <h1 className="text-title font-semibold text-content">
           {greeting()}, {user?.name?.split(' ')[0]}
         </h1>
         <p className="mt-1.5 text-sm text-content-muted">{dateLabel}</p>
@@ -123,7 +123,7 @@ export default function Dashboard({ user }) {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">
                   Today
                 </p>
-                <h2 className="mt-2 text-title font-semibold">Your standup is pending</h2>
+                <h2 className="mt-2 text-heading font-semibold">Your standup is pending</h2>
                 <p className="mt-1.5 max-w-md text-sm text-white/80">
                   Two minutes now saves your team a meeting later.
                 </p>

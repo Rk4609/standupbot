@@ -13,7 +13,7 @@ export default function PageHeader({ title, subtitle, actions, className }) {
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-title font-bold text-content md:text-display">{title}</h1>
+        <h1 className="text-title font-semibold text-content">{title}</h1>
         {subtitle && <p className="mt-1.5 text-sm text-content-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}

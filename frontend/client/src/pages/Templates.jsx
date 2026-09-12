@@ -127,7 +127,7 @@ export default function Templates() {
 
   if (error) {
     return (
-      <PageShell width="md">
+      <PageShell className="max-w-3xl">
         <PageHeader title="Standup template" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
       </PageShell>
@@ -136,7 +136,7 @@ export default function Templates() {
 
   if (!template) {
     return (
-      <PageShell width="md">
+      <PageShell className="max-w-3xl">
         <Skeleton className="mb-2 h-9 w-56" />
         <Skeleton className="mb-7 h-4 w-80" />
         <Skeleton className="h-[420px] rounded-card" />
@@ -147,7 +147,7 @@ export default function Templates() {
   const blank = template.questions.some(q => !q.label.trim())
 
   return (
-    <PageShell width="md">
+    <PageShell className="max-w-3xl">
       <PageHeader
         title="Standup template"
         subtitle="The questions your team is asked each morning."

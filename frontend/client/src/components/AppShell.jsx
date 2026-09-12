@@ -10,16 +10,12 @@ import NotificationList from './NotificationList'
 import {
   IconAlert,
   IconBell,
-  IconBolt,
-  IconBriefcase,
   IconChart,
   IconClock,
   IconHome,
   IconMenu,
   IconMoon,
   IconPlus,
-  IconShield,
-  IconList,
   IconSparkles,
   IconTarget,
   IconTimer,
@@ -28,7 +24,13 @@ import {
   IconUsers
 } from './ui/icons'
 
-/* Nav is grouped so the sidebar reads as sections rather than one long list */
+/**
+ * The sidebar carries what people open on a given day, and nothing else.
+ *
+ * It had grown to fifteen rows, with the projects catalogue and the Slack
+ * webhook sitting at the same weight as "submit today's standup". Everything
+ * a team configures once now lives behind Workspace.
+ */
 const navGroups = (user) => {
   const isLead = user?.role === 'manager' || user?.role === 'admin'
 
@@ -49,17 +51,13 @@ const navGroups = (user) => {
         { to: '/employees', label: 'Employees', icon: IconUsers },
         { to: '/blockers', label: 'Blockers', icon: IconAlert },
         { to: '/timesheets', label: 'Timesheets', icon: IconTimer },
-        { to: '/projects', label: 'Projects', icon: IconBriefcase },
         { to: '/analytics', label: 'Analytics', icon: IconTrendUp },
-        { to: '/retro', label: 'Weekly retro', icon: IconSparkles },
-        { to: '/activity', label: 'Activity', icon: IconList },
-        { to: '/templates', label: 'Standup template', icon: IconTarget },
-        { to: '/integrations', label: 'Integrations', icon: IconBolt }
+        { to: '/retro', label: 'Weekly retro', icon: IconSparkles }
       ]
     },
-    user?.role === 'admin' && {
+    isLead && {
       label: 'Manage',
-      items: [{ to: '/admin', label: 'Admin', icon: IconShield }]
+      items: [{ to: '/workspace', label: 'Workspace', icon: IconTarget }]
     }
   ].filter(Boolean)
 }

@@ -131,7 +131,7 @@ export default function Retro() {
 
   if (loading) {
     return (
-      <PageShell width="lg">
+      <PageShell className="max-w-4xl">
         <Skeleton className="mb-6 h-8 w-64" />
         <div className="mb-5 grid grid-cols-3 gap-3">
           {[0, 1, 2].map(i => (
@@ -145,7 +145,7 @@ export default function Retro() {
 
   if (loadError) {
     return (
-      <PageShell width="lg">
+      <PageShell className="max-w-4xl">
         <PageHeader title="Weekly retro" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={loadError} />
       </PageShell>
@@ -153,7 +153,7 @@ export default function Retro() {
   }
 
   return (
-    <PageShell width="lg">
+    <PageShell className="max-w-4xl">
       <PageHeader
         title="Weekly retro"
         subtitle={

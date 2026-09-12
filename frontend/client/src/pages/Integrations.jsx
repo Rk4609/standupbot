@@ -139,7 +139,7 @@ export default function Integrations() {
 
   if (loadError) {
     return (
-      <PageShell width="md">
+      <PageShell className="max-w-3xl">
         <PageHeader title="Integrations" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={loadError} />
       </PageShell>
@@ -148,7 +148,7 @@ export default function Integrations() {
 
   if (!state) {
     return (
-      <PageShell width="md">
+      <PageShell className="max-w-3xl">
         <Skeleton className="mb-2 h-9 w-48" />
         <Skeleton className="mb-7 h-4 w-80" />
         <Skeleton className="h-80 rounded-card" />
@@ -157,7 +157,7 @@ export default function Integrations() {
   }
 
   return (
-    <PageShell width="md">
+    <PageShell className="max-w-3xl">
       <PageHeader
         title="Integrations"
         subtitle="Send standups, blockers and the weekly retro to a Slack channel."

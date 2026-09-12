@@ -35,6 +35,7 @@ const Analytics = lazy(() => import("./pages/Analytics"))
 const Activity = lazy(() => import("./pages/Activity"))
 const Templates = lazy(() => import("./pages/Templates"))
 const Integrations = lazy(() => import("./pages/Integrations"))
+const WorkspaceLayout = lazy(() => import("./components/WorkspaceLayout"))
 const Timesheet = lazy(() => import("./pages/Timesheet"))
 const Projects = lazy(() => import("./pages/Projects"))
 const TeamTimesheets = lazy(() => import("./pages/TeamTimesheets"))
@@ -107,15 +108,32 @@ function AnimatedRoutes({ user, setUser }) {
           <Route path="/retro" element={<Retro user={user} />} />
           <Route path="/employees" element={<Employees />} />
           <Route path="/analytics" element={<Analytics />} />
-          <Route path="/activity" element={<Activity />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/integrations" element={<Integrations />} />
-          <Route path="/projects" element={<Projects />} />
           <Route path="/timesheets" element={<TeamTimesheets />} />
+
+          {/* Set-up lives together rather than as five more sidebar rows */}
+          <Route path="/workspace" element={<WorkspaceLayout user={user} />}>
+            <Route index element={<Navigate to="projects" replace />} />
+            <Route path="projects" element={<Projects />} />
+            <Route path="template" element={<Templates />} />
+            <Route path="integrations" element={<Integrations />} />
+            <Route path="activity" element={<Activity />} />
+          </Route>
         </Route>
 
+        {/* The paths these pages used to live at, so a bookmark still lands */}
+        <Route path="/projects" element={<Navigate to="/workspace/projects" replace />} />
+        <Route path="/templates" element={<Navigate to="/workspace/template" replace />} />
+        <Route
+          path="/integrations"
+          element={<Navigate to="/workspace/integrations" replace />}
+        />
+        <Route path="/activity" element={<Navigate to="/workspace/activity" replace />} />
+
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
-          <Route path="/admin" element={<AdminPanel user={user} />} />
+          <Route path="/workspace" element={<WorkspaceLayout user={user} />}>
+            <Route path="admin" element={<AdminPanel user={user} />} />
+          </Route>
+          <Route path="/admin" element={<Navigate to="/workspace/admin" replace />} />
         </Route>
 
         {/* A silent redirect here made a stale bundle look like a broken

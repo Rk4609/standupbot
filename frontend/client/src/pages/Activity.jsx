@@ -131,7 +131,7 @@ export default function Activity() {
 
   if (loading && !data) {
     return (
-      <PageShell width="lg">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-44" />
         <Skeleton className="mb-7 h-4 w-80" />
         <Skeleton className="h-96 rounded-card" />
@@ -141,7 +141,7 @@ export default function Activity() {
 
   if (error) {
     return (
-      <PageShell width="lg">
+      <PageShell>
         <PageHeader title="Activity" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
       </PageShell>
@@ -149,7 +149,7 @@ export default function Activity() {
   }
 
   return (
-    <PageShell width="lg">
+    <PageShell>
       <PageHeader
         title="Activity"
         subtitle="Every edit to a standup and every role change, with what moved."

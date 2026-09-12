@@ -228,7 +228,7 @@ export default function Profile({ user, setUser }) {
 
   if (loading) {
     return (
-      <PageShell width="lg">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-44" />
         <Skeleton className="mb-7 h-4 w-72" />
         <Skeleton className="mb-4 h-40 rounded-card" />
@@ -242,7 +242,7 @@ export default function Profile({ user, setUser }) {
 
   if (loadError) {
     return (
-      <PageShell width="lg">
+      <PageShell>
         <PageHeader title="My profile" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={loadError} />
       </PageShell>
@@ -271,7 +271,7 @@ export default function Profile({ user, setUser }) {
   ]
 
   return (
-    <PageShell width="lg">
+    <PageShell>
       <PageHeader
         title="My profile"
         subtitle="Your details, and how the app counts your days."

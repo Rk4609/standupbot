@@ -16,7 +16,7 @@ export default function NotFound({ user }) {
   const navigate = useNavigate()
 
   return (
-    <PageShell width="sm">
+    <PageShell className="max-w-xl">
       <Card className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
           <IconAlert className="h-6 w-6" />

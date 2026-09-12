@@ -50,7 +50,7 @@ export default function Timesheet() {
 
   if (error) {
     return (
-      <PageShell width="lg">
+      <PageShell>
         <PageHeader title="My timesheet" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
       </PageShell>
@@ -59,7 +59,7 @@ export default function Timesheet() {
 
   if (!data) {
     return (
-      <PageShell width="lg">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-48" />
         <Skeleton className="mb-7 h-4 w-72" />
         <Skeleton className="h-72 rounded-card" />
@@ -71,7 +71,7 @@ export default function Timesheet() {
   const canSubmit = data.totalHours > 0 && !locked
 
   return (
-    <PageShell width="lg">
+    <PageShell>
       <PageHeader
         title="My timesheet"
         subtitle={data.week.weekLabel}

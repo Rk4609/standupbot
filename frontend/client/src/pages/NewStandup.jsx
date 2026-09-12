@@ -175,7 +175,7 @@ export default function NewStandup() {
 
   if (!template) {
     return (
-      <PageShell width="sm">
+      <PageShell className="max-w-2xl">
         <Skeleton className="mb-2 h-9 w-48" />
         <Skeleton className="mb-7 h-4 w-64" />
         <div className="space-y-4">
@@ -188,7 +188,7 @@ export default function NewStandup() {
   }
 
   return (
-    <PageShell width="sm">
+    <PageShell className="max-w-2xl">
       <PageHeader title={template.name || 'Daily standup'} subtitle={dateLabel} />
 
       <form onSubmit={handleSubmit} className="space-y-4">

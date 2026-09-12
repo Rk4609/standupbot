@@ -41,8 +41,8 @@ export default {
       // Type scale — headings get tighter tracking as they grow, which is what
       // makes large text read as designed rather than merely enlarged
       fontSize: {
-        display: ['2.125rem', { lineHeight: '2.4rem', letterSpacing: '-0.025em' }],
-        title: ['1.625rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],
+        display: ['1.75rem', { lineHeight: '2.1rem', letterSpacing: '-0.022em' }],
+        title: ['1.5rem', { lineHeight: '1.9rem', letterSpacing: '-0.02em' }],
         heading: ['1.125rem', { lineHeight: '1.6rem', letterSpacing: '-0.011em' }],
         metric: ['1.75rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }]
       },

@@ -84,7 +84,7 @@ export default function TeamTimesheets() {
 
   if (error) {
     return (
-      <PageShell width="xl">
+      <PageShell>
         <PageHeader title="Team timesheets" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
       </PageShell>
@@ -93,7 +93,7 @@ export default function TeamTimesheets() {
 
   if (!data) {
     return (
-      <PageShell width="xl">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-56" />
         <Skeleton className="mb-7 h-4 w-72" />
         <Skeleton className="h-96 rounded-card" />
@@ -102,7 +102,7 @@ export default function TeamTimesheets() {
   }
 
   return (
-    <PageShell width="xl">
+    <PageShell>
       <PageHeader
         title="Team timesheets"
         subtitle={data.week.weekLabel}

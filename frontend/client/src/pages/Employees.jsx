@@ -249,7 +249,7 @@ export default function Employees() {
 
   if (loading) {
     return (
-      <PageShell width="xl">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-64" />
         <Skeleton className="mb-7 h-4 w-48" />
         <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -263,7 +263,7 @@ export default function Employees() {
   }
 
   return (
-    <PageShell width="xl">
+    <PageShell>
       <PageHeader
         title="Employees"
         subtitle="Everyone on the roster, with their standup activity. Open a row for detail."

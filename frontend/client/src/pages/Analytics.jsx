@@ -198,7 +198,7 @@ export default function Analytics() {
 
   if (loading && !data) {
     return (
-      <PageShell width="xl">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-52" />
         <Skeleton className="mb-7 h-4 w-72" />
         <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -214,7 +214,7 @@ export default function Analytics() {
 
   if (error) {
     return (
-      <PageShell width="xl">
+      <PageShell>
         <PageHeader title="Analytics" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
       </PageShell>
@@ -224,7 +224,7 @@ export default function Analytics() {
   const { headline, range, people, atRisk } = data
 
   return (
-    <PageShell width="xl">
+    <PageShell>
       <PageHeader
         title="Analytics"
         subtitle={`${range.from} to ${range.to} · ${range.workingDays} working days`}

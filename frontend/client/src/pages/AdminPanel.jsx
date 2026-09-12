@@ -148,7 +148,7 @@ export default function AdminPanel({ user }) {
 
   if (loading) {
     return (
-      <PageShell width="xl">
+      <PageShell>
         <Skeleton className="mb-6 h-8 w-48" />
         <div className="mb-5 grid grid-cols-3 gap-3">
           {[0, 1, 2].map(i => (
@@ -164,7 +164,7 @@ export default function AdminPanel({ user }) {
   }
 
   return (
-    <PageShell width="xl">
+    <PageShell>
       <PageHeader title="Admin panel" subtitle="Teams, employees and role distribution" />
 
       <div className="mb-5 grid grid-cols-3 gap-3">

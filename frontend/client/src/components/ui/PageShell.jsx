@@ -2,19 +2,19 @@ import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { listVariants, pageVariants } from '../../lib/motion'
 
-const WIDTHS = {
-  sm: 'max-w-2xl',
-  md: 'max-w-4xl',
-  lg: 'max-w-5xl',
-  xl: 'max-w-6xl'
-}
-
 /**
- * Page wrapper inside AppShell. Handles the route transition and acts as the
- * stagger parent, so any <Card> or motion child below animates in sequence
- * without each page wiring that up itself.
+ * Page wrapper inside AppShell.
+ *
+ * Every page gets the same frame. It used to take a width, and pages picked
+ * anything from 2xl to 6xl — so each one started at a different distance from
+ * the sidebar and the whole app looked like it had been assembled from
+ * unrelated screens. A page that wants a narrower measure constrains its own
+ * content instead, which keeps the left edge where the reader expects it.
+ *
+ * It also handles the route transition and acts as the stagger parent, so any
+ * <Card> or motion child below animates in sequence.
  */
-export default function PageShell({ width = 'md', className, children }) {
+export default function PageShell({ className, children }) {
   return (
     <motion.main
       variants={pageVariants}
@@ -27,7 +27,7 @@ export default function PageShell({ width = 'md', className, children }) {
         variants={listVariants}
         initial="initial"
         animate="animate"
-        className={cn('mx-auto', WIDTHS[width], className)}
+        className={cn('mx-auto max-w-6xl', className)}
       >
         {children}
       </motion.div>

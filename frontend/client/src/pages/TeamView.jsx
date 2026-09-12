@@ -113,7 +113,7 @@ export default function TeamView() {
   const maxCount = Math.max(...stats.map(s => s.count), 0)
 
   return (
-    <PageShell width="lg">
+    <PageShell>
       <PageHeader
         title="Team dashboard"
         subtitle="Daily submissions, participation and blockers at a glance"

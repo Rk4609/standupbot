@@ -77,7 +77,7 @@ export default function Projects() {
 
   if (error) {
     return (
-      <PageShell width="md">
+      <PageShell>
         <PageHeader title="Projects" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
       </PageShell>
@@ -86,7 +86,7 @@ export default function Projects() {
 
   if (!data) {
     return (
-      <PageShell width="md">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-40" />
         <Skeleton className="mb-7 h-4 w-72" />
         <Skeleton className="h-80 rounded-card" />
@@ -98,7 +98,7 @@ export default function Projects() {
   const archived = data.projects.filter(p => !p.active)
 
   return (
-    <PageShell width="md">
+    <PageShell>
       <PageHeader
         title="Projects"
         subtitle="What your team books its hours against."
