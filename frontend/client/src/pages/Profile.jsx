@@ -60,11 +60,11 @@ function Day({ date, submitted, today }) {
   const weekend = isWeekend(date)
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-1.5">
+    <div className="flex w-10 shrink-0 flex-col items-center gap-1.5">
       <div
         title={`${date}${submitted ? ' · submitted' : weekend ? '' : ' · nothing submitted'}`}
         className={cn(
-          'flex h-9 w-full max-w-[2.75rem] items-center justify-center rounded-lg border transition-colors',
+          'flex h-9 w-full items-center justify-center rounded-lg border transition-colors',
           submitted
             ? 'border-brand-500 bg-brand-500 text-white dark:border-brand-500 dark:bg-brand-600'
             : weekend
@@ -352,6 +352,27 @@ export default function Profile({ user, setUser }) {
                 />
               </div>
             </div>
+
+            <div className="mt-5 border-t border-line pt-4">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <p className="eyebrow">This week</p>
+                <p className="tabular text-xs text-content-subtle">
+                  {onWorkingDays} of {workingDays} working days
+                  {extra > 0 && ` · ${extra} at the weekend`}
+                </p>
+              </div>
+
+              <div className="flex gap-1.5">
+                {days.map(date => (
+                  <Day
+                    key={date}
+                    date={date}
+                    submitted={profile.submittedDates?.includes(date)}
+                    today={date === today}
+                  />
+                ))}
+              </div>
+            </div>
           </Card>
         </motion.div>
 
@@ -534,48 +555,23 @@ export default function Profile({ user, setUser }) {
             </Card>
           </motion.div>
 
-          {/* This week, and the things nobody can edit */}
-          <div className="space-y-4">
-            <motion.div variants={itemVariants}>
-              <Card>
-                <div className="mb-4">
-                  <CardTitle className="mb-1">This week</CardTitle>
-                  <p className="tabular text-xs text-content-subtle">
-                    {onWorkingDays} of {workingDays} working days
-                    {extra > 0 && ` · ${extra} at the weekend`}
-                  </p>
-                </div>
-
-                <div className="flex gap-1.5">
-                  {days.map(date => (
-                    <Day
-                      key={date}
-                      date={date}
-                      submitted={profile.submittedDates?.includes(date)}
-                      today={date === today}
-                    />
-                  ))}
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div variants={itemVariants}>
-              <Card>
-                <CardTitle>Account</CardTitle>
-                <dl className="divide-y divide-line">
-                  <Fact label="Email">{profile.email}</Fact>
-                  <Fact label="Role">
-                    <span className="capitalize">{profile.role}</span>
-                  </Fact>
-                  <Fact label="Team">{profile.team?.name || 'Not on a team'}</Fact>
-                  <Fact label="Member since">{monthYear(profile.createdAt)}</Fact>
-                </dl>
-                <p className="mt-3 text-xs text-content-subtle">
-                  Your email and role are set by an admin.
-                </p>
-              </Card>
-            </motion.div>
-          </div>
+          {/* The things nobody here can edit */}
+          <motion.div variants={itemVariants}>
+            <Card>
+              <CardTitle>Account</CardTitle>
+              <dl className="divide-y divide-line">
+                <Fact label="Email">{profile.email}</Fact>
+                <Fact label="Role">
+                  <span className="capitalize">{profile.role}</span>
+                </Fact>
+                <Fact label="Team">{profile.team?.name || 'Not on a team'}</Fact>
+                <Fact label="Member since">{monthYear(profile.createdAt)}</Fact>
+              </dl>
+              <p className="mt-3 text-xs text-content-subtle">
+                Your email and role are set by an admin.
+              </p>
+            </Card>
+          </motion.div>
         </div>
       </motion.div>
     </PageShell>
