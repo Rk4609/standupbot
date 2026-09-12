@@ -1,96 +1,58 @@
 import BlockerBadge from './BlockerBadge'
+import Card from './ui/Card'
+import Badge from './ui/Badge'
+import { MOOD_EMOJI, MOOD_TONE } from '../lib/moods'
 
-const moodEmoji = {
-  great: '🚀',
-  good: '😊',
-  okay: '😐',
-  bad: '😔',
-  stressed: '😰'
-}
-
-const moodColor = {
-  great: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  good: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  okay: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-  bad: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
-  stressed: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+function Section({ label, children }) {
+  return (
+    <div>
+      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-content-subtle">
+        {label}
+      </p>
+      <p className="whitespace-pre-line text-sm leading-relaxed text-content-muted">
+        {children}
+      </p>
+    </div>
+  )
 }
 
 export default function StandupCard({ standup, showUser = false }) {
   const { user, yesterday, today, blockers, hasBlocker, mood, date } = standup
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-5 transition-colors duration-200">
-
-      {/* Header Row */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-
-          {/* Show user info — TeamView mein */}
+    <Card interactive className="p-4 md:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {showUser && user && (
-            <div className="flex items-center gap-2 mr-2">
-              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 flex items-center justify-center text-sm font-medium">
+            <div className="mr-1 flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-300">
                 {user.name?.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                  {user.name}
-                </p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-content">{user.name}</p>
                 {user.streak > 0 && (
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
-                    🔥 {user.streak} day streak
-                  </p>
+                  <p className="text-xs text-content-subtle">🔥 {user.streak} day streak</p>
                 )}
               </div>
             </div>
           )}
 
-          {/* Mood emoji + badge */}
-          <span className="text-xl">{moodEmoji[mood]}</span>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${moodColor[mood]}`}>
-            {mood}
-          </span>
+          <Badge tone={MOOD_TONE[mood]}>
+            <span aria-hidden="true">{MOOD_EMOJI[mood]}</span>
+            <span className="capitalize">{mood}</span>
+          </Badge>
 
-          {/* Blocker badge */}
           {hasBlocker && <BlockerBadge compact />}
-
         </div>
 
-        {/* Date */}
-        <span className="text-xs text-gray-400 dark:text-gray-500 font-medium whitespace-nowrap">
-          {date}
-        </span>
+        <span className="tabular shrink-0 text-xs font-medium text-content-subtle">{date}</span>
       </div>
 
-      {/* Content */}
       <div className="space-y-3">
-
-        {/* Yesterday */}
-        <div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">
-            Accomplished Yesterday
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-            {yesterday}
-          </p>
-        </div>
-
-        {/* Today */}
-        <div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">
-            Today's Plan
-          </p>
-          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-            {today}
-          </p>
-        </div>
-
-        {/* Blocker full text */}
-        {hasBlocker && (
-          <BlockerBadge text={blockers} />
-        )}
-
+        <Section label="Accomplished yesterday">{yesterday}</Section>
+        <Section label="Today's plan">{today}</Section>
+        {hasBlocker && <BlockerBadge text={blockers} />}
       </div>
-    </div>
+    </Card>
   )
 }

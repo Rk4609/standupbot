@@ -1,12 +1,45 @@
 import { useEffect, useState } from 'react'
-import API from '../api/axios'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
 } from 'recharts'
+import API from '../api/axios'
+import PageShell from '../components/ui/PageShell'
+import PageHeader from '../components/ui/PageHeader'
+import Card, { CardTitle } from '../components/ui/Card'
+import StatCard from '../components/ui/StatCard'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
+import EmptyState from '../components/ui/EmptyState'
+import Skeleton from '../components/ui/Skeleton'
+import { Field, Input, Select } from '../components/ui/Field'
 
-const COLORS = ['#7c3aed', '#1D9E75', '#F59E0B', '#EF4444', '#3B82F6']
+const loadAdminData = async () => {
+  const [t, u] = await Promise.all([API.get('/teams'), API.get('/users')])
+  return { teams: t.data, users: u.data }
+}
+
+const ROLE_COLORS = ['#ef4444', '#10b981', '#7c3aed']
+const ROLE_TONE = { admin: 'danger', manager: 'positive', member: 'brand' }
+
+const chartTooltip = {
+  backgroundColor: 'rgb(var(--surface))',
+  border: '1px solid rgb(var(--line))',
+  borderRadius: '10px',
+  color: 'rgb(var(--content))',
+  fontSize: '12px',
+  boxShadow: '0 12px 32px -8px rgb(0 0 0 / 0.18)'
+}
 
 export default function AdminPanel() {
   const [teams, setTeams] = useState([])
@@ -15,335 +48,335 @@ export default function AdminPanel() {
   const [memberForm, setMemberForm] = useState({ teamId: '', userId: '' })
   const [stats, setStats] = useState([])
   const [roleStats, setRoleStats] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
+  const [adding, setAdding] = useState(false)
 
-  useEffect(() => { fetchData() }, [])
-
-  const fetchData = async () => {
-    try {
-      const [t, u] = await Promise.all([
-        API.get('/teams'),
-        API.get('/users')
-      ])
-      // console.log("Users API Response:", u.data);
-      setTeams(t.data)
-      setUsers(u.data)
-
-      const roles = ['admin', 'manager', 'member']
-      setRoleStats(roles.map(role => ({
+  const apply = ({ teams: t, users: u }) => {
+    setTeams(t)
+    setUsers(u)
+    setRoleStats(
+      ['admin', 'manager', 'member'].map(role => ({
         name: role.charAt(0).toUpperCase() + role.slice(1),
-        value: u.data.filter(user => user.role === role).length
-      })))
+        value: u.filter(user => user.role === role).length
+      }))
+    )
+    setStats(t.map(team => ({ name: team.name, members: team.members?.length || 0 })))
+  }
 
-      setStats(t.data.map(team => ({
-        name: team.name,
-        members: team.members?.length || 0
-      })))
+  useEffect(() => {
+    let cancelled = false
+
+    loadAdminData()
+      .then(data => {
+        if (!cancelled) apply(data)
+      })
+      .catch(err => {
+        console.error(err)
+        if (!cancelled) toast.error(err.response?.data?.message || 'Could not load admin data')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const refresh = async () => {
+    try {
+      apply(await loadAdminData())
     } catch (err) {
       console.error(err)
+      toast.error(err.response?.data?.message || 'Could not refresh')
     }
   }
 
+
   const createTeam = async () => {
-    if (!teamForm.name) return toast.error('Please enter a team name!')
+    if (!teamForm.name.trim()) return toast.error('Please enter a team name')
+    setCreating(true)
     try {
       await API.post('/teams', teamForm)
-      toast.success('Team created successfully! ✅')
+      toast.success('Team created ✅')
       setTeamForm({ name: '', managerId: '' })
-      fetchData()
+      refresh()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong')
+    } finally {
+      setCreating(false)
     }
   }
 
   const addMember = async () => {
-    if (!memberForm.teamId || !memberForm.userId)
-      return toast.error('Please select both a team and a member!')
+    if (!memberForm.teamId || !memberForm.userId) {
+      return toast.error('Select both a team and a member')
+    }
+    setAdding(true)
     try {
-      await API.post(`/teams/${memberForm.teamId}/members`, {
-        userId: memberForm.userId
-      })
-      toast.success('Member added successfully! ✅')
+      await API.post(`/teams/${memberForm.teamId}/members`, { userId: memberForm.userId })
+      toast.success('Member added ✅')
       setMemberForm({ teamId: '', userId: '' })
-      fetchData()
+      refresh()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong')
+    } finally {
+      setAdding(false)
     }
   }
 
+  const managers = users.filter(u => u.role === 'manager')
+  const members = users.filter(u => u.role === 'member')
+
+  if (loading) {
+    return (
+      <PageShell width="xl">
+        <Skeleton className="mb-6 h-8 w-48" />
+        <div className="mb-5 grid grid-cols-3 gap-3">
+          {[0, 1, 2].map(i => (
+            <Skeleton key={i} className="h-24 rounded-card" />
+          ))}
+        </div>
+        <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Skeleton className="h-64 rounded-card" />
+          <Skeleton className="h-64 rounded-card" />
+        </div>
+      </PageShell>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-6 px-4 transition-colors duration-200">
-      <div className="max-w-5xl mx-auto">
+    <PageShell width="xl">
+      <PageHeader title="Admin panel 🛡️" subtitle="Teams, members and role distribution" />
 
-        {/* Header */}
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-5">
-          Admin Panel 🛡️
-        </h1>
+      <div className="mb-5 grid grid-cols-3 gap-3">
+        <StatCard value={users.length} label="Total users" tone="brand" />
+        <StatCard value={teams.length} label="Total teams" tone="positive" />
+        <StatCard value={members.length} label="Members" tone="warning" />
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-3 md:p-5 text-center">
-            <div className="text-2xl md:text-3xl font-bold text-purple-700 dark:text-purple-400">
-              {users.length}
-            </div>
-            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1 leading-tight">
-              Total Users
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-3 md:p-5 text-center">
-            <div className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
-              {teams.length}
-            </div>
-            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1 leading-tight">
-              Total Teams
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-3 md:p-5 text-center">
-            <div className="text-2xl md:text-3xl font-bold text-amber-600 dark:text-amber-400">
-              {users.filter(u => u.role === 'member').length}
-            </div>
-            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mt-1 leading-tight">
-              Members
-            </div>
-          </div>
-        </div>
+      {/* Charts */}
+      <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card>
+          <CardTitle>Members per team</CardTitle>
+          {stats.length === 0 ? (
+            <p className="py-12 text-center text-sm text-content-subtle">No teams yet</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={stats} margin={{ top: 4, right: 0, left: -22, bottom: 0 }}>
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 10, fill: 'rgb(var(--content-subtle))' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 10, fill: 'rgb(var(--content-subtle))' }}
+                  width={30}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip cursor={{ fill: 'rgb(var(--surface-sunken))' }} contentStyle={chartTooltip} />
+                <Bar dataKey="members" fill="#7c3aed" radius={[6, 6, 0, 0]} animationDuration={700} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
 
-        {/* Charts — stack on mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-
-          {/* Bar Chart */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-            <h2 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
-              Members per Team
-            </h2>
-            {stats.length === 0 ? (
-              <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
-                No teams yet
-              </p>
-            ) : (
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart
-                  data={stats}
-                  margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+        <Card>
+          <CardTitle>Role distribution</CardTitle>
+          {roleStats.every(r => r.value === 0) ? (
+            <p className="py-12 text-center text-sm text-content-subtle">No users yet</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <PieChart>
+                <Pie
+                  data={roleStats}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={45}
+                  outerRadius={70}
+                  paddingAngle={4}
+                  dataKey="value"
+                  animationDuration={700}
                 >
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#9ca3af' }} width={30} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1f2937',
-                      border: '1px solid #374151',
-                      borderRadius: '8px',
-                      color: '#f3f4f6',
-                      fontSize: '12px'
-                    }}
-                  />
-                  <Bar dataKey="members" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+                  {roleStats.map((entry, i) => (
+                    <Cell key={i} fill={ROLE_COLORS[i % ROLE_COLORS.length]} stroke="none" />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={chartTooltip} />
+                <Legend
+                  formatter={value => (
+                    <span style={{ color: 'rgb(var(--content-muted))', fontSize: 11 }}>{value}</span>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+      </div>
 
-          {/* Pie Chart */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-            <h2 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
-              User Role Distribution
-            </h2>
-            {roleStats.every(r => r.value === 0) ? (
-              <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-8">
-                No users yet
-              </p>
-            ) : (
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie
-                    data={roleStats}
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={45}
-                    outerRadius={70}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {roleStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1f2937',
-                      border: '1px solid #374151',
-                      borderRadius: '8px',
-                      color: '#f3f4f6',
-                      fontSize: '12px'
-                    }}
-                  />
-                  <Legend
-                    formatter={(value) => (
-                      <span style={{ color: '#9ca3af', fontSize: 11 }}>{value}</span>
-                    )}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Create Team + Add Member — stack on mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-
-          {/* Create Team */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-            <h2 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
-              ➕ Create New Team
-            </h2>
-            <div className="space-y-3">
-              <input
+      {/* Forms */}
+      <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card>
+          <CardTitle>➕ Create a team</CardTitle>
+          <div className="space-y-3">
+            <Field label="Team name">
+              <Input
                 type="text"
-                placeholder="Enter team name"
+                placeholder="e.g. Platform"
                 value={teamForm.name}
                 onChange={e => setTeamForm({ ...teamForm, name: e.target.value })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
               />
-              <select
+            </Field>
+            <Field
+              label="Manager"
+              hint={managers.length === 0 ? 'No managers registered yet' : undefined}
+            >
+              <Select
                 value={teamForm.managerId}
                 onChange={e => setTeamForm({ ...teamForm, managerId: e.target.value })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
               >
                 <option value="">Select a manager</option>
-                {users.filter(u => u.role === 'manager').map(u => (
+                {managers.map(u => (
                   <option key={u._id} value={u._id}>
                     {u.name} ({u.email})
                   </option>
                 ))}
-              </select>
-              <button onClick={createTeam}
-                className="w-full bg-purple-700 dark:bg-purple-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-purple-800 dark:hover:bg-purple-700 transition">
-                Create Team
-              </button>
-            </div>
+              </Select>
+            </Field>
+            <Button full loading={creating} onClick={createTeam}>
+              Create team
+            </Button>
           </div>
+        </Card>
 
-          {/* Add Member */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-            <h2 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
-              👤 Add Member to Team
-            </h2>
-            <div className="space-y-3">
-              <select
+        <Card>
+          <CardTitle>👤 Add a member to a team</CardTitle>
+          <div className="space-y-3">
+            <Field label="Team">
+              <Select
                 value={memberForm.teamId}
                 onChange={e => setMemberForm({ ...memberForm, teamId: e.target.value })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
               >
                 <option value="">Select a team</option>
                 {teams.map(t => (
-                  <option key={t._id} value={t._id}>{t.name}</option>
+                  <option key={t._id} value={t._id}>
+                    {t.name}
+                  </option>
                 ))}
-              </select>
-              <select
+              </Select>
+            </Field>
+            <Field label="Member">
+              <Select
                 value={memberForm.userId}
                 onChange={e => setMemberForm({ ...memberForm, userId: e.target.value })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
               >
                 <option value="">Select a member</option>
-                {users.filter(u => u.role === 'member').map(u => (
+                {members.map(u => (
                   <option key={u._id} value={u._id}>
                     {u.name} ({u.email})
                   </option>
                 ))}
-              </select>
-              <button onClick={addMember}
-                className="w-full bg-green-600 dark:bg-green-700 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition">
-                Add Member
-              </button>
-            </div>
+              </Select>
+            </Field>
+            <Button full variant="primary" loading={adding} onClick={addMember}>
+              Add member
+            </Button>
           </div>
-        </div>
-
-        {/* Teams List */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6 mb-4">
-          <h2 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
-            📋 All Teams
-          </h2>
-          {teams.length === 0 ? (
-            <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-4">
-              No teams created yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {teams.map(t => (
-                <div key={t._id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 md:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-800 dark:text-gray-100 text-sm">
-                      {t.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      Manager: {t.manager?.name || 'Not assigned'} •{' '}
-                      {t.members?.length || 0} members
-                    </p>
-                  </div>
-                  <div className="flex gap-1 flex-wrap">
-                    {t.members?.slice(0, 3).map(m => (
-                      <span key={m._id}
-                        className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
-                        {m.name}
-                      </span>
-                    ))}
-                    {t.members?.length > 3 && (
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                        +{t.members.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Users List */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-          <h2 className="font-semibold text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
-            👥 All Users
-          </h2>
-          {users.length === 0 ? (
-            <p className="text-gray-400 dark:text-gray-500 text-sm text-center py-4">
-              No users found
-            </p>
-          ) : (
-            <div className="divide-y divide-gray-50 dark:divide-gray-800">
-              {users.map(u => (
-                <div key={u._id}
-                  className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-2 md:gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 flex items-center justify-center text-sm font-medium flex-shrink-0">
-                      {u.name.charAt(0).toUpperCase()}
-                      {/* {u?.name?.charAt(0)?.toUpperCase() || "U"} */}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
-                        {u.name}
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                        {u.email}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`text-xs px-2 md:px-2.5 py-1 rounded-full font-medium flex-shrink-0 ml-2 ${
-                    u.role === 'admin'
-                      ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400'
-                      : u.role === 'manager'
-                      ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
-                      : 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400'
-                  }`}>
-                    {u.role}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
+        </Card>
       </div>
-    </div>
+
+      {/* Teams */}
+      <Card className="mb-4">
+        <CardTitle>📋 All teams</CardTitle>
+        {teams.length === 0 ? (
+          <EmptyState
+            icon="🏗️"
+            title="No teams yet"
+            description="Create your first team above."
+            className="border-0 bg-transparent py-6"
+          />
+        ) : (
+          <div className="space-y-3">
+            {teams.map((t, i) => (
+              <motion.div
+                key={t._id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 + i * 0.05 }}
+                className="flex flex-col gap-2 rounded-xl bg-surface-sunken p-3 sm:flex-row sm:items-center sm:justify-between md:p-4"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-content">{t.name}</p>
+                  <p className="mt-0.5 text-xs text-content-subtle">
+                    Manager: {t.manager?.name || 'Not assigned'} · {t.members?.length || 0} members
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {t.members?.slice(0, 3).map(m => (
+                    <Badge key={m._id} tone="brand">
+                      {m.name}
+                    </Badge>
+                  ))}
+                  {t.members?.length > 3 && (
+                    <span className="self-center text-xs text-content-subtle">
+                      +{t.members.length - 3} more
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Users */}
+      <Card>
+        <CardTitle>👥 All users</CardTitle>
+        {users.length === 0 ? (
+          <EmptyState
+            icon="👤"
+            title="No users found"
+            className="border-0 bg-transparent py-6"
+          />
+        ) : (
+          <div className="divide-y divide-line">
+            {users.map((u, i) => (
+              <motion.div
+                key={u._id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: Math.min(0.05 + i * 0.03, 0.4) }}
+                className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  {u.avatar ? (
+                    <img
+                      src={u.avatar}
+                      alt=""
+                      className="h-8 w-8 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-300">
+                      {u.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-content">{u.name}</p>
+                    <p className="truncate text-xs text-content-subtle">{u.email}</p>
+                  </div>
+                </div>
+                <Badge tone={ROLE_TONE[u.role]} className="capitalize">
+                  {u.role}
+                </Badge>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </PageShell>
   )
 }

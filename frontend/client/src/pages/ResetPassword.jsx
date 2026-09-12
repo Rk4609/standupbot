@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import API from '../api/axios'
+import AuthLayout from '../components/AuthLayout'
+import Button from '../components/ui/Button'
+import { Field, Input } from '../components/ui/Field'
+import Skeleton from '../components/ui/Skeleton'
 
 export default function ResetPassword() {
   const { token } = useParams()
@@ -16,14 +21,13 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  // ✅ Token verify karo page load pe
   useEffect(() => {
     const verifyToken = async () => {
       try {
         const { data } = await API.get(`/auth/verify-reset-token/${token}`)
         setValid(data.valid)
         setEmail(data.email)
-      } catch (err) {
+      } catch {
         setValid(false)
       } finally {
         setVerifying(false)
@@ -32,15 +36,12 @@ export default function ResetPassword() {
     verifyToken()
   }, [token])
 
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword
+  const tooShort = password.length > 0 && password.length < 6
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-
-    if (password !== confirmPassword) {
-      return toast.error('Passwords do not match!')
-    }
-    if (password.length < 6) {
-      return toast.error('Password min 6 characters hona chahiye')
-    }
+    if (mismatch || tooShort) return
 
     setLoading(true)
     try {
@@ -55,114 +56,94 @@ export default function ResetPassword() {
     }
   }
 
-  // ✅ Loading state
   if (verifying) {
     return (
-      <div className="min-h-screen bg-purple-50 dark:bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-400 dark:text-gray-500">Verifying link...</p>
-      </div>
+      <AuthLayout title="Verifying your link" subtitle="One moment…">
+        <div className="space-y-3">
+          <Skeleton className="h-3 w-2/3" />
+          <Skeleton className="h-11 w-full rounded-xl" />
+          <Skeleton className="h-11 w-full rounded-xl" />
+        </div>
+      </AuthLayout>
     )
   }
 
-  // ✅ Invalid/expired link
   if (!valid) {
     return (
-      <div className="min-h-screen bg-purple-50 dark:bg-gray-950 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 w-full max-w-md text-center">
-          <p className="text-4xl mb-4">⏰</p>
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-            Link Expired
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            This password reset link is invalid or has expired.
-            Please request a new one.
-          </p>
-          <Link
-            to="/forgot-password"
-            className="inline-block bg-purple-700 dark:bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-800 transition"
-          >
-            Request New Link
-          </Link>
-        </div>
-      </div>
+      <AuthLayout
+        title="Link expired"
+        subtitle="This password reset link is invalid or has already been used."
+      >
+        <Button to="/forgot-password" size="lg" full>
+          Request a new link
+        </Button>
+      </AuthLayout>
     )
   }
 
-  // ✅ Success state
   if (success) {
     return (
-      <div className="min-h-screen bg-purple-50 dark:bg-gray-950 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 w-full max-w-md text-center">
-          <p className="text-4xl mb-4">✅</p>
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-            Password Reset!
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Redirecting you to login...
-          </p>
+      <AuthLayout title="Password reset" subtitle="Redirecting you to sign in…">
+        <div className="text-center">
+          <motion.div
+            className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl dark:bg-emerald-950"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 16 }}
+          >
+            ✅
+          </motion.div>
         </div>
-      </div>
+      </AuthLayout>
     )
   }
 
-  // ✅ Reset form
   return (
-    <div className="min-h-screen bg-purple-50 dark:bg-gray-950 flex items-center justify-center p-4 transition-colors duration-200">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 w-full max-w-md">
+    <AuthLayout
+      title="Set a new password"
+      subtitle={`Resetting the password for ${email}`}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field
+          label="New password"
+          error={tooShort ? 'Password must be at least 6 characters' : ''}
+        >
+          <Input
+            type="password"
+            required
+            autoComplete="new-password"
+            invalid={tooShort}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
+          />
+        </Field>
 
-        <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-400 mb-1">
-          🔒 Reset Password
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-          Setting new password for <strong>{email}</strong>
-        </p>
+        <Field
+          label="Confirm new password"
+          error={mismatch ? 'Passwords do not match' : ''}
+        >
+          <Input
+            type="password"
+            required
+            autoComplete="new-password"
+            invalid={mismatch}
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder="Repeat new password"
+          />
+        </Field>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-              New Password
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
-              placeholder="Min 6 characters"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
-              Confirm New Password
-            </label>
-            <input
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 transition ${
-                confirmPassword && password !== confirmPassword
-                  ? 'border-red-300 focus:ring-red-200'
-                  : 'border-gray-200 dark:border-gray-600 focus:ring-purple-300 dark:focus:ring-purple-600'
-              }`}
-              placeholder="Repeat new password"
-            />
-            {confirmPassword && password !== confirmPassword && (
-              <p className="text-xs text-red-500 mt-1">Passwords do not match!</p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || (confirmPassword && password !== confirmPassword)}
-            className="w-full bg-purple-700 dark:bg-purple-600 text-white py-2.5 rounded-lg font-medium hover:bg-purple-800 dark:hover:bg-purple-700 transition disabled:opacity-60"
-          >
-            {loading ? 'Resetting...' : 'Reset Password →'}
-          </button>
-        </form>
-
-      </div>
-    </div>
+        <Button
+          type="submit"
+          size="lg"
+          full
+          loading={loading}
+          disabled={mismatch || tooShort}
+        >
+          {loading ? 'Resetting...' : 'Reset password →'}
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }

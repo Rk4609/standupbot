@@ -1,23 +1,23 @@
-export default function BlockerBadge({ text, compact = false }) {
+import { motion } from 'framer-motion'
+import Badge from './ui/Badge'
+import { DURATION, EASE } from '../lib/motion'
 
+export default function BlockerBadge({ text, compact = false }) {
   if (compact) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-full font-medium">
-        🚨 Blocker
-      </span>
-    )
+    return <Badge tone="danger">🚨 Blocker</Badge>
   }
 
   return (
-    <div className="bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900 rounded-lg px-4 py-3">
-      <div className="flex items-start gap-2">
-        <span className="text-red-500 dark:text-red-400 font-semibold text-sm whitespace-nowrap">
-          🚨 Blocker:
-        </span>
-        <p className="text-sm text-red-700 dark:text-red-400 leading-relaxed">
-          {text}
-        </p>
-      </div>
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: DURATION.base, ease: EASE }}
+      className="rounded-xl border-l-[3px] border-l-red-500 bg-red-50 px-4 py-3 dark:bg-red-950/50"
+    >
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-red-500 dark:text-red-400">
+        Blocker
+      </p>
+      <p className="text-sm leading-relaxed text-red-700 dark:text-red-300">{text}</p>
+    </motion.div>
   )
 }

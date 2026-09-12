@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
 import API from "../api/axios"
 import { saveUser } from "../store/authStore"
+import AuthLayout from "../components/AuthLayout"
+import Button from "../components/ui/Button"
+import { Field, Input } from "../components/ui/Field"
 
 export default function Login({ setUser }) {
   const [form, setForm] = useState({ email: "", password: "" })
@@ -26,62 +29,57 @@ export default function Login({ setUser }) {
   }
 
   return (
-    <div className="min-h-screen bg-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-purple-700 mb-1">
-          🤖 StandupBot
-        </h1>
-        <p className="text-gray-500 text-sm mb-6">
-          Stay connected and aligned with your team
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="you@company.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="••••••••"
-            />
-          </div>
-          <div className="flex justify-end -mt-2">
-            <Link
-              to="/forgot-password"
-              className="text-xs text-purple-700 dark:text-purple-400 hover:underline"
-            >
-              Forgot Password?
-            </Link>
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-purple-700 text-white py-2.5 rounded-lg font-medium hover:bg-purple-800 transition disabled:opacity-60"
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Sign in to keep your team in the loop"
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link
+            to="/register"
+            className="font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
-            {loading ? "Signing in..." : "Sign In →"}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Don't have an account?{" "}
-          <Link to="/register" className="text-purple-700 hover:underline">
             Create one
           </Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Email">
+          <Input
+            type="email"
+            required
+            autoComplete="email"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            placeholder="you@company.com"
+          />
+        </Field>
+
+        <Field label="Password">
+          <Input
+            type="password"
+            required
+            autoComplete="current-password"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            placeholder="••••••••"
+          />
+        </Field>
+
+        <div className="flex justify-end">
+          <Link
+            to="/forgot-password"
+            className="text-xs text-brand-600 hover:underline dark:text-brand-400"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
+        <Button type="submit" size="lg" full loading={loading}>
+          {loading ? "Signing in..." : "Sign in →"}
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }

@@ -1,20 +1,83 @@
 import { useEffect, useState, useMemo } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import API from '../api/axios'
 import StandupCard from '../components/StandupCard'
+import { MOOD_EMOJI } from '../lib/moods'
+import PageShell from '../components/ui/PageShell'
+import PageHeader from '../components/ui/PageHeader'
+import Button from '../components/ui/Button'
+import EmptyState from '../components/ui/EmptyState'
+import { SkeletonCard } from '../components/ui/Skeleton'
+import { Input } from '../components/ui/Field'
+import { cn } from '../lib/cn'
+import { DURATION, EASE, SPRING, collapseVariants, itemVariants } from '../lib/motion'
 
 const MOODS = ['all', 'great', 'good', 'okay', 'bad', 'stressed']
-const moodEmoji = {
-  all: '🔍', great: '🚀', good: '😊', okay: '😐', bad: '😔', stressed: '😰'
+const MOOD_ICON = { all: '🔍', ...MOOD_EMOJI }
+
+const BLOCKER_OPTIONS = [
+  { value: 'all', label: '📋 All' },
+  { value: 'blocker', label: '🚨 Has blocker' },
+  { value: 'no-blocker', label: '✅ No blocker' }
+]
+
+function Chip({ active, onClick, children, className }) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileTap={{ scale: 0.94 }}
+      transition={SPRING}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+        active
+          ? 'border-brand-600 bg-brand-600 text-white'
+          : 'border-line bg-surface-sunken text-content-muted hover:border-brand-300 hover:text-content',
+        className
+      )}
+    >
+      {children}
+    </motion.button>
+  )
+}
+
+function FilterTag({ tone = 'brand', onClear, children }) {
+  const tones = {
+    brand: 'bg-brand-100 text-brand-700 dark:bg-brand-950 dark:text-brand-300',
+    danger: 'bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400',
+    info: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+  }
+  return (
+    <motion.span
+      layout
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.85 }}
+      transition={SPRING}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
+        tones[tone]
+      )}
+    >
+      {children}
+      <button
+        onClick={onClear}
+        aria-label="Remove filter"
+        className="opacity-60 transition-opacity hover:opacity-100"
+      >
+        ✕
+      </button>
+    </motion.span>
+  )
 }
 
 export default function History() {
   const [standups, setStandups] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // ✅ Filter states
   const [search, setSearch] = useState('')
   const [moodFilter, setMoodFilter] = useState('all')
-  const [blockerFilter, setBlockerFilter] = useState('all') // all | blocker | no-blocker
+  const [blockerFilter, setBlockerFilter] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -33,11 +96,8 @@ export default function History() {
     fetchHistory()
   }, [])
 
-  // ✅ useMemo — filters apply karo
   const filtered = useMemo(() => {
     return standups.filter(s => {
-
-      // Search filter — yesterday, today, blockers mein dhundho
       if (search.trim()) {
         const q = search.toLowerCase()
         const match =
@@ -47,25 +107,15 @@ export default function History() {
           s.date?.includes(q)
         if (!match) return false
       }
-
-      // Mood filter
       if (moodFilter !== 'all' && s.mood !== moodFilter) return false
-
-      // Blocker filter
       if (blockerFilter === 'blocker' && !s.hasBlocker) return false
       if (blockerFilter === 'no-blocker' && s.hasBlocker) return false
-
-      // Date from filter
       if (dateFrom && s.date < dateFrom) return false
-
-      // Date to filter
       if (dateTo && s.date > dateTo) return false
-
       return true
     })
   }, [standups, search, moodFilter, blockerFilter, dateFrom, dateTo])
 
-  // ✅ Active filters count
   const activeFilters = [
     search.trim() !== '',
     moodFilter !== 'all',
@@ -74,7 +124,6 @@ export default function History() {
     dateTo !== ''
   ].filter(Boolean).length
 
-  // ✅ Reset all filters
   const resetFilters = () => {
     setSearch('')
     setMoodFilter('all')
@@ -84,244 +133,218 @@ export default function History() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-6 px-4 transition-colors duration-200">
-      <div className="max-w-3xl mx-auto">
-
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100">
-              📅 My History
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
-              A complete record of all your standups
-            </p>
-          </div>
+    <PageShell>
+      <PageHeader
+        title="📅 My history"
+        subtitle="A complete record of all your standups"
+        actions={
           <div className="text-right">
-            <span className="text-2xl font-bold text-purple-700 dark:text-purple-400">
+            <span className="tabular text-2xl font-bold text-brand-600 dark:text-brand-400">
               {standups.length}
             </span>
-            <p className="text-xs text-gray-400 dark:text-gray-500">Total</p>
+            <p className="text-xs text-content-subtle">Total</p>
           </div>
-        </div>
+        }
+      />
 
-        {/* ✅ Search Bar */}
-        <div className="relative mb-3">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-            🔍
-          </span>
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by keyword, date..."
-            className="w-full pl-9 pr-10 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+      {/* Search */}
+      <motion.div variants={itemVariants} className="relative mb-3">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm"
+        >
+          🔍
+        </span>
+        <Input
+          type="search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by keyword or date…"
+          className="pl-10"
+        />
+      </motion.div>
 
-        {/* ✅ Filter Toggle Button */}
-        <div className="flex items-center gap-2 mb-4">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition ${
-              showFilters || activeFilters > 0
-                ? 'bg-purple-700 dark:bg-purple-600 text-white border-purple-700'
-                : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
-            }`}
-          >
-            ⚙️ Filters
-            {activeFilters > 0 && (
-              <span className="bg-white text-purple-700 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                {activeFilters}
-              </span>
-            )}
-          </button>
-
-          {/* Result count */}
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {filtered.length} of {standups.length} standups
-          </span>
-
-          {/* Reset */}
+      {/* Filter bar */}
+      <motion.div variants={itemVariants} className="mb-4 flex flex-wrap items-center gap-2">
+        <Button
+          variant={showFilters || activeFilters > 0 ? 'primary' : 'outline'}
+          size="sm"
+          onClick={() => setShowFilters(v => !v)}
+        >
+          ⚙️ Filters
           {activeFilters > 0 && (
-            <button
-              onClick={resetFilters}
-              className="ml-auto text-xs text-red-500 dark:text-red-400 hover:underline"
-            >
-              Reset all
-            </button>
+            <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-brand-700">
+              {activeFilters}
+            </span>
           )}
-        </div>
+        </Button>
 
-        {/* ✅ Filters Panel */}
-        {showFilters && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 mb-4 space-y-4">
+        <span className="tabular text-sm text-content-muted">
+          {filtered.length} of {standups.length}
+        </span>
 
-            {/* Mood Filter */}
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide font-medium mb-2">
-                Filter by Mood
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {MOODS.map(mood => (
-                  <button
-                    key={mood}
-                    onClick={() => setMoodFilter(mood)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                      moodFilter === mood
-                        ? 'bg-purple-700 dark:bg-purple-600 text-white border-purple-700'
-                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-purple-300'
-                    }`}
-                  >
-                    <span>{moodEmoji[mood]}</span>
-                    <span className="capitalize">{mood}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Blocker Filter */}
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide font-medium mb-2">
-                Filter by Blocker
-              </p>
-              <div className="flex gap-2">
-                {[
-                  { value: 'all', label: '📋 All' },
-                  { value: 'blocker', label: '🚨 Has Blocker' },
-                  { value: 'no-blocker', label: '✅ No Blocker' }
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setBlockerFilter(opt.value)}
-                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium border transition ${
-                      blockerFilter === opt.value
-                        ? 'bg-purple-700 dark:bg-purple-600 text-white border-purple-700'
-                        : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-purple-300'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Date Range Filter */}
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide font-medium mb-2">
-                Filter by Date Range
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-                    From
-                  </label>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={e => setDateFrom(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
-                    To
-                  </label>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    onChange={e => setDateTo(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 transition"
-                  />
-                </div>
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* ✅ Active Filter Tags */}
         {activeFilters > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={resetFilters}
+            className="ml-auto text-xs font-medium text-red-500 hover:underline dark:text-red-400"
+          >
+            Reset all
+          </button>
+        )}
+      </motion.div>
+
+      {/* Filter panel */}
+      <AnimatePresence initial={false}>
+        {showFilters && (
+          <motion.div
+            variants={collapseVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="overflow-hidden"
+          >
+            <div className="mb-4 space-y-4 rounded-card border border-line bg-surface p-4 shadow-card">
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-content-subtle">
+                  Mood
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {MOODS.map(mood => (
+                    <Chip
+                      key={mood}
+                      active={moodFilter === mood}
+                      onClick={() => setMoodFilter(mood)}
+                    >
+                      <span aria-hidden="true">{MOOD_ICON[mood]}</span>
+                      <span className="capitalize">{mood}</span>
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-content-subtle">
+                  Blocker
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {BLOCKER_OPTIONS.map(opt => (
+                    <Chip
+                      key={opt.value}
+                      active={blockerFilter === opt.value}
+                      onClick={() => setBlockerFilter(opt.value)}
+                    >
+                      {opt.label}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-content-subtle">
+                  Date range
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-content-muted">From</span>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={e => setDateFrom(e.target.value)}
+                      className="py-2"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-content-muted">To</span>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={e => setDateTo(e.target.value)}
+                      className="py-2"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Active filter tags */}
+      {activeFilters > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <AnimatePresence mode="popLayout">
             {search && (
-              <span className="flex items-center gap-1 text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-full">
-                🔍 "{search}"
-                <button onClick={() => setSearch('')} className="hover:text-purple-900 dark:hover:text-purple-100">✕</button>
-              </span>
+              <FilterTag key="search" onClear={() => setSearch('')}>
+                🔍 &ldquo;{search}&rdquo;
+              </FilterTag>
             )}
             {moodFilter !== 'all' && (
-              <span className="flex items-center gap-1 text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-full">
-                {moodEmoji[moodFilter]} {moodFilter}
-                <button onClick={() => setMoodFilter('all')} className="hover:text-purple-900">✕</button>
-              </span>
+              <FilterTag key="mood" onClear={() => setMoodFilter('all')}>
+                {MOOD_ICON[moodFilter]} <span className="capitalize">{moodFilter}</span>
+              </FilterTag>
             )}
             {blockerFilter !== 'all' && (
-              <span className="flex items-center gap-1 text-xs bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-full">
-                {blockerFilter === 'blocker' ? '🚨 Has Blocker' : '✅ No Blocker'}
-                <button onClick={() => setBlockerFilter('all')} className="hover:text-red-900">✕</button>
-              </span>
+              <FilterTag key="blocker" tone="danger" onClear={() => setBlockerFilter('all')}>
+                {blockerFilter === 'blocker' ? '🚨 Has blocker' : '✅ No blocker'}
+              </FilterTag>
             )}
             {dateFrom && (
-              <span className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full">
-                From: {dateFrom}
-                <button onClick={() => setDateFrom('')} className="hover:text-blue-900">✕</button>
-              </span>
+              <FilterTag key="from" tone="info" onClear={() => setDateFrom('')}>
+                From {dateFrom}
+              </FilterTag>
             )}
             {dateTo && (
-              <span className="flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full">
-                To: {dateTo}
-                <button onClick={() => setDateTo('')} className="hover:text-blue-900">✕</button>
-              </span>
+              <FilterTag key="to" tone="info" onClear={() => setDateTo('')}>
+                To {dateTo}
+              </FilterTag>
             )}
-          </div>
-        )}
+          </AnimatePresence>
+        </div>
+      )}
 
-        {/* Loading */}
-        {loading ? (
-          <div className="text-center text-gray-400 dark:text-gray-500 py-10">
-            Loading...
-          </div>
-
-        /* No standups at all */
-        ) : standups.length === 0 ? (
-          <div className="text-center text-gray-400 dark:text-gray-500 py-10">
-            <p className="text-4xl mb-3">📭</p>
-            <p className="text-sm">No standups submitted yet</p>
-          </div>
-
-        /* No results after filter */
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-4xl mb-3">🔍</p>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              No standups match your filters
-            </p>
-            <button
-              onClick={resetFilters}
-              className="mt-3 text-sm text-purple-700 dark:text-purple-400 hover:underline"
-            >
+      {/* Results */}
+      {loading ? (
+        <div className="space-y-4">
+          {[0, 1, 2].map(i => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : standups.length === 0 ? (
+        <EmptyState
+          icon="📭"
+          title="No standups submitted yet"
+          description="Once you start submitting, your full history shows up here."
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon="🔍"
+          title="No standups match your filters"
+          action={
+            <Button variant="outline" size="sm" onClick={resetFilters}>
               Clear all filters
-            </button>
-          </div>
-
-        /* Results */
-        ) : (
-          <div className="space-y-4">
+            </Button>
+          }
+        />
+      ) : (
+        <motion.div layout className="space-y-4">
+          <AnimatePresence mode="popLayout">
             {filtered.map(s => (
-              <StandupCard key={s._id} standup={s} />
+              // Explicit props rather than variants: this wrapper owns the
+              // entrance so the Card inside does not animate on top of it.
+              <motion.div
+                key={s._id}
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: DURATION.base, ease: EASE }}
+              >
+                <StandupCard standup={s} />
+              </motion.div>
             ))}
-          </div>
-        )}
-
-      </div>
-    </div>
+          </AnimatePresence>
+        </motion.div>
+      )}
+    </PageShell>
   )
 }

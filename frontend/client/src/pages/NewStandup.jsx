@@ -1,31 +1,59 @@
-
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import API from '../api/axios'
+import PageShell from '../components/ui/PageShell'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import { Textarea } from '../components/ui/Field'
+import { cn } from '../lib/cn'
+import { SPRING } from '../lib/motion'
+import { MOOD_OPTIONS } from '../lib/moods'
 
-const moods = [
-  { value: 'great', emoji: '🚀', label: 'On Fire' },
-  { value: 'good', emoji: '😊', label: 'Feeling Good' },
-  { value: 'okay', emoji: '😐', label: 'Getting By' },
-  { value: 'bad', emoji: '😔', label: 'Struggling' },
-  { value: 'stressed', emoji: '😰', label: 'Overwhelmed' }
-]
+
+
+function Question({ step, icon, label, optional, children }) {
+  return (
+    <Card>
+      <label className="mb-3 flex items-start gap-3">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+          {step}
+        </span>
+        <span className="text-sm font-medium text-content md:text-base">
+          <span aria-hidden="true" className="mr-1.5">
+            {icon}
+          </span>
+          {label}
+          {optional && (
+            <span className="ml-1.5 text-xs font-normal text-content-subtle">(optional)</span>
+          )}
+        </span>
+      </label>
+      {children}
+    </Card>
+  )
+}
 
 export default function NewStandup() {
   const [form, setForm] = useState({
-    yesterday: '', today: '', blockers: '', mood: 'good'
+    yesterday: '',
+    today: '',
+    blockers: '',
+    mood: 'good'
   })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
       await API.post('/standups', form)
-      toast.success('Standup submitted successfully! 🎉')
+      toast.success('Standup submitted! 🎉')
       navigate('/dashboard')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Something went wrong')
@@ -34,96 +62,106 @@ export default function NewStandup() {
     }
   }
 
+  const dateLabel = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-6 px-4 transition-colors duration-200">
-      <div className="max-w-2xl mx-auto">
+    <PageShell width="sm">
+      <PageHeader title="Daily standup 📋" subtitle={dateLabel} />
 
-        {/* Header */}
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">
-          Daily Standup 📋
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-          })}
-        </p>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Question step={1} icon="✅" label="What did you accomplish yesterday?">
+          <Textarea
+            required
+            rows={3}
+            value={form.yesterday}
+            onChange={set('yesterday')}
+            placeholder="Describe the tasks you completed…"
+          />
+        </Question>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <Question step={2} icon="🎯" label="What are you working on today?">
+          <Textarea
+            required
+            rows={3}
+            value={form.today}
+            onChange={set('today')}
+            placeholder="Share your plan for today…"
+          />
+        </Question>
 
-          {/* Question 1 */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-            <label className="block font-medium text-gray-700 dark:text-gray-200 mb-3 text-sm md:text-base">
-              ✅ What did you accomplish yesterday?
-            </label>
-            <textarea required rows={3}
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 resize-none transition"
-              placeholder="Describe the tasks you completed..."
-              value={form.yesterday}
-              onChange={e => setForm({ ...form, yesterday: e.target.value })}
-            />
-          </div>
+        <Question step={3} icon="🚨" label="Any blockers or impediments?" optional>
+          <Textarea
+            rows={2}
+            value={form.blockers}
+            onChange={set('blockers')}
+            placeholder="Anything slowing you down? Let your team know…"
+          />
+        </Question>
 
-          {/* Question 2 */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-            <label className="block font-medium text-gray-700 dark:text-gray-200 mb-3 text-sm md:text-base">
-              🎯 What are you working on today?
-            </label>
-            <textarea required rows={3}
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 resize-none transition"
-              placeholder="Share your plan for today..."
-              value={form.today}
-              onChange={e => setForm({ ...form, today: e.target.value })}
-            />
-          </div>
-
-          {/* Question 3 */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-            <label className="block font-medium text-gray-700 dark:text-gray-200 mb-3 text-sm md:text-base">
-              🚨 Any blockers or impediments?{' '}
-              <span className="text-gray-400 dark:text-gray-500 font-normal text-xs md:text-sm">
-                (optional)
+        <Card>
+          <label className="mb-4 flex items-start gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+              4
+            </span>
+            <span className="text-sm font-medium text-content md:text-base">
+              <span aria-hidden="true" className="mr-1.5">
+                💭
               </span>
-            </label>
-            <textarea rows={2}
-              className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-200 dark:focus:ring-red-800 resize-none transition"
-              placeholder="Anything slowing you down? Let your team know..."
-              value={form.blockers}
-              onChange={e => setForm({ ...form, blockers: e.target.value })}
-            />
-          </div>
+              How are you feeling today?
+            </span>
+          </label>
 
-          {/* Mood */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-            <label className="block font-medium text-gray-700 dark:text-gray-200 mb-4 text-sm md:text-base">
-              💭 How are you feeling today?
-            </label>
-            {/* ✅ Mobile — 2 column grid, Desktop — 5 in a row */}
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 md:gap-3">
-              {moods.map(m => (
-                <button type="button" key={m.value}
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:gap-3">
+            {MOOD_OPTIONS.map(m => {
+              const active = form.mood === m.value
+              return (
+                <motion.button
+                  type="button"
+                  key={m.value}
                   onClick={() => setForm({ ...form, mood: m.value })}
-                  className={`flex flex-col items-center gap-1 px-2 md:px-4 py-2.5 md:py-3 rounded-xl border-2 transition ${
-                    form.mood === m.value
-                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-950 dark:border-purple-400'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 dark:bg-gray-800'
-                  }`}>
-                  <span className="text-xl md:text-2xl">{m.emoji}</span>
-                  <span className="text-xs text-gray-600 dark:text-gray-300 text-center leading-tight">
+                  whileTap={{ scale: 0.94 }}
+                  transition={SPRING}
+                  aria-pressed={active}
+                  className={cn(
+                    'relative flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 transition-colors md:px-3 md:py-3',
+                    active
+                      ? 'border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
+                      : 'border-line bg-surface hover:border-brand-200 dark:hover:border-brand-800'
+                  )}
+                >
+                  <motion.span
+                    aria-hidden="true"
+                    className="text-xl md:text-2xl"
+                    animate={active ? { scale: 1.15, y: -1 } : { scale: 1, y: 0 }}
+                    transition={SPRING}
+                  >
+                    {m.emoji}
+                  </motion.span>
+                  <span
+                    className={cn(
+                      'text-center text-xs leading-tight transition-colors',
+                      active
+                        ? 'font-medium text-brand-700 dark:text-brand-300'
+                        : 'text-content-muted'
+                    )}
+                  >
                     {m.label}
                   </span>
-                </button>
-              ))}
-            </div>
+                </motion.button>
+              )
+            })}
           </div>
+        </Card>
 
-          {/* Submit */}
-          <button type="submit" disabled={loading}
-            className="w-full bg-purple-700 dark:bg-purple-600 text-white py-3 md:py-3.5 rounded-xl font-medium hover:bg-purple-800 dark:hover:bg-purple-700 transition disabled:opacity-60 text-sm md:text-base">
-            {loading ? 'Submitting...' : '🚀 Submit Standup'}
-          </button>
-
-        </form>
-      </div>
-    </div>
+        <Button type="submit" size="lg" full loading={loading}>
+          {loading ? 'Submitting…' : '🚀 Submit standup'}
+        </Button>
+      </form>
+    </PageShell>
   )
 }

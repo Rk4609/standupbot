@@ -1,7 +1,29 @@
-
 import { useEffect, useState } from 'react'
-import API from '../api/axios'
+import { AnimatePresence, motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import API from '../api/axios'
+import PageShell from '../components/ui/PageShell'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
+import EmptyState from '../components/ui/EmptyState'
+import { SkeletonCard } from '../components/ui/Skeleton'
+import { Textarea } from '../components/ui/Field'
+import { DURATION, EASE, collapseVariants } from '../lib/motion'
+
+const loadBlockers = () => API.get('/standups/blockers').then(res => res.data)
+
+const errorMessage = (err) =>
+  err.response?.data?.message || 'Could not load blockers'
+
+/** Whole days between a standup date and today. */
+const ageInDays = (dateStr) => {
+  const then = new Date(`${dateStr}T00:00:00`)
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return Math.max(0, Math.round((now - then) / 86_400_000))
+}
 
 export default function Blockers({ user }) {
   const [blockers, setBlockers] = useState([])
@@ -13,24 +35,37 @@ export default function Blockers({ user }) {
   const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
-    fetchBlockers()
+    let cancelled = false
+
+    loadBlockers()
+      .then(data => {
+        if (!cancelled) setBlockers(data)
+      })
+      .catch(err => {
+        console.error(err)
+        if (!cancelled) setError(errorMessage(err))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const fetchBlockers = async () => {
+  /** Silent refetch after an edit — no skeleton, the list is already on screen. */
+  const refresh = async () => {
     try {
-      setLoading(true)
       setError('')
-      const { data } = await API.get('/standups/blockers')
-      setBlockers(data)
+      setBlockers(await loadBlockers())
     } catch (err) {
       console.error(err)
-      setError(err.response?.data?.message || 'Blockers load nahi ho paaye')
-    } finally {
-      setLoading(false)
+      setError(errorMessage(err))
     }
   }
 
-  //  Edit blocker
+
   const handleEdit = (blocker) => {
     setEditId(blocker._id)
     setEditText(blocker.blockers)
@@ -38,15 +73,14 @@ export default function Blockers({ user }) {
   }
 
   const handleSaveEdit = async (id) => {
-    if (!editText.trim()) {
-      return toast.error('Blocker text empty nahi ho sakta!')
-    }
+    if (!editText.trim()) return toast.error('Blocker text cannot be empty')
+
     setActionLoading(true)
     try {
       await API.put(`/standups/${id}/blocker`, { blockers: editText })
-      toast.success('Blocker updated! ✅')
+      toast.success('Blocker updated ✅')
       setEditId(null)
-      fetchBlockers()
+      refresh()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed')
     } finally {
@@ -54,14 +88,13 @@ export default function Blockers({ user }) {
     }
   }
 
-  //  Delete standup
   const handleDelete = async (id) => {
     setActionLoading(true)
     try {
       await API.delete(`/standups/${id}`)
-      toast.success('Blocker deleted! 🗑️')
+      toast.success('Standup deleted 🗑️')
       setDeleteId(null)
-      fetchBlockers()
+      setBlockers(prev => prev.filter(b => b._id !== id))
     } catch (err) {
       toast.error(err.response?.data?.message || 'Delete failed')
     } finally {
@@ -69,166 +102,197 @@ export default function Blockers({ user }) {
     }
   }
 
-  const isAdmin = user?.role === 'admin'|| user?.role === 'manager'
+  const canManage = user?.role === 'admin' || user?.role === 'manager'
+  const agingCount = blockers.filter(b => ageInDays(b.date) >= 3).length
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-6 px-4 transition-colors duration-200">
-      <div className="max-w-3xl mx-auto">
+    <PageShell>
+      <PageHeader
+        title="🚨 Active blockers"
+        subtitle="Everything currently slowing your team down"
+        actions={
+          canManage && (
+            <Badge tone="danger">
+              {user?.role === 'admin' ? 'Admin' : 'Manager'} — edit &amp; delete enabled
+            </Badge>
+          )
+        }
+      />
 
-        {/* Header */}
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">
-          🚨 Active Blockers
-        </h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mb-5">
-          All unresolved blockers from your team
-          {isAdmin && (
-            <span className="ml-2 text-xs bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">
-              {user?.role === 'admin' ? 'Admin' : 'Manager'} — Edit & Delete enabled
-            </span>
-          )}
-        </p>
+      {agingCount > 0 && !loading && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-950/50"
+        >
+          <span aria-hidden="true">⏳</span>
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            <strong>{agingCount}</strong>{' '}
+            {agingCount === 1 ? 'blocker has' : 'blockers have'} been open for 3+ days
+          </p>
+        </motion.div>
+      )}
 
-        {/* Loading */}
-        {loading ? (
-          <div className="text-center text-gray-400 dark:text-gray-500 py-10">
-            Loading...
-          </div>
+      {loading ? (
+        <div className="space-y-4">
+          {[0, 1].map(i => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : error ? (
+        <EmptyState icon="⚠️" tone="danger" title={error} />
+      ) : blockers.length === 0 ? (
+        <EmptyState
+          icon="🎉"
+          tone="positive"
+          title="No blockers reported"
+          description="Everything is running smoothly."
+        />
+      ) : (
+        <motion.div layout className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {blockers.map(b => {
+              const age = ageInDays(b.date)
+              const aging = age >= 3
 
-        /* Error */
-        ) : error ? (
-          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl p-6 md:p-8 text-center">
-            <p className="text-2xl mb-2">⚠️</p>
-            <p className="font-medium text-red-700 dark:text-red-400 text-sm md:text-base">
-              {error}
-            </p>
-          </div>
-
-        /* No Blockers */
-        ) : blockers.length === 0 ? (
-          <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-xl p-6 md:p-8 text-center">
-            <p className="text-2xl mb-2">🎉</p>
-            <p className="font-medium text-green-800 dark:text-green-300 text-sm md:text-base">
-              No blockers reported!
-            </p>
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-              Everything is running smoothly
-            </p>
-          </div>
-
-        /* Blockers List */
-        ) : (
-          <div className="space-y-4">
-            {blockers.map(b => (
-              <div key={b._id}
-                className="bg-white dark:bg-gray-900 border border-red-100 dark:border-red-900 rounded-xl p-4 md:p-5 transition-colors duration-200">
-
-                {/* User Info Row */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 flex items-center justify-center font-medium text-sm flex-shrink-0">
-                    {b.user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 dark:text-gray-100 text-sm">
-                      {b.user.name}
-                    </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                      {b.user.email} • {b.date}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-full font-medium flex-shrink-0">
-                    Blocker
-                  </span>
-                </div>
-
-                {/* Blocker Text / Edit Mode */}
-                {editId === b._id ? (
-                  <div className="mb-3">
-                    <textarea
-                      rows={3}
-                      value={editText}
-                      onChange={e => setEditText(e.target.value)}
-                      className="w-full border border-purple-300 dark:border-purple-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-300 dark:focus:ring-purple-600 resize-none transition"
-                      placeholder="Edit blocker text..."
-                      autoFocus
-                    />
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => handleSaveEdit(b._id)}
-                        disabled={actionLoading}
-                        className="flex-1 bg-purple-700 dark:bg-purple-600 text-white py-2 rounded-lg text-xs font-medium hover:bg-purple-800 transition disabled:opacity-60"
-                      >
-                        {actionLoading ? 'Saving...' : '✅ Save Changes'}
-                      </button>
-                      <button
-                        onClick={() => setEditId(null)}
-                        className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-2 rounded-lg text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-red-50 dark:bg-red-950 border border-red-100 dark:border-red-900 rounded-lg px-4 py-3 mb-3">
-                    <p className="text-sm text-red-700 dark:text-red-400">
-                      {b.blockers}
-                    </p>
-                  </div>
-                )}
-
-                {/* Today's Plan */}
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                  <span className="font-medium text-gray-600 dark:text-gray-300">
-                    Today's Plan:{' '}
-                  </span>
-                  {b.today}
-                </div>
-
-                {/*  Admin Actions */}
-                {isAdmin && editId !== b._id && (
-                  <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-
-                    {/* Edit Button */}
-                    <button
-                      onClick={() => handleEdit(b)}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 py-2 rounded-lg text-xs font-medium hover:bg-purple-100 dark:hover:bg-purple-900 transition"
-                    >
-                      ✏️ Edit Blocker
-                    </button>
-
-                    {/* Delete Button */}
-                    {deleteId === b._id ? (
-                      <div className="flex-1 flex gap-1.5">
-                        <button
-                          onClick={() => handleDelete(b._id)}
-                          disabled={actionLoading}
-                          className="flex-1 bg-red-600 text-white py-2 rounded-lg text-xs font-medium hover:bg-red-700 transition disabled:opacity-60"
-                        >
-                          {actionLoading ? 'Deleting...' : '🗑️ Confirm'}
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(null)}
-                          className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 py-2 rounded-lg text-xs font-medium hover:bg-gray-200 transition"
-                        >
-                          Cancel
-                        </button>
+              return (
+                <motion.div
+                  key={b._id}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -24, scale: 0.97 }}
+                  transition={{ duration: DURATION.base, ease: EASE }}
+                >
+                  <Card className="border-red-100 p-4 dark:border-red-950 md:p-5">
+                    {/* Author row */}
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-sm font-semibold text-red-600 dark:bg-red-950 dark:text-red-400">
+                        {b.user.name.charAt(0).toUpperCase()}
                       </div>
-                    ) : (
-                      <button
-                        onClick={() => { setDeleteId(b._id); setEditId(null) }}
-                        className="flex-1 flex items-center justify-center gap-1.5 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 py-2 rounded-lg text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900 transition"
-                      >
-                        🗑️ Delete
-                      </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-content">
+                          {b.user.name}
+                        </p>
+                        <p className="truncate text-xs text-content-subtle">
+                          {b.user.email} · {b.date}
+                        </p>
+                      </div>
+                      <Badge tone={aging ? 'warning' : 'danger'}>
+                        {age === 0 ? 'Today' : `${age}d old`}
+                      </Badge>
+                    </div>
+
+                    {/* Blocker text / edit form */}
+                    <AnimatePresence mode="wait" initial={false}>
+                      {editId === b._id ? (
+                        <motion.div
+                          key="edit"
+                          variants={collapseVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          className="overflow-hidden"
+                        >
+                          <Textarea
+                            rows={3}
+                            autoFocus
+                            value={editText}
+                            onChange={e => setEditText(e.target.value)}
+                            placeholder="Edit blocker text…"
+                            className="border-brand-300 dark:border-brand-700"
+                          />
+                          <div className="mt-2 flex gap-2">
+                            <Button
+                              size="sm"
+                              full
+                              loading={actionLoading}
+                              onClick={() => handleSaveEdit(b._id)}
+                            >
+                              {actionLoading ? 'Saving…' : '✅ Save changes'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              full
+                              variant="secondary"
+                              onClick={() => setEditId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="view"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="rounded-xl border-l-[3px] border-l-red-500 bg-red-50 px-4 py-3 dark:bg-red-950/50"
+                        >
+                          <p className="text-sm text-red-700 dark:text-red-300">{b.blockers}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <p className="mt-3 text-sm text-content-muted">
+                      <span className="font-medium text-content">Today&apos;s plan: </span>
+                      {b.today}
+                    </p>
+
+                    {/* Actions */}
+                    {canManage && editId !== b._id && (
+                      <div className="mt-3 flex gap-2 border-t border-line pt-3">
+                        <Button
+                          size="sm"
+                          variant="subtle"
+                          full
+                          onClick={() => handleEdit(b)}
+                        >
+                          ✏️ Edit blocker
+                        </Button>
+
+                        {deleteId === b._id ? (
+                          <div className="flex flex-1 gap-2">
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              full
+                              loading={actionLoading}
+                              onClick={() => handleDelete(b._id)}
+                            >
+                              {actionLoading ? 'Deleting…' : 'Confirm'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              full
+                              onClick={() => setDeleteId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="danger-subtle"
+                            full
+                            onClick={() => {
+                              setDeleteId(b._id)
+                              setEditId(null)
+                            }}
+                          >
+                            🗑️ Delete
+                          </Button>
+                        )}
+                      </div>
                     )}
-
-                  </div>
-                )}
-
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
+        </motion.div>
+      )}
+    </PageShell>
   )
 }
