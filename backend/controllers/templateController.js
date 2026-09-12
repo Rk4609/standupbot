@@ -1,17 +1,11 @@
 const StandupTemplate = require('../models/StandupTemplate')
 const Team = require('../models/Team')
+const { ownTeam } = require('../utils/teams')
 
 const { CORE_KEYS, defaultTemplate } = StandupTemplate
 
 /** The team whose template applies to this user, or null for the fallback. */
-const teamForUser = async (user) => {
-  if (user.team) return user.team
-  if (user.role === 'manager') {
-    const team = await Team.findOne({ manager: user._id })
-    return team?._id || null
-  }
-  return null
-}
+const teamForUser = (user) => ownTeam(user)
 
 /** The team a manager may edit, or every team for an admin. */
 const editableTeam = async (user, requested) => {
@@ -54,6 +48,7 @@ const getActiveTemplate = async (req, res) => {
       name: template.name,
       questions: template.questions,
       askMood: template.askMood,
+      trackTime: Boolean(template.trackTime),
       coreKeys: CORE_KEYS
     })
   } catch (err) {
@@ -121,7 +116,7 @@ const saveTemplate = async (req, res) => {
     const { team, error } = await editableTeam(req.user, req.body.team)
     if (error) return res.status(400).json({ message: error })
 
-    const { name, questions, askMood } = req.body
+    const { name, questions, askMood, trackTime } = req.body
 
     const problem = validateQuestions(questions)
     if (problem) return res.status(400).json({ message: problem })
@@ -133,6 +128,7 @@ const saveTemplate = async (req, res) => {
         name: name || 'Daily standup',
         questions,
         askMood: askMood !== false,
+        trackTime: Boolean(trackTime),
         updatedBy: req.user._id
       },
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
@@ -143,6 +139,7 @@ const saveTemplate = async (req, res) => {
       name: template.name,
       questions: template.questions,
       askMood: template.askMood,
+      trackTime: Boolean(template.trackTime),
       coreKeys: CORE_KEYS,
       custom: true,
       updatedAt: template.updatedAt
@@ -171,6 +168,7 @@ const resetTemplate = async (req, res) => {
       name: template.name,
       questions: template.questions,
       askMood: template.askMood,
+      trackTime: Boolean(template.trackTime),
       coreKeys: CORE_KEYS,
       custom: Boolean(template._id),
       updatedAt: template.updatedAt || null

@@ -14,7 +14,8 @@ const mongoose = require('mongoose')
 const ACTIONS = [
   'standup.updated',
   'standup.deleted',
-  'user.role_changed'
+  'user.role_changed',
+  'timesheet.reviewed'
 ]
 
 const changeSchema = new mongoose.Schema({

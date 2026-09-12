@@ -11,6 +11,7 @@ import {
   IconAlert,
   IconBell,
   IconBolt,
+  IconBriefcase,
   IconChart,
   IconClock,
   IconHome,
@@ -21,6 +22,7 @@ import {
   IconList,
   IconSparkles,
   IconTarget,
+  IconTimer,
   IconSun,
   IconTrendUp,
   IconUsers
@@ -36,7 +38,8 @@ const navGroups = (user) => {
       items: [
         { to: '/dashboard', label: 'Dashboard', icon: IconHome },
         { to: '/standup/new', label: 'New standup', icon: IconPlus },
-        { to: '/history', label: 'My history', icon: IconClock }
+        { to: '/history', label: 'My history', icon: IconClock },
+        { to: '/timesheet', label: 'My timesheet', icon: IconTimer }
       ]
     },
     isLead && {
@@ -45,6 +48,8 @@ const navGroups = (user) => {
         { to: '/team', label: 'Overview', icon: IconChart },
         { to: '/employees', label: 'Employees', icon: IconUsers },
         { to: '/blockers', label: 'Blockers', icon: IconAlert },
+        { to: '/timesheets', label: 'Timesheets', icon: IconTimer },
+        { to: '/projects', label: 'Projects', icon: IconBriefcase },
         { to: '/analytics', label: 'Analytics', icon: IconTrendUp },
         { to: '/retro', label: 'Weekly retro', icon: IconSparkles },
         { to: '/activity', label: 'Activity', icon: IconList },

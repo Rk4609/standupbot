@@ -209,3 +209,16 @@ export const IconInbox = (p) => (
     <path d="M3.5 13.5H9a3 3 0 0 0 6 0h5.5" />
   </Svg>
 )
+export const IconBriefcase = (p) => (
+  <Svg {...p}>
+    <rect x="3" y="7.5" width="18" height="12.5" rx="2.5" />
+    <path d="M9 7.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1.5" />
+    <path d="M3 12.5h18" />
+  </Svg>
+)
+export const IconTimer = (p) => (
+  <Svg {...p}>
+    <circle cx="12" cy="13.5" r="7.5" />
+    <path d="M12 10v3.5l2.5 1.5M9.5 3h5" />
+  </Svg>
+)

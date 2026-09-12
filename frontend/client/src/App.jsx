@@ -35,6 +35,9 @@ const Analytics = lazy(() => import("./pages/Analytics"))
 const Activity = lazy(() => import("./pages/Activity"))
 const Templates = lazy(() => import("./pages/Templates"))
 const Integrations = lazy(() => import("./pages/Integrations"))
+const Timesheet = lazy(() => import("./pages/Timesheet"))
+const Projects = lazy(() => import("./pages/Projects"))
+const TeamTimesheets = lazy(() => import("./pages/TeamTimesheets"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 const AdminPanel = lazy(() => import("./pages/AdminPanel"))
 
@@ -95,6 +98,7 @@ function AnimatedRoutes({ user, setUser }) {
           <Route path="/standup/new" element={<NewStandup />} />
           <Route path="/history" element={<History />} />
           <Route path="/profile" element={<Profile user={user} setUser={setUser} />} />
+          <Route path="/timesheet" element={<Timesheet />} />
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["manager", "admin"]} />}>
@@ -106,6 +110,8 @@ function AnimatedRoutes({ user, setUser }) {
           <Route path="/activity" element={<Activity />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/integrations" element={<Integrations />} />
+          <Route path="/projects" element={<Projects />} />
+          <Route path="/timesheets" element={<TeamTimesheets />} />
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>

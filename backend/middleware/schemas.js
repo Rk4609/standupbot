@@ -52,7 +52,14 @@ const submitStandup = z.object({
   answers: z.record(
     z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),
     z.string().trim().max(2000, 'is too long')
-  ).optional().default({})
+  ).optional().default({}),
+  // Where the day went, when the team tracks time. Which projects are
+  // allowed is checked in the controller against the person's team.
+  work: z.array(z.object({
+    project: objectId,
+    hours: z.coerce.number().min(0.25, 'must be at least 15 minutes').max(24, 'is too many'),
+    note: z.string().trim().max(500, 'is too long').optional().default('')
+  }).strict()).max(20, 'is too many entries for one day').optional().default([])
 }).strict()
 
 const updateBlocker = {
@@ -142,6 +149,7 @@ const saveTemplate = z.object({
   team: objectId.optional(),
   name: z.string().trim().min(1, 'is required').max(80, 'is too long').optional(),
   askMood: z.boolean().optional(),
+  trackTime: z.boolean().optional(),
   questions: z.array(z.object({
     key: questionKey,
     label: z.string().trim().min(1, 'is required').max(160, 'is too long'),
@@ -153,6 +161,47 @@ const saveTemplate = z.object({
 
 const templateTeam = {
   query: z.object({ team: objectId.optional() }).strip()
+}
+
+/* projects and timesheets ------------------------------------------ */
+
+const createProject = z.object({
+  name: z.string().trim().min(1, 'is required').max(120, 'is too long'),
+  code: z.string().trim().max(12, 'is too long').optional(),
+  client: z.string().trim().max(120, 'is too long').optional(),
+  billable: z.boolean().optional(),
+  team: objectId.nullable().optional()
+}).strict()
+
+const updateProject = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    name: z.string().trim().min(1, 'is required').max(120, 'is too long').optional(),
+    code: z.string().trim().max(12, 'is too long').optional(),
+    client: z.string().trim().max(120, 'is too long').optional(),
+    billable: z.boolean().optional(),
+    active: z.boolean().optional()
+  }).strict()
+}
+
+const weekQuery = {
+  query: z.object({ weekStart: isoDate.optional() }).strip()
+}
+
+const submitWeek = z.object({ weekStart: isoDate.optional() }).strict()
+
+const reviewWeek = {
+  params: z.object({ userId: objectId }),
+  body: z.object({
+    weekStart: isoDate.optional(),
+    action: z.enum(['approve', 'request_changes', 'reopen']),
+    note: z.string().trim().max(500, 'is too long').optional()
+  }).strict()
+}
+
+const personWeek = {
+  params: z.object({ userId: objectId }),
+  query: z.object({ weekStart: isoDate.optional() }).strip()
 }
 
 /* slack ------------------------------------------------------------ */
@@ -206,6 +255,12 @@ module.exports = {
   updateStandup,
   saveTemplate,
   templateTeam,
+  createProject,
+  updateProject,
+  weekQuery,
+  submitWeek,
+  reviewWeek,
+  personWeek,
   saveSlack,
   updateSlack,
   slackTeam,

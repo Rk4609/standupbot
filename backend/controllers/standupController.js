@@ -8,6 +8,49 @@ const audit = require('../services/auditService')
 const { resolveTemplate, teamForUser } = require('./templateController')
 const { CORE_KEYS } = require('../models/StandupTemplate')
 const slack = require('../services/slackService')
+const Project = require('../models/Project')
+const { bookableFilter } = require('./projectController')
+const { ownTeam } = require('../utils/teams')
+
+/** Nobody works more than a day in a day. */
+const MAX_HOURS_PER_DAY = 24
+
+/**
+ * Check the hours against what this person may actually book to.
+ *
+ * Without this anyone could post hours against another team's project, or a
+ * project that was archived precisely to stop new time landing on it.
+ */
+const validateWork = async (user, work) => {
+  if (!Array.isArray(work) || work.length === 0) return { entries: [] }
+
+  const total = work.reduce((sum, w) => sum + Number(w.hours || 0), 0)
+  if (total > MAX_HOURS_PER_DAY) {
+    return { error: `That is ${total} hours in one day. Check the numbers.` }
+  }
+
+  const ids = [...new Set(work.map(w => String(w.project)))]
+  const allowed = await Project.find({
+    _id: { $in: ids },
+    ...bookableFilter(user.team)
+  }).select('_id').lean()
+
+  const allowedIds = new Set(allowed.map(p => String(p._id)))
+  const rejected = ids.filter(id => !allowedIds.has(id))
+  if (rejected.length > 0) {
+    return { error: 'One of those projects is not available to you' }
+  }
+
+  // Two rows on the same project are the person's business — they may be
+  // separate pieces of work — so they are kept rather than merged
+  return {
+    entries: work.map(w => ({
+      project: w.project,
+      hours: Number(w.hours),
+      note: String(w.note || '').trim().slice(0, 500)
+    }))
+  }
+}
 
 /** The fields an edit may touch, and the ones the audit trail compares. */
 const EDITABLE = ['yesterday', 'today', 'blockers', 'mood']
@@ -38,13 +81,7 @@ const canModifyStandup = async (user, standup) => {
  * see", where an admin means everything and so returns null. For a standup
  * being written, an admin who runs a team is filing it in that team.
  */
-const teamForSubmission = async (user) => {
-  const scoped = await getTeamId(user)
-  if (scoped) return scoped
-
-  const managed = await Team.findOne({ manager: user._id }).select('_id')
-  return managed?._id || null
-}
+const teamForSubmission = (user) => ownTeam(user)
 
 /**
  * Whether a blockers field actually describes a blocker.
@@ -89,7 +126,7 @@ const canEditStandup = async (user, standup) => {
 // POST /api/standups
 const submitStandup = async (req, res) => {
   try {
-    const { yesterday, today, blockers, mood, answers = {} } = req.body
+    const { yesterday, today, blockers, mood, answers = {}, work = [] } = req.body
 
     // The day this standup belongs to is the submitter's day, not the
     // server's — those differ for most of the world for part of every day
@@ -119,6 +156,17 @@ const submitStandup = async (req, res) => {
       })
     }
 
+    // Hours are only asked for when the team tracks time, and are only
+    // required then — a team that does not should never be blocked by them
+    const checked = await validateWork(req.user, work)
+    if (checked.error) return res.status(400).json({ message: checked.error })
+
+    if (template.trackTime && checked.entries.length === 0) {
+      return res.status(400).json({
+        message: 'Add where your hours went before submitting'
+      })
+    }
+
     const exists = await Standup.findOne({ user: req.user._id, date: today_date })
     if (exists) {
       return res.status(400).json({ message: "Today's standup is already submitted!" })
@@ -135,6 +183,7 @@ const submitStandup = async (req, res) => {
       hasBlocker,
       mood: mood || 'good',
       date: today_date,
+      work: checked.entries,
       // Only the team's own questions — the core three have their own fields
       answers: Object.fromEntries(
         template.questions

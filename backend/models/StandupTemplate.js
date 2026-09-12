@@ -40,6 +40,10 @@ const templateSchema = new mongoose.Schema({
   name: { type: String, default: 'Daily standup', trim: true, maxlength: 80 },
   questions: { type: [questionSchema], default: [] },
   askMood: { type: Boolean, default: true },
+
+  // Off by default. A team that just wants a standup should never be asked
+  // to account for its hours; a team that bills its time cannot avoid it.
+  trackTime: { type: Boolean, default: false },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, { timestamps: true })
 
@@ -72,7 +76,8 @@ const defaultTemplate = (team = null) => ({
   team,
   name: 'Daily standup',
   questions: DEFAULT_QUESTIONS.map(q => ({ ...q })),
-  askMood: true
+  askMood: true,
+  trackTime: false
 })
 
 module.exports = mongoose.models.StandupTemplate ||
