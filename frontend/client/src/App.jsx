@@ -32,6 +32,7 @@ const Blockers = lazy(() => import("./pages/Blockers"))
 const Retro = lazy(() => import("./pages/Retro"))
 const Employees = lazy(() => import("./pages/Employees"))
 const Analytics = lazy(() => import("./pages/Analytics"))
+const NotFound = lazy(() => import("./pages/NotFound"))
 const AdminPanel = lazy(() => import("./pages/AdminPanel"))
 
 /** Shown while a route chunk is in flight — mirrors the page layout. */
@@ -105,10 +106,9 @@ function AnimatedRoutes({ user, setUser }) {
           <Route path="/admin" element={<AdminPanel user={user} />} />
         </Route>
 
-        <Route
-          path="*"
-          element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
-        />
+        {/* A silent redirect here made a stale bundle look like a broken
+            link — say what happened instead */}
+        <Route path="*" element={<NotFound user={user} />} />
       </Routes>
     </AnimatePresence>
   )
