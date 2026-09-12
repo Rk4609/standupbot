@@ -23,6 +23,7 @@ import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
 import { Field, Input, Select } from '../components/ui/Field'
+import { apiErrorMessage } from '../lib/apiError'
 import { IconUser, IconUsers } from '../components/ui/icons'
 
 const loadAdminData = async () => {
@@ -75,7 +76,7 @@ export default function AdminPanel({ user }) {
       })
       .catch(err => {
         console.error(err)
-        if (!cancelled) toast.error(err.response?.data?.message || 'Could not load admin data')
+        if (!cancelled) toast.error(apiErrorMessage(err, 'Could not load admin data'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -91,7 +92,7 @@ export default function AdminPanel({ user }) {
       apply(await loadAdminData())
     } catch (err) {
       console.error(err)
-      toast.error(err.response?.data?.message || 'Could not refresh')
+      toast.error(apiErrorMessage(err, 'Could not refresh'))
     }
   }
 
@@ -105,7 +106,7 @@ export default function AdminPanel({ user }) {
       setTeamForm({ name: '', managerId: '' })
       refresh()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong')
+      toast.error(apiErrorMessage(err, 'Something went wrong'))
     } finally {
       setCreating(false)
     }
@@ -122,7 +123,7 @@ export default function AdminPanel({ user }) {
       setMemberForm({ teamId: '', userId: '' })
       refresh()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong')
+      toast.error(apiErrorMessage(err, 'Something went wrong'))
     } finally {
       setAdding(false)
     }
@@ -137,7 +138,7 @@ export default function AdminPanel({ user }) {
       toast.success(data.message)
       refresh()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not change role')
+      toast.error(apiErrorMessage(err, 'Could not change role'))
       refresh()
     }
   }
