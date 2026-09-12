@@ -172,10 +172,13 @@ export default function Dashboard({ user }) {
       </motion.section>
 
       {/* Activity + metrics.
-          items-start so each card takes its natural height rather than the
-          heatmap card stretching to match the metric column. */}
-      <div className="mb-6 grid gap-4 lg:grid-cols-3 lg:items-start">
-        <Card className="lg:col-span-2">
+          Letting each card take its natural height left the metrics column
+          hanging below the heatmap, which reads as a mistake rather than a
+          layout. The row stretches now and whichever card is shorter fills
+          the difference — the metrics spread down their column, the heatmap
+          centres in its card. */}
+      <div className="mb-6 grid gap-4 lg:grid-cols-3">
+        <Card className="flex flex-col lg:col-span-2">
           <div className="mb-5 flex items-baseline justify-between gap-3">
             <h2 className="text-sm font-semibold text-content">Submission activity</h2>
             <Link
@@ -185,10 +188,12 @@ export default function Dashboard({ user }) {
               View history
             </Link>
           </div>
-          <StreakHeatmap dates={submittedDates} />
+          <div className="flex flex-1 flex-col justify-center">
+            <StreakHeatmap dates={submittedDates} />
+          </div>
         </Card>
 
-        <Card className="grid grid-cols-3 gap-4 lg:grid-cols-1 lg:content-start lg:gap-6">
+        <Card className="grid grid-cols-3 gap-4 lg:grid-cols-1 lg:content-between lg:gap-6">
           <Metric
             label="Streak"
             value={user?.streak || 0}
