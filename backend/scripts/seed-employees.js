@@ -70,14 +70,21 @@ const MOODS = ['great', 'good', 'good', 'good', 'okay', 'okay', 'bad', 'stressed
 const pick = (arr, i) => arr[i % arr.length]
 const rand = (arr) => arr[Math.floor(Math.random() * arr.length)]
 
-/** Weekday ISO dates going back `weeks` weeks, newest first. */
+/**
+ * Weekday ISO dates going back `weeks` weeks, newest first.
+ *
+ * All in UTC. Standup dates are stored as UTC-derived 'YYYY-MM-DD' strings, so
+ * taking the weekday from a local Date and then writing toISOString() shifts
+ * every date back a day east of UTC — and drops Friday entirely when the
+ * script runs on a Saturday.
+ */
 const workingDays = (weeks) => {
   const dates = []
   const d = new Date()
-  d.setHours(0, 0, 0, 0)
+  d.setUTCHours(0, 0, 0, 0)
   for (let i = 0; i < weeks * 7; i++) {
     const day = new Date(d.getTime() - i * 86_400_000)
-    const dow = day.getDay()
+    const dow = day.getUTCDay()
     if (dow !== 0 && dow !== 6) dates.push(day.toISOString().split('T')[0])
   }
   return dates
