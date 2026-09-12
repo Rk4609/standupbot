@@ -12,11 +12,11 @@ import { SkeletonCard } from '../components/ui/Skeleton'
 import { Textarea } from '../components/ui/Field'
 import { IconAlert, IconCheck, IconHourglass, IconPencil, IconTrash } from '../components/ui/icons'
 import { DURATION, EASE, collapseVariants } from '../lib/motion'
+import { apiErrorMessage } from '../lib/apiError'
 
 const loadBlockers = () => API.get('/standups/blockers').then(res => res.data)
 
-const errorMessage = (err) =>
-  err.response?.data?.message || 'Could not load blockers'
+const errorMessage = (err) => apiErrorMessage(err, 'Could not load blockers')
 
 /** Whole days between a standup date and today. */
 const ageInDays = (dateStr) => {

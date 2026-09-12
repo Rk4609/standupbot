@@ -13,6 +13,7 @@ import { IconAlert, IconSearch, IconUsers } from '../components/ui/icons'
 import { MOOD_EMOJI } from '../lib/moods'
 import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, itemVariants } from '../lib/motion'
+import { apiErrorMessage } from '../lib/apiError'
 
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 const WEEKDAY = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -64,7 +65,7 @@ function EmployeeDetail({ id }) {
         if (!cancelled) setData(res.data)
       })
       .catch(err => {
-        if (!cancelled) setError(err.response?.data?.message || 'Could not load details')
+        if (!cancelled) setError(apiErrorMessage(err, 'Could not load details'))
       })
 
     return () => {
@@ -181,7 +182,7 @@ export default function Employees() {
         setEmployees(data.employees)
       })
       .catch(err => {
-        if (!cancelled) setError(err.response?.data?.message || 'Could not load employees')
+        if (!cancelled) setError(apiErrorMessage(err, 'Could not load employees'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)

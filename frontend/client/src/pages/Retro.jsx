@@ -15,6 +15,7 @@ import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, itemVariants } from '../lib/motion'
 import { streamAi } from '../lib/streamAi'
 import { AI_MODEL_LABEL } from '../lib/ai'
+import { apiErrorMessage } from '../lib/apiError'
 import { IconAlert, IconCalendar, IconPrinter, IconRefresh, IconSparkles } from '../components/ui/icons'
 
 const loadCurrent = () => API.get('/retro/current').then(r => r.data)
@@ -67,7 +68,7 @@ export default function Retro() {
       })
       .catch(err => {
         console.error(err)
-        if (!cancelled) setLoadError(err.response?.data?.message || 'Could not load retros')
+        if (!cancelled) setLoadError(apiErrorMessage(err, 'Could not load retros'))
       })
       .finally(() => {
         if (!cancelled) setLoading(false)

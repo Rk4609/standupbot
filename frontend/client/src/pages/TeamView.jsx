@@ -23,6 +23,7 @@ import { Input } from '../components/ui/Field'
 import { DURATION, EASE, itemVariants } from '../lib/motion'
 import { streamAi } from '../lib/streamAi'
 import { AI_MODEL_LABEL } from '../lib/ai'
+import { apiErrorMessage } from '../lib/apiError'
 import { IconAlert, IconCalendar, IconSparkles, IconTrendDown } from '../components/ui/icons'
 
 const todayStr = () => new Date().toISOString().split('T')[0]
@@ -57,7 +58,7 @@ export default function TeamView() {
       } catch (err) {
         if (cancelled) return
         console.error(err)
-        setLoadError(err.response?.data?.message || 'Could not load team data')
+        setLoadError(apiErrorMessage(err, 'Could not load team data'))
       } finally {
         if (!cancelled) setLoading(false)
       }
