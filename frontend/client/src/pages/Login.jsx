@@ -5,10 +5,14 @@ import API from "../api/axios"
 import { saveUser } from "../store/authStore"
 import AuthLayout from "../components/AuthLayout"
 import Button from "../components/ui/Button"
-import { Field, Input } from "../components/ui/Field"
+import { Checkbox, Field, Input } from "../components/ui/Field"
+import PasswordToggle from "../components/ui/PasswordToggle"
+import { IconLock, IconMail } from "../components/ui/icons"
 
 export default function Login({ setUser }) {
   const [form, setForm] = useState({ email: "", password: "" })
+  const [remember, setRemember] = useState(true)
+  const [reveal, setReveal] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -17,9 +21,9 @@ export default function Login({ setUser }) {
     setLoading(true)
     try {
       const { data } = await API.post("/auth/login", form)
-      saveUser(data)
+      saveUser(data, { remember })
       setUser(data)
-      toast.success(`Welcome back, ${data.name}!`)
+      toast.success(`Welcome back, ${data.name}`)
       navigate("/dashboard")
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed")
@@ -30,8 +34,8 @@ export default function Login({ setUser }) {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Sign in to keep your team in the loop"
+      title="Sign in to StandupBot"
+      subtitle="Post your standup, track blockers and keep the team aligned."
       footer={
         <>
           Don&apos;t have an account?{" "}
@@ -45,11 +49,12 @@ export default function Login({ setUser }) {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Email">
+        <Field label="Email address">
           <Input
             type="email"
             required
             autoComplete="email"
+            icon={IconMail}
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="you@company.com"
@@ -58,26 +63,35 @@ export default function Login({ setUser }) {
 
         <Field label="Password">
           <Input
-            type="password"
+            type={reveal ? "text" : "password"}
             required
             autoComplete="current-password"
+            icon={IconLock}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             placeholder="••••••••"
+            trailing={
+              <PasswordToggle revealed={reveal} onToggle={() => setReveal(v => !v)} />
+            }
           />
         </Field>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-3 pt-0.5">
+          <Checkbox
+            label="Remember me"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
           <Link
             to="/forgot-password"
-            className="text-xs text-brand-600 hover:underline dark:text-brand-400"
+            className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
           >
             Forgot password?
           </Link>
         </div>
 
-        <Button type="submit" size="lg" full loading={loading}>
-          {loading ? "Signing in..." : "Sign in →"}
+        <Button type="submit" size="lg" full loading={loading} className="!mt-6">
+          {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>
     </AuthLayout>

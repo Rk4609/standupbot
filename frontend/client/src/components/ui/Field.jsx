@@ -8,7 +8,7 @@ const base =
 const tone = (invalid) =>
   invalid
     ? 'border-red-300 dark:border-red-800'
-    : 'border-line hover:border-content-subtle/40'
+    : 'border-line hover:border-content-subtle/40 focus:border-brand-400'
 
 /** Label + control + animated error message. */
 export function Field({ label, hint, error, children, className }) {
@@ -41,8 +41,37 @@ export function Field({ label, hint, error, children, className }) {
   )
 }
 
-export function Input({ invalid, className, ...rest }) {
-  return <input className={cn(base, tone(invalid), className)} {...rest} />
+/**
+ * `icon` renders a leading glyph inside the control; `trailing` is a slot for
+ * an affordance such as a password reveal toggle.
+ */
+export function Input({ invalid, icon: Icon, trailing, className, ...rest }) {
+  const control = (
+    <input
+      className={cn(
+        base,
+        tone(invalid),
+        Icon && 'pl-10',
+        trailing && 'pr-10',
+        className
+      )}
+      {...rest}
+    />
+  )
+
+  if (!Icon && !trailing) return control
+
+  return (
+    <div className="relative">
+      {Icon && (
+        <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-subtle" />
+      )}
+      {control}
+      {trailing && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">{trailing}</div>
+      )}
+    </div>
+  )
 }
 
 export function Textarea({ invalid, className, ...rest }) {
@@ -59,5 +88,19 @@ export function Select({ invalid, className, children, ...rest }) {
     <select className={cn(base, tone(invalid), 'cursor-pointer', className)} {...rest}>
       {children}
     </select>
+  )
+}
+
+/** Checkbox with a label, styled to match the inputs. */
+export function Checkbox({ label, className, ...rest }) {
+  return (
+    <label className={cn('flex cursor-pointer select-none items-center gap-2', className)}>
+      <input
+        type="checkbox"
+        className="h-4 w-4 cursor-pointer rounded border-line bg-surface text-brand-600 accent-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/60"
+        {...rest}
+      />
+      <span className="text-sm text-content-muted">{label}</span>
+    </label>
   )
 }

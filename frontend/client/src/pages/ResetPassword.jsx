@@ -7,7 +7,8 @@ import AuthLayout from '../components/AuthLayout'
 import Button from '../components/ui/Button'
 import { Field, Input } from '../components/ui/Field'
 import Skeleton from '../components/ui/Skeleton'
-import { IconCheck } from '../components/ui/icons'
+import { IconCheck, IconLock } from '../components/ui/icons'
+import PasswordToggle from '../components/ui/PasswordToggle'
 
 export default function ResetPassword() {
   const { token } = useParams()
@@ -21,6 +22,7 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [reveal, setReveal] = useState(false)
 
   useEffect(() => {
     const verifyToken = async () => {
@@ -110,13 +112,17 @@ export default function ResetPassword() {
           error={tooShort ? 'Password must be at least 6 characters' : ''}
         >
           <Input
-            type="password"
+            type={reveal ? 'text' : 'password'}
             required
             autoComplete="new-password"
+            icon={IconLock}
             invalid={tooShort}
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="At least 6 characters"
+            trailing={
+              <PasswordToggle revealed={reveal} onToggle={() => setReveal(v => !v)} />
+            }
           />
         </Field>
 
@@ -125,9 +131,10 @@ export default function ResetPassword() {
           error={mismatch ? 'Passwords do not match' : ''}
         >
           <Input
-            type="password"
+            type={reveal ? 'text' : 'password'}
             required
             autoComplete="new-password"
+            icon={IconLock}
             invalid={mismatch}
             value={confirmPassword}
             onChange={e => setConfirmPassword(e.target.value)}

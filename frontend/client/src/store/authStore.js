@@ -1,18 +1,44 @@
-// Zustand nahi — simple localStorage helper
+const KEY = 'standupbot_user'
+
+/** localStorage persists across browser restarts; sessionStorage does not. */
+const stores = () => [localStorage, sessionStorage]
+
 export const getUser = () => {
+  for (const store of stores()) {
+    try {
+      const raw = store.getItem(KEY)
+      if (raw) return JSON.parse(raw)
+    } catch {
+      // private mode, blocked site data, or a corrupt entry — try the next one
+    }
+  }
+  return null
+}
+
+/**
+ * `remember: false` keeps the session in sessionStorage, so closing the
+ * browser signs the user out. This is what the "Remember me" box controls.
+ */
+export const saveUser = (userData, { remember = true } = {}) => {
+  const target = remember ? localStorage : sessionStorage
+  const other = remember ? sessionStorage : localStorage
+
   try {
-    return JSON.parse(localStorage.getItem('standupbot_user')) || null
+    other.removeItem(KEY)
+    target.setItem(KEY, JSON.stringify(userData))
   } catch {
-    return null
+    // storage unavailable — the session stays in memory for this page only
   }
 }
 
-export const saveUser = (userData) => {
-  localStorage.setItem('standupbot_user', JSON.stringify(userData))
-}
-
 export const removeUser = () => {
-  localStorage.removeItem('standupbot_user')
+  for (const store of stores()) {
+    try {
+      store.removeItem(KEY)
+    } catch {
+      // nothing to clean up if storage is unavailable
+    }
+  }
 
   // PWA — cached API responses clear karo, warna next user ko
   // purane user ka data offline/stale serve ho sakta hai

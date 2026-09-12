@@ -6,11 +6,14 @@ import { saveUser } from '../store/authStore'
 import AuthLayout from '../components/AuthLayout'
 import Button from '../components/ui/Button'
 import { Field, Input, Select } from '../components/ui/Field'
+import PasswordToggle from '../components/ui/PasswordToggle'
+import { IconLock, IconMail, IconUser } from '../components/ui/icons'
 
 export default function Register({ setUser }) {
   const [form, setForm] = useState({
     name: '', email: '', password: '', role: 'member'
   })
+  const [reveal, setReveal] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -36,7 +39,7 @@ export default function Register({ setUser }) {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Two minutes a day keeps your team aligned"
+      subtitle="Two minutes a day keeps the whole team aligned."
       footer={
         <>
           Already have an account?{' '}
@@ -55,6 +58,7 @@ export default function Register({ setUser }) {
             type="text"
             required
             autoComplete="name"
+            icon={IconUser}
             value={form.name}
             onChange={e => setForm({ ...form, name: e.target.value })}
             placeholder="Rakesh Jangid"
@@ -66,6 +70,7 @@ export default function Register({ setUser }) {
             type="email"
             required
             autoComplete="email"
+            icon={IconMail}
             value={form.email}
             onChange={e => setForm({ ...form, email: e.target.value })}
             placeholder="you@company.com"
@@ -77,17 +82,21 @@ export default function Register({ setUser }) {
           error={passwordTooShort ? 'Password must be at least 6 characters' : ''}
         >
           <Input
-            type="password"
+            type={reveal ? 'text' : 'password'}
             required
             autoComplete="new-password"
+            icon={IconLock}
             invalid={passwordTooShort}
             value={form.password}
             onChange={e => setForm({ ...form, password: e.target.value })}
             placeholder="At least 6 characters"
+            trailing={
+              <PasswordToggle revealed={reveal} onToggle={() => setReveal(v => !v)} />
+            }
           />
         </Field>
 
-        <Field label="Role">
+        <Field label="Role" hint="Managers can see their team's standups and blockers.">
           <Select
             value={form.role}
             onChange={e => setForm({ ...form, role: e.target.value })}
@@ -97,8 +106,15 @@ export default function Register({ setUser }) {
           </Select>
         </Field>
 
-        <Button type="submit" size="lg" full loading={loading} disabled={passwordTooShort}>
-          {loading ? 'Creating your account...' : 'Create account →'}
+        <Button
+          type="submit"
+          size="lg"
+          full
+          loading={loading}
+          disabled={passwordTooShort}
+          className="!mt-6"
+        >
+          {loading ? 'Creating your account…' : 'Create account'}
         </Button>
       </form>
     </AuthLayout>
