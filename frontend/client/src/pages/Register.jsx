@@ -5,14 +5,15 @@ import API from '../api/axios'
 import { saveUser } from '../store/authStore'
 import AuthLayout from '../components/AuthLayout'
 import Button from '../components/ui/Button'
-import { Field, Input, Select } from '../components/ui/Field'
+import { Field, Input } from '../components/ui/Field'
 import PasswordToggle from '../components/ui/PasswordToggle'
 import { IconLock, IconMail, IconUser } from '../components/ui/icons'
 
 export default function Register({ setUser }) {
-  const [form, setForm] = useState({
-    name: '', email: '', password: '', role: 'employee'
-  })
+  // No role field: everyone registers as an employee and an admin grants
+  // manager or admin afterwards. Letting the client pick meant anyone could
+  // sign themselves up as a manager.
+  const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [reveal, setReveal] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
@@ -96,15 +97,9 @@ export default function Register({ setUser }) {
           />
         </Field>
 
-        <Field label="Role" hint="Managers can see their team's standups and blockers.">
-          <Select
-            value={form.role}
-            onChange={e => setForm({ ...form, role: e.target.value })}
-          >
-            <option value="employee">Employee — submit daily standups</option>
-            <option value="manager">Manager — view team progress</option>
-          </Select>
-        </Field>
+        <p className="text-xs text-content-subtle">
+          You will join as an employee. An admin can make you a manager afterwards.
+        </p>
 
         <Button
           type="submit"

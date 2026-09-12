@@ -100,7 +100,7 @@ function AnimatedRoutes({ user, setUser }) {
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
-          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/admin" element={<AdminPanel user={user} />} />
         </Route>
 
         <Route

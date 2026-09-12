@@ -2,6 +2,8 @@ const express = require('express')
 const router = express.Router()
 const { protect } = require('../middleware/authMiddleware')
 const { allowRoles } = require('../middleware/roleMiddleware')
+const { validate } = require('../middleware/validate')
+const S = require('../middleware/schemas')
 const {
   listEmployees,
   getSummary,
@@ -10,9 +12,9 @@ const {
 
 router.use(protect, allowRoles('manager', 'admin'))
 
-router.get('/', listEmployees)
+router.get('/', validate(S.listEmployees), listEmployees)
 // Must come before /:id, or "summary" is read as an employee id
 router.get('/summary', getSummary)
-router.get('/:id', getEmployee)
+router.get('/:id', validate(S.idParam), getEmployee)
 
 module.exports = router

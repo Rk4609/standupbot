@@ -42,7 +42,8 @@ const chartTooltip = {
   boxShadow: '0 12px 32px -8px rgb(0 0 0 / 0.18)'
 }
 
-export default function AdminPanel() {
+export default function AdminPanel({ user }) {
+  const currentUserId = user?._id
   const [teams, setTeams] = useState([])
   const [users, setUsers] = useState([])
   const [teamForm, setTeamForm] = useState({ name: '', managerId: '' })
@@ -124,6 +125,20 @@ export default function AdminPanel() {
       toast.error(err.response?.data?.message || 'Something went wrong')
     } finally {
       setAdding(false)
+    }
+  }
+
+  const changeRole = async (user, role) => {
+    // Optimistic: the select should not snap back while the request is in
+    // flight, and a failure re-reads the server's truth anyway.
+    setUsers(prev => prev.map(u => (u._id === user._id ? { ...u, role } : u)))
+    try {
+      const { data } = await API.patch(`/users/${user._id}/role`, { role })
+      toast.success(data.message)
+      refresh()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not change role')
+      refresh()
     }
   }
 
@@ -370,9 +385,22 @@ export default function AdminPanel() {
                     <p className="truncate text-xs text-content-subtle">{u.email}</p>
                   </div>
                 </div>
-                <Badge tone={ROLE_TONE[u.role]} className="capitalize">
-                  {u.role}
-                </Badge>
+                {u._id === currentUserId ? (
+                  <Badge tone={ROLE_TONE[u.role]} className="capitalize">
+                    {u.role}
+                  </Badge>
+                ) : (
+                  <Select
+                    value={u.role}
+                    onChange={e => changeRole(u, e.target.value)}
+                    aria-label={`Role for ${u.name}`}
+                    className="w-32 shrink-0 py-1.5 text-xs"
+                  >
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                  </Select>
+                )}
               </motion.div>
             ))}
           </div>

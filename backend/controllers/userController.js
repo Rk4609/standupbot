@@ -144,8 +144,50 @@ const uploadAvatar = async (req, res) => {
   }
 }
 
+
+// PATCH /api/users/:id/role — admin grants manager/admin
+const setUserRole = async (req, res) => {
+  try {
+    const { role } = req.body
+
+    // An admin demoting themselves could leave the instance with no admin at
+    // all, and they would lose the page they are standing on.
+    if (String(req.user._id) === req.params.id) {
+      return res.status(400).json({ message: 'You cannot change your own role' })
+    }
+
+    const user = await User.findById(req.params.id)
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    if (user.role === role) {
+      return res.json({ message: `Already ${role}`, user: sanitise(user) })
+    }
+
+    const previous = user.role
+    user.role = role
+    await user.save()
+
+    console.log(`Role change: ${user.email} ${previous} -> ${role} by ${req.user.email}`)
+
+    res.json({
+      message: `${user.name} is now ${role}`,
+      user: sanitise(user)
+    })
+  } catch (err) {
+    console.error('Set role error:', err.message)
+    res.status(500).json({ message: err.message })
+  }
+}
+
+/** Never let the hash or reset token leave the server. */
+const sanitise = (user) => {
+  const { password, resetPasswordToken, resetPasswordExpire, ...rest } = user.toObject()
+  return rest
+}
+
 module.exports = {
   getAllUsers,
+  setUserRole,
   getProfile,
   updateProfile,
   changePassword,

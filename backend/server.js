@@ -1,6 +1,7 @@
 const express = require('express')
 const dotenv = require('dotenv')
 const cors = require('cors')
+const helmet = require('helmet')
 const http = require('http')
 const jwt = require('jsonwebtoken')
 const { Server } = require('socket.io')
@@ -11,6 +12,18 @@ connectDB()
 
 const app = express()
 const server = http.createServer(app)
+
+// Render terminates TLS and forwards the client IP in X-Forwarded-For. Without
+// this the rate limiters would count every request against the proxy's own IP.
+app.set('trust proxy', 1)
+
+// Security headers. The API serves JSON and SSE, never HTML, so CSP and COEP
+// have nothing to protect here and only complicate the cross-origin setup.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}))
 
 // ✅ Allowed origins
 const allowedOrigins = [
@@ -47,7 +60,11 @@ app.use(cors({
   credentials: true
 }))
 
-app.use(express.json())
+// A standup body is a few KB; the default 100kb is already generous
+app.use(express.json({ limit: '100kb' }))
+
+const { apiLimiter } = require('./middleware/rateLimiters')
+app.use('/api', apiLimiter)
 
 // Routes
 const authRoutes = require('./routes/authRoutes')

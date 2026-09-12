@@ -9,27 +9,17 @@ const generateToken = (id) =>
 // POST /api/auth/register — (existing)
 const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email aur password required hain' })
-    }
+    const { name, email, password } = req.body
 
     const exists = await User.findOne({ email })
     if (exists) {
       return res.status(400).json({ message: 'Email already registered hai' })
     }
 
-    const validRoles = ['manager', 'employee']
-    const userRole = validRoles.includes(role) ? role : 'employee'
-
-    if (role === 'admin') {
-      return res.status(403).json({
-        message: 'Admin account directly create nahi ho sakta'
-      })
-    }
-
-    const user = await User.create({ name, email, password, role: userRole })
+    // Registration always creates an employee. Manager and admin are granted
+    // by an existing admin — accepting a role here let anyone sign themselves
+    // up as a manager.
+    const user = await User.create({ name, email, password, role: 'employee' })
 
     res.status(201).json({
       _id: user._id,
