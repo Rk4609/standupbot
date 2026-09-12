@@ -13,8 +13,7 @@ import { MOOD_EMOJI } from '../lib/moods'
 import { itemVariants } from '../lib/motion'
 import { cn } from '../lib/cn'
 import { IconTarget } from '../components/ui/icons'
-
-const isoToday = () => new Date().toISOString().split('T')[0]
+import { todayForUser } from '../lib/timezone'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -62,7 +61,7 @@ export default function Dashboard({ user }) {
     }
   }, [])
 
-  const today = standups.find(s => s.date === isoToday()) || null
+  const today = standups.find(s => s.date === todayForUser()) || null
   const recent = standups.slice(0, 6)
   const blockerCount = standups.filter(s => s.hasBlocker).length
   const submittedDates = standups.map(s => s.date)

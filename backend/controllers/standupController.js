@@ -2,6 +2,7 @@ const Standup = require('../models/Standup')
 const User = require('../models/User')
 const Team = require('../models/Team')
 const Notification = require('../models/Notification')
+const { addDays, lastNDates, todayIn, zoneOf } = require('../utils/time')
 
 // ✅ Helper
 const getTeamId = async (user) => {
@@ -37,7 +38,11 @@ const describesBlocker = (blockers) => {
 const submitStandup = async (req, res) => {
   try {
     const { yesterday, today, blockers, mood } = req.body
-    const today_date = new Date().toISOString().split('T')[0]
+
+    // The day this standup belongs to is the submitter's day, not the
+    // server's — those differ for most of the world for part of every day
+    const zone = zoneOf(req.user)
+    const today_date = todayIn(zone)
 
     if (!yesterday || !today) {
       return res.status(400).json({ message: 'Yesterday and Today fields are required' })
@@ -107,15 +112,20 @@ const submitStandup = async (req, res) => {
     }
 
     const user = await User.findById(req.user._id)
-    const yesterday_date = new Date()
-    yesterday_date.setDate(yesterday_date.getDate() - 1)
-    const lastDate = user.lastSubmission?.toISOString().split('T')[0]
-    const yesterdayStr = yesterday_date.toISOString().split('T')[0]
-    const newStreak = lastDate === yesterdayStr ? (user.streak || 0) + 1 : 1
+
+    // Compare calendar days, not instants. `lastSubmission` is kept in step
+    // for anything still reading it, but it cannot decide "yesterday" on its
+    // own — accounts created before this field fall back to reading it in the
+    // user's zone, so nobody loses a streak to the upgrade.
+    const lastDate =
+      user.lastStandupDate ||
+      (user.lastSubmission ? todayIn(zone, user.lastSubmission) : null)
+
+    const newStreak = lastDate === addDays(today_date, -1) ? (user.streak || 0) + 1 : 1
 
     await User.updateOne(
       { _id: req.user._id },
-      { streak: newStreak, lastSubmission: new Date() }
+      { streak: newStreak, lastSubmission: new Date(), lastStandupDate: today_date }
     )
 
     res.status(201).json(standup)
@@ -193,12 +203,8 @@ const getBlockers = async (req, res) => {
 // GET /api/standups/stats
 const getTeamStats = async (req, res) => {
   try {
-    const last7 = []
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      last7.push(d.toISOString().split('T')[0])
-    }
+    // "The last 7 days" means the viewer's last 7 days
+    const last7 = lastNDates(7, zoneOf(req.user))
 
     const filter = {}
 

@@ -25,13 +25,12 @@ import { streamAi } from '../lib/streamAi'
 import { AI_MODEL_LABEL } from '../lib/ai'
 import { apiErrorMessage } from '../lib/apiError'
 import { IconAlert, IconCalendar, IconSparkles, IconTrendDown } from '../components/ui/icons'
-
-const todayStr = () => new Date().toISOString().split('T')[0]
+import { todayForUser } from '../lib/timezone'
 
 export default function TeamView() {
   const [standups, setStandups] = useState([])
   const [stats, setStats] = useState([])
-  const [date, setDate] = useState(todayStr())
+  const [date, setDate] = useState(todayForUser())
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
 

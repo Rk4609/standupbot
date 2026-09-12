@@ -1,28 +1,33 @@
 import { motion } from 'framer-motion'
 import { cn } from '../lib/cn'
 import { SPRING } from '../lib/motion'
+import { todayForUser } from '../lib/timezone'
 
 const DAY_MS = 86_400_000
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const WEEKDAYS = ['M', '', 'W', '', 'F', '', '']
 
-/** Columns of 7 days, oldest first, each column starting on a Monday. */
+/**
+ * Columns of 7 days, oldest first, each column starting on a Monday.
+ *
+ * Every cell is addressed by the same 'YYYY-MM-DD' key the server stores.
+ * Taking local midnight and calling `toISOString()` on it — as this did —
+ * shifts that key a day back for every zone ahead of UTC, so an Indian user's
+ * grid lit up the wrong squares.
+ */
 function buildGrid(weeks) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = todayForUser()
+  const anchor = new Date(`${today}T00:00:00.000Z`)
 
-  const dow = (today.getDay() + 6) % 7 // 0 = Monday
-  const start = new Date(today.getTime() - (dow + (weeks - 1) * 7) * DAY_MS)
+  const dow = (anchor.getUTCDay() + 6) % 7 // 0 = Monday
+  const start = new Date(anchor.getTime() - (dow + (weeks - 1) * 7) * DAY_MS)
 
   return Array.from({ length: weeks }, (_, w) =>
     Array.from({ length: 7 }, (_, d) => {
       const date = new Date(start.getTime() + (w * 7 + d) * DAY_MS)
-      return {
-        key: date.toISOString().split('T')[0],
-        date,
-        future: date > today
-      }
+      const key = date.toISOString().split('T')[0]
+      return { key, date, future: key > today }
     })
   )
 }

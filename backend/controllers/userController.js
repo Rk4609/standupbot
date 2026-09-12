@@ -2,17 +2,7 @@ const { Readable } = require('stream')
 const { cloudinary } = require('../config/cloudinary')
 const User = require('../models/User')
 const Standup = require('../models/Standup')
-
-// ✅ Helper — last 7 dates (YYYY-MM-DD)
-const getLast7Dates = () => {
-  const dates = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    dates.push(d.toISOString().split('T')[0])
-  }
-  return dates
-}
+const { isValidTimezone, lastNDates, zoneOf } = require('../utils/time')
 
 // GET /api/users — admin ke liye sabhi users
 const getAllUsers = async (req, res) => {
@@ -34,7 +24,7 @@ const getProfile = async (req, res) => {
 
     const totalStandups = await Standup.countDocuments({ user: req.user._id })
 
-    const last7 = getLast7Dates()
+    const last7 = lastNDates(7, zoneOf(req.user))
     const recentDates = await Standup.find({
       user: req.user._id,
       date: { $in: last7 }
@@ -52,14 +42,25 @@ const getProfile = async (req, res) => {
 // PUT /api/users/profile
 const updateProfile = async (req, res) => {
   try {
-    const { name } = req.body
+    const { name, timezone } = req.body
     if (!name || name.trim() === '') {
       return res.status(400).json({ message: 'Name required hai' })
     }
 
+    const update = { name: name.trim() }
+
+    // Rejecting an unknown zone here is worth the extra check: silently
+    // storing one would file every later standup under the wrong day
+    if (timezone !== undefined) {
+      if (timezone !== '' && !isValidTimezone(timezone)) {
+        return res.status(400).json({ message: `${timezone} is not a known timezone` })
+      }
+      update.timezone = timezone
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { name: name.trim() },
+      update,
       { new: true }
     ).select('-password')
 

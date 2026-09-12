@@ -1,13 +1,27 @@
 const { z, fields } = require('./validate')
 
+const { isValidTimezone } = require('../utils/time')
+
 const { email, password, name, objectId, isoDate } = fields
+
+/**
+ * An IANA zone the platform actually knows. Checked here as well as in the
+ * model so a bad value is refused with a readable message rather than a
+ * mongoose validation error, and '' is allowed to mean "not set".
+ */
+const timezone = z
+  .string()
+  .refine(v => v === '' || isValidTimezone(v), 'is not a known timezone')
 
 /* auth ------------------------------------------------------------- */
 
 const register = z.object({
   name,
   email,
-  password
+  password,
+  // Sent by the browser at sign-up so the first standup already lands on the
+  // right day; optional because the API is usable without a browser
+  timezone: timezone.optional()
   // `role` is deliberately absent, and this strips rather than rejects: a
   // client still sending it (a cached build, say) keeps working and the value
   // is simply dropped. Accepting it let anyone hand themselves a manager
@@ -57,7 +71,7 @@ const addMember = {
 
 /* users ------------------------------------------------------------ */
 
-const updateProfile = z.object({ name }).strict()
+const updateProfile = z.object({ name, timezone: timezone.optional() }).strict()
 
 const changePassword = z.object({
   currentPassword: z.string().min(1, 'is required'),

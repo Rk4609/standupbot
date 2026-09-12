@@ -2,6 +2,7 @@ const Standup = require('../models/Standup')
 const Team = require('../models/Team')
 const User = require('../models/User')
 const { streamChat } = require('../services/groqService')
+const { todayIn, zoneOf } = require('../utils/time')
 
 const SYSTEM_PROMPT =
   'You are an expert engineering team manager AI assistant. Provide clear, structured, actionable analysis.'
@@ -19,7 +20,7 @@ const getTeamId = async (user) => {
 const analyzeTeam = async (req, res) => {
   try {
     const { date } = req.body
-    const today = date || new Date().toISOString().split('T')[0]
+    const today = date || todayIn(zoneOf(req.user))
 
     // ✅ Team ID aur name nikalo
     let teamId = await getTeamId(req.user)

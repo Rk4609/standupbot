@@ -9,7 +9,7 @@ const generateToken = (id) =>
 // POST /api/auth/register — (existing)
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body
+    const { name, email, password, timezone } = req.body
 
     const exists = await User.findOne({ email })
     if (exists) {
@@ -19,7 +19,15 @@ const register = async (req, res) => {
     // Registration always creates an employee. Manager and admin are granted
     // by an existing admin — accepting a role here let anyone sign themselves
     // up as a manager.
-    const user = await User.create({ name, email, password, role: 'employee' })
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: 'employee',
+      // Captured from the browser at sign-up. Blank stays blank and reads as
+      // UTC — better than guessing from the server's own clock.
+      timezone: timezone || ''
+    })
 
     res.status(201).json({
       _id: user._id,
@@ -27,6 +35,7 @@ const register = async (req, res) => {
       email: user.email,
       role: user.role,
       streak: user.streak || 0,
+      timezone: user.timezone || '',
       token: generateToken(user._id)
     })
   } catch (err) {
@@ -55,6 +64,7 @@ const login = async (req, res) => {
       email: user.email,
       role: user.role,
       streak: user.streak || 0,
+      timezone: user.timezone || '',
       token: generateToken(user._id)
     })
   } catch (err) {

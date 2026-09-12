@@ -1,6 +1,7 @@
 const User = require('../models/User')
 const Team = require('../models/Team')
 const Standup = require('../models/Standup')
+const { isWeekend, lastNDates, zoneOf } = require('../utils/time')
 
 /** Mood as a number so it can be averaged and trended. */
 const MOOD_SCORE = { great: 5, good: 4, okay: 3, bad: 2, stressed: 1 }
@@ -14,23 +15,6 @@ const moodScoreExpr = {
       default: 0
     }
   }
-}
-
-const toISO = (d) => d.toISOString().split('T')[0]
-
-const isWeekend = (iso) => {
-  const day = new Date(`${iso}T00:00:00.000Z`).getUTCDay()
-  return day === 0 || day === 6
-}
-
-/** Every date in the window, oldest first, in UTC like the stored dates. */
-const rangeDates = (days) => {
-  const end = new Date()
-  end.setUTCHours(0, 0, 0, 0)
-
-  return Array.from({ length: days }, (_, i) =>
-    toISO(new Date(end.getTime() - (days - 1 - i) * 86_400_000))
-  )
 }
 
 const resolveDays = (raw) => ([7, 30, 90].includes(Number(raw)) ? Number(raw) : 30)
@@ -82,7 +66,7 @@ const getOverview = async (req, res) => {
     }
 
     const days = resolveDays(req.query.days)
-    const dates = rangeDates(days)
+    const dates = lastNDates(days, zoneOf(req.user))
     const from = dates[0]
     const to = dates[dates.length - 1]
     const workingDays = dates.filter(d => !isWeekend(d)).length
@@ -238,7 +222,7 @@ const exportStandups = async (req, res) => {
     }
 
     const days = resolveDays(req.query.days)
-    const dates = rangeDates(days)
+    const dates = lastNDates(days, zoneOf(req.user))
     const from = dates[0]
     const to = dates[dates.length - 1]
 

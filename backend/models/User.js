@@ -1,5 +1,6 @@
   const mongoose = require('mongoose')
   const bcrypt = require('bcryptjs')
+  const { isValidTimezone } = require('../utils/time')
 
   const userSchema = new mongoose.Schema({
     name:     { type: String, required: true },
@@ -9,6 +10,22 @@
     team:     { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
     streak:   { type: Number, default: 0 },
     lastSubmission: { type: Date, default: null },
+
+    // The calendar day of the last standup, in the user's own zone. The
+    // instant in `lastSubmission` cannot answer "was that yesterday?" without
+    // knowing where they were, which is exactly what broke streaks.
+    lastStandupDate: { type: String, default: null },
+
+    // IANA name, e.g. 'Asia/Kolkata'. Blank means never chosen, and every
+    // reader falls back to UTC rather than to the server's own zone.
+    timezone: {
+      type: String,
+      default: '',
+      validate: {
+        validator: (v) => v === '' || isValidTimezone(v),
+        message: (p) => `${p.value} is not a known timezone`
+      }
+    },
     avatar:   { type: String, default: '' },
     // Forgot password fields
   resetPasswordToken: { type: String, default: null },

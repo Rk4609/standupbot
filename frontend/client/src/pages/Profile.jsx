@@ -10,27 +10,27 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import StatCard from '../components/ui/StatCard'
 import Skeleton from '../components/ui/Skeleton'
-import { Field, Input } from '../components/ui/Field'
+import { Field, Input, Select } from '../components/ui/Field'
 import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING } from '../lib/motion'
-import { IconCamera, IconHourglass, IconLock, IconPencil } from '../components/ui/icons'
+import { IconCamera, IconClock, IconHourglass, IconLock, IconPencil } from '../components/ui/icons'
+import {
+  detectTimezone,
+  lastNDatesForUser,
+  offsetLabel,
+  timeIn,
+  timezoneOptions
+} from '../lib/timezone'
 
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
-
-const last7Days = () => {
-  const days = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    days.push(d.toISOString().split('T')[0])
-  }
-  return days
-}
 
 export default function Profile({ user, setUser }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [nameForm, setNameForm] = useState({ name: '' })
+  const [nameForm, setNameForm] = useState({ name: '', timezone: '' })
+
+  // Built once: the browser knows several hundred zones
+  const [zones] = useState(timezoneOptions)
   const [passForm, setPassForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -47,7 +47,7 @@ export default function Profile({ user, setUser }) {
       try {
         const { data } = await API.get('/users/profile')
         setProfile(data)
-        setNameForm({ name: data.name })
+        setNameForm({ name: data.name, timezone: data.timezone || '' })
       } catch (err) {
         console.error(err)
         toast.error('Could not load your profile')
@@ -90,11 +90,11 @@ export default function Profile({ user, setUser }) {
     setNameLoading(true)
     try {
       const { data } = await API.put('/users/profile', nameForm)
-      const updatedUser = { ...user, name: data.name }
+      const updatedUser = { ...user, name: data.name, timezone: data.timezone }
       saveUser(updatedUser)
       setUser(updatedUser)
-      setProfile(prev => ({ ...prev, name: data.name }))
-      toast.success('Name updated')
+      setProfile(prev => ({ ...prev, name: data.name, timezone: data.timezone }))
+      toast.success('Profile updated')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed')
     } finally {
@@ -144,7 +144,7 @@ export default function Profile({ user, setUser }) {
     )
   }
 
-  const days = last7Days()
+  const days = lastNDatesForUser(7)
   const today = days[days.length - 1]
 
   return (
@@ -319,9 +319,49 @@ export default function Profile({ user, setUser }) {
                     type="text"
                     required
                     value={nameForm.name}
-                    onChange={e => setNameForm({ name: e.target.value })}
+                    onChange={e => setNameForm(f => ({ ...f, name: e.target.value }))}
                   />
                 </Field>
+
+                <Field
+                  label="Timezone"
+                  hint={
+                    nameForm.timezone
+                      ? `Your standups are filed against this clock — it is ${timeIn(nameForm.timezone)} there now.`
+                      : 'Not set, so your standups are filed against UTC.'
+                  }
+                >
+                  <Select
+                    value={nameForm.timezone}
+                    onChange={e => setNameForm(f => ({ ...f, timezone: e.target.value }))}
+                  >
+                    <option value="">Not set (UTC)</option>
+                    {zones.map(tz => (
+                      <option key={tz} value={tz}>
+                        {tz.replace(/_/g, ' ')} · {offsetLabel(tz)}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+
+                {detectTimezone() && detectTimezone() !== nameForm.timezone && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNameForm(f => ({ ...f, timezone: detectTimezone() }))
+                    }
+                    className="flex w-full items-center gap-2 rounded-xl border border-line bg-surface-sunken px-3.5 py-2.5 text-left text-xs text-content-muted transition-colors hover:text-content"
+                  >
+                    <IconClock className="h-4 w-4 shrink-0" />
+                    <span>
+                      This device says{' '}
+                      <span className="font-medium text-content">
+                        {detectTimezone().replace(/_/g, ' ')}
+                      </span>
+                      . Use it?
+                    </span>
+                  </button>
+                )}
                 <Field label="Email" hint="Email cannot be changed.">
                   <Input type="email" disabled value={profile?.email || ''} />
                 </Field>

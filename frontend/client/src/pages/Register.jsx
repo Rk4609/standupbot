@@ -8,6 +8,7 @@ import Button from '../components/ui/Button'
 import { Field, Input } from '../components/ui/Field'
 import PasswordToggle from '../components/ui/PasswordToggle'
 import { IconLock, IconMail, IconUser } from '../components/ui/icons'
+import { detectTimezone } from '../lib/timezone'
 
 export default function Register({ setUser }) {
   // No role field: everyone registers as an employee and an admin grants
@@ -25,7 +26,12 @@ export default function Register({ setUser }) {
     if (passwordTooShort) return
     setLoading(true)
     try {
-      const { data } = await API.post('/auth/register', form)
+      // Sent so the very first standup lands on the right day, without
+      // making anyone pick their zone from a list on the way in
+      const { data } = await API.post('/auth/register', {
+        ...form,
+        timezone: detectTimezone()
+      })
       saveUser(data)
       setUser(data)
       toast.success(`Welcome aboard, ${data.name}`)

@@ -1,20 +1,10 @@
 const User = require('../models/User')
 const Team = require('../models/Team')
 const Standup = require('../models/Standup')
+const { lastNDates, todayIn, zoneOf } = require('../utils/time')
 
 const PAGE_SIZES = [10, 20, 50, 100]
 const DEFAULT_LIMIT = 20
-
-/** Last 7 ISO dates, oldest first. */
-const last7Dates = () => {
-  const dates = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    dates.push(d.toISOString().split('T')[0])
-  }
-  return dates
-}
 
 /** Treat user input as literal text, not as a pattern. */
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -80,7 +70,7 @@ const listEmployees = async (req, res) => {
       .lean()
 
     const ids = users.map(u => u._id)
-    const week = last7Dates()
+    const week = lastNDates(7, zoneOf(req.user))
 
     // Stats are aggregated for this page only — two queries regardless of how
     // large the roster grows.
@@ -155,7 +145,7 @@ const getSummary = async (req, res) => {
 
     const users = await User.find(scope).select('_id').lean()
     const ids = users.map(u => u._id)
-    const today = new Date().toISOString().split('T')[0]
+    const today = todayIn(zoneOf(req.user))
 
     const [submittedToday, withBlockers, teamCount] = await Promise.all([
       Standup.distinct('user', { user: { $in: ids }, date: today }),
