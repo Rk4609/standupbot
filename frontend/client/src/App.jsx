@@ -34,6 +34,7 @@ const Employees = lazy(() => import("./pages/Employees"))
 const Analytics = lazy(() => import("./pages/Analytics"))
 const Activity = lazy(() => import("./pages/Activity"))
 const Templates = lazy(() => import("./pages/Templates"))
+const Integrations = lazy(() => import("./pages/Integrations"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 const AdminPanel = lazy(() => import("./pages/AdminPanel"))
 
@@ -104,6 +105,7 @@ function AnimatedRoutes({ user, setUser }) {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/templates" element={<Templates />} />
+          <Route path="/integrations" element={<Integrations />} />
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>

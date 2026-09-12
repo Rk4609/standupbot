@@ -13,6 +13,7 @@ const {
 } = require('../controllers/retroController')
 const { resolveWeek, previousWeek } = require('../utils/week')
 const { hourIn, todayIn, weekdayIn, zoneOf } = require('../utils/time')
+const slack = require('./slackService')
 
 /**
  * The hours, in each person's own zone, at which the two daily jobs fire.
@@ -76,6 +77,12 @@ const runRetroForTeam = async (team, week) => {
       generatedBy: null
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
+  )
+
+  await slack.notifyTeam(
+    team._id,
+    'weeklyRetro',
+    slack.retroMessage(team.name, week, content)
   )
 
   if (team.manager?.email) {
@@ -161,6 +168,19 @@ const startCronJobs = () => {
           )
           console.log(`Summary sent to → ${team.manager.email}`)
         }
+
+        // The channel gets the digest whether or not anyone posted — "nobody
+        // submitted today" is the message a team most needs to see
+        await slack.notifyTeam(
+          team._id,
+          'dailySummary',
+          slack.summaryMessage(
+            team.name,
+            today,
+            standups,
+            team.members?.length || standups.length
+          )
+        )
       }
     } catch (err) {
       console.error('EOD summary cron error:', err)

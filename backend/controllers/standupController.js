@@ -7,6 +7,7 @@ const { addDays, lastNDates, todayIn, zoneOf } = require('../utils/time')
 const audit = require('../services/auditService')
 const { resolveTemplate, teamForUser } = require('./templateController')
 const { CORE_KEYS } = require('../models/StandupTemplate')
+const slack = require('../services/slackService')
 
 /** The fields an edit may touch, and the ones the audit trail compares. */
 const EDITABLE = ['yesterday', 'today', 'blockers', 'mood']
@@ -28,6 +29,21 @@ const canModifyStandup = async (user, standup) => {
   const teamId = await getTeamId(user)
   if (!teamId || !standup.team) return false
   return standup.team.toString() === teamId.toString()
+}
+
+/**
+ * The team a standup being written belongs to.
+ *
+ * Separate from getTeamId because that one answers "what may this person
+ * see", where an admin means everything and so returns null. For a standup
+ * being written, an admin who runs a team is filing it in that team.
+ */
+const teamForSubmission = async (user) => {
+  const scoped = await getTeamId(user)
+  if (scoped) return scoped
+
+  const managed = await Team.findOne({ manager: user._id }).select('_id')
+  return managed?._id || null
 }
 
 /**
@@ -84,6 +100,12 @@ const submitStandup = async (req, res) => {
     // form is built from the same template, so validating against the fixed
     // three would either demand something nobody was shown or let a team's
     // own required question through empty.
+    // getTeamId, not req.user.team: a manager's own `team` field is empty —
+    // they are linked to their team as its manager instead — so reading the
+    // field directly filed their standup with no team at all, keeping it out
+    // of their own team view and out of anything the team is notified about.
+    const teamId = await teamForSubmission(req.user)
+
     const template = await resolveTemplate(await teamForUser(req.user))
     const given = { yesterday, today, blockers, ...answers }
 
@@ -106,7 +128,7 @@ const submitStandup = async (req, res) => {
 
     const standup = await Standup.create({
       user: req.user._id,
-      team: req.user.team || null,
+      team: teamId,
       yesterday: yesterday || '',
       today,
       blockers: blockers || 'None',
@@ -122,8 +144,8 @@ const submitStandup = async (req, res) => {
       )
     })
 
-    if (req.user.team) {
-      const team = await Team.findById(req.user.team).populate('manager')
+    if (teamId) {
+      const team = await Team.findById(teamId).populate('manager')
       if (team?.manager) {
         // Absent when the app is mounted without a socket server (tests).
         // A missing realtime hub must not fail the submission itself.
@@ -183,6 +205,20 @@ const submitStandup = async (req, res) => {
       { _id: req.user._id },
       { streak: newStreak, lastSubmission: new Date(), lastStandupDate: today_date }
     )
+
+    // Deliberately not awaited. The standup is already saved and the person
+    // is owed their response now; making them wait on hooks.slack.com — up to
+    // the service's timeout when Slack is down — would be letting a side
+    // effect hold up the thing it is a side effect of. notifyTeam swallows
+    // its own failures and records them on the integration, so there is
+    // nothing here to catch and nothing to reject.
+    if (teamId) {
+      const plain = standup.toObject()
+      slack.notifyTeam(teamId, 'standupSubmitted', slack.standupMessage(plain, req.user))
+      if (hasBlocker) {
+        slack.notifyTeam(teamId, 'blockerRaised', slack.blockerMessage(plain, req.user))
+      }
+    }
 
     res.status(201).json(standup)
   } catch (err) {

@@ -10,6 +10,7 @@ import NotificationList from './NotificationList'
 import {
   IconAlert,
   IconBell,
+  IconBolt,
   IconChart,
   IconClock,
   IconHome,
@@ -47,7 +48,8 @@ const navGroups = (user) => {
         { to: '/analytics', label: 'Analytics', icon: IconTrendUp },
         { to: '/retro', label: 'Weekly retro', icon: IconSparkles },
         { to: '/activity', label: 'Activity', icon: IconList },
-        { to: '/templates', label: 'Standup template', icon: IconTarget }
+        { to: '/templates', label: 'Standup template', icon: IconTarget },
+        { to: '/integrations', label: 'Integrations', icon: IconBolt }
       ]
     },
     user?.role === 'admin' && {

@@ -1,3 +1,4 @@
+import { Children, cloneElement, isValidElement, useId } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { DURATION, EASE } from '../../lib/motion'
@@ -10,16 +11,40 @@ const tone = (invalid) =>
     ? 'border-red-300 dark:border-red-800'
     : 'border-line hover:border-content-subtle/40 focus:border-brand-400'
 
-/** Label + control + animated error message. */
+/**
+ * Label + control + animated error message.
+ *
+ * The label is tied to the control by id. It used to be a bare `<label>` with
+ * nothing pointing at the input beside it, which reads to a screen reader as
+ * an unlabelled box — clicking the label did nothing either. The id is handed
+ * to the child unless it brought its own.
+ */
 export function Field({ label, hint, error, children, className }) {
+  const generatedId = useId()
+
+  const only = Children.only(children)
+  const controlId = only?.props?.id || generatedId
+  const describedBy = error || hint ? `${controlId}-note` : undefined
+
+  const control = isValidElement(only)
+    ? cloneElement(only, {
+        id: controlId,
+        'aria-describedby': only.props['aria-describedby'] || describedBy,
+        'aria-invalid': only.props['aria-invalid'] ?? (error ? true : undefined)
+      })
+    : only
+
   return (
     <div className={className}>
       {label && (
-        <label className="mb-1.5 block text-sm font-medium text-content-muted">
+        <label
+          htmlFor={controlId}
+          className="mb-1.5 block text-sm font-medium text-content-muted"
+        >
           {label}
         </label>
       )}
-      {children}
+      {control}
       <AnimatePresence mode="wait">
         {error && (
           <motion.p
@@ -28,6 +53,7 @@ export function Field({ label, hint, error, children, className }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: DURATION.fast, ease: EASE }}
+            id={`${controlId}-note`}
             className="mt-1.5 text-xs text-red-500"
           >
             {error}
@@ -35,7 +61,9 @@ export function Field({ label, hint, error, children, className }) {
         )}
       </AnimatePresence>
       {hint && !error && (
-        <p className="mt-1.5 text-xs text-content-subtle">{hint}</p>
+        <p id={`${controlId}-note`} className="mt-1.5 text-xs text-content-subtle">
+          {hint}
+        </p>
       )}
     </div>
   )

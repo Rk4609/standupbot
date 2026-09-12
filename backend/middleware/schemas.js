@@ -155,6 +155,32 @@ const templateTeam = {
   query: z.object({ team: objectId.optional() }).strip()
 }
 
+/* slack ------------------------------------------------------------ */
+
+const slackEvents = z.object({
+  standupSubmitted: z.boolean().optional(),
+  blockerRaised: z.boolean().optional(),
+  dailySummary: z.boolean().optional(),
+  weeklyRetro: z.boolean().optional()
+}).strict()
+
+const saveSlack = z.object({
+  team: objectId.optional(),
+  // The host is checked again in the service — this only bounds the input
+  webhookUrl: z.string().url('must be a URL').max(300, 'is too long'),
+  channel: z.string().trim().max(80, 'is too long').optional(),
+  events: slackEvents.optional()
+}).strict()
+
+const updateSlack = z.object({
+  team: objectId.optional(),
+  events: slackEvents.optional(),
+  active: z.boolean().optional()
+}).strict()
+
+const slackTeam = { query: z.object({ team: objectId.optional() }).strip() }
+const slackTeamBody = z.object({ team: objectId.optional() }).strict()
+
 /* audit ------------------------------------------------------------ */
 
 const listAudit = {
@@ -180,6 +206,10 @@ module.exports = {
   updateStandup,
   saveTemplate,
   templateTeam,
+  saveSlack,
+  updateSlack,
+  slackTeam,
+  slackTeamBody,
   listAudit,
   idParam,
   dateQuery,
