@@ -8,7 +8,7 @@ const SYSTEM_PROMPT =
 
 // Helper — team ID nikalo
 const getTeamId = async (user) => {
-  if (user.role === 'member' && user.team) return user.team
+  if (user.role === 'employee' && user.team) return user.team
   if (user.role === 'manager') {
     const team = await Team.findOne({ manager: user._id })
     return team?._id || null
@@ -50,7 +50,7 @@ const analyzeTeam = async (req, res) => {
       const team = await Team.findById(teamId)
       totalMembers = team?.members?.length || standups.length
     } else {
-      totalMembers = await User.countDocuments({ role: 'member' })
+      totalMembers = await User.countDocuments({ role: 'employee' })
     }
 
     const standupData = standups.map(s => ({

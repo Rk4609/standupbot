@@ -20,8 +20,8 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered hai' })
     }
 
-    const validRoles = ['manager', 'member']
-    const userRole = validRoles.includes(role) ? role : 'member'
+    const validRoles = ['manager', 'employee']
+    const userRole = validRoles.includes(role) ? role : 'employee'
 
     if (role === 'admin') {
       return res.status(403).json({

@@ -30,6 +30,7 @@ const Profile = lazy(() => import("./pages/Profile"))
 const TeamView = lazy(() => import("./pages/TeamView"))
 const Blockers = lazy(() => import("./pages/Blockers"))
 const Retro = lazy(() => import("./pages/Retro"))
+const Employees = lazy(() => import("./pages/Employees"))
 const AdminPanel = lazy(() => import("./pages/AdminPanel"))
 
 /** Shown while a route chunk is in flight — mirrors the page layout. */
@@ -95,6 +96,7 @@ function AnimatedRoutes({ user, setUser }) {
           <Route path="/team" element={<TeamView />} />
           <Route path="/blockers" element={<Blockers user={user} />} />
           <Route path="/retro" element={<Retro user={user} />} />
+          <Route path="/employees" element={<Employees />} />
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>

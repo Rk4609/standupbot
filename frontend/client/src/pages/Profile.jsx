@@ -15,7 +15,7 @@ import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING } from '../lib/motion'
 import { IconCamera, IconHourglass, IconLock, IconPencil } from '../components/ui/icons'
 
-const ROLE_TONE = { admin: 'danger', manager: 'positive', member: 'brand' }
+const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 
 const last7Days = () => {
   const days = []

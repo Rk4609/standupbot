@@ -82,7 +82,7 @@ const startCronJobs = () => {
     console.log('⏰ Morning reminder cron running...')
     try {
       const today = new Date().toISOString().split('T')[0]
-      const members = await User.find({ role: 'member' })
+      const members = await User.find({ role: 'employee' })
 
       for (const member of members) {
         const submitted = await Standup.findOne({

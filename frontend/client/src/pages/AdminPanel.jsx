@@ -31,7 +31,7 @@ const loadAdminData = async () => {
 }
 
 const ROLE_COLORS = ['#ef4444', '#10b981', '#7c3aed']
-const ROLE_TONE = { admin: 'danger', manager: 'positive', member: 'brand' }
+const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 
 const chartTooltip = {
   backgroundColor: 'rgb(var(--surface))',
@@ -57,7 +57,7 @@ export default function AdminPanel() {
     setTeams(t)
     setUsers(u)
     setRoleStats(
-      ['admin', 'manager', 'member'].map(role => ({
+      ['admin', 'manager', 'employee'].map(role => ({
         name: role.charAt(0).toUpperCase() + role.slice(1),
         value: u.filter(user => user.role === role).length
       }))
@@ -112,12 +112,12 @@ export default function AdminPanel() {
 
   const addMember = async () => {
     if (!memberForm.teamId || !memberForm.userId) {
-      return toast.error('Select both a team and a member')
+      return toast.error('Select both a team and an employee')
     }
     setAdding(true)
     try {
       await API.post(`/teams/${memberForm.teamId}/members`, { userId: memberForm.userId })
-      toast.success('Member added')
+      toast.success('Employee added')
       setMemberForm({ teamId: '', userId: '' })
       refresh()
     } catch (err) {
@@ -128,7 +128,7 @@ export default function AdminPanel() {
   }
 
   const managers = users.filter(u => u.role === 'manager')
-  const members = users.filter(u => u.role === 'member')
+  const employees = users.filter(u => u.role === 'employee')
 
   if (loading) {
     return (
@@ -149,18 +149,18 @@ export default function AdminPanel() {
 
   return (
     <PageShell width="xl">
-      <PageHeader title="Admin panel" subtitle="Teams, members and role distribution" />
+      <PageHeader title="Admin panel" subtitle="Teams, employees and role distribution" />
 
       <div className="mb-5 grid grid-cols-3 gap-3">
         <StatCard value={users.length} label="Total users" tone="brand" />
         <StatCard value={teams.length} label="Total teams" tone="positive" />
-        <StatCard value={members.length} label="Members" tone="warning" />
+        <StatCard value={employees.length} label="Employees" tone="warning" />
       </div>
 
       {/* Charts */}
       <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card>
-          <CardTitle>Members per team</CardTitle>
+          <CardTitle>Employees per team</CardTitle>
           {stats.length === 0 ? (
             <p className="py-12 text-center text-sm text-content-subtle">No teams yet</p>
           ) : (
@@ -255,7 +255,7 @@ export default function AdminPanel() {
         </Card>
 
         <Card>
-          <CardTitle>Add a member to a team</CardTitle>
+          <CardTitle>Add an employee to a team</CardTitle>
           <div className="space-y-3">
             <Field label="Team">
               <Select
@@ -270,13 +270,13 @@ export default function AdminPanel() {
                 ))}
               </Select>
             </Field>
-            <Field label="Member">
+            <Field label="Employee">
               <Select
                 value={memberForm.userId}
                 onChange={e => setMemberForm({ ...memberForm, userId: e.target.value })}
               >
-                <option value="">Select a member</option>
-                {members.map(u => (
+                <option value="">Select an employee</option>
+                {employees.map(u => (
                   <option key={u._id} value={u._id}>
                     {u.name} ({u.email})
                   </option>
@@ -284,7 +284,7 @@ export default function AdminPanel() {
               </Select>
             </Field>
             <Button full variant="primary" loading={adding} onClick={addMember}>
-              Add member
+              Add employee
             </Button>
           </div>
         </Card>
@@ -313,7 +313,7 @@ export default function AdminPanel() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-content">{t.name}</p>
                   <p className="mt-0.5 text-xs text-content-subtle">
-                    Manager: {t.manager?.name || 'Not assigned'} · {t.members?.length || 0} members
+                    Manager: {t.manager?.name || 'Not assigned'} · {t.members?.length || 0} employees
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">

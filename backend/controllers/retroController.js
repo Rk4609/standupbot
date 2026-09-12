@@ -18,7 +18,7 @@ const resolveScope = async (user) => {
   }
 
   if (user.role === 'admin') {
-    return { teamId: null, teamName: 'All Teams', memberCount: await User.countDocuments({ role: 'member' }) }
+    return { teamId: null, teamName: 'All Teams', memberCount: await User.countDocuments({ role: 'employee' }) }
   }
 
   return null

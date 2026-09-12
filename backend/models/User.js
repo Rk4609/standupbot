@@ -5,7 +5,7 @@
     name:     { type: String, required: true },
     email:    { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role:     { type: String, enum: ['admin', 'manager', 'member'], default: 'member' },
+    role:     { type: String, enum: ['admin', 'manager', 'employee'], default: 'employee' },
     team:     { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
     streak:   { type: Number, default: 0 },
     lastSubmission: { type: Date, default: null },

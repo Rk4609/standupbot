@@ -11,7 +11,7 @@ import { IconLock, IconMail, IconUser } from '../components/ui/icons'
 
 export default function Register({ setUser }) {
   const [form, setForm] = useState({
-    name: '', email: '', password: '', role: 'member'
+    name: '', email: '', password: '', role: 'employee'
   })
   const [reveal, setReveal] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -101,7 +101,7 @@ export default function Register({ setUser }) {
             value={form.role}
             onChange={e => setForm({ ...form, role: e.target.value })}
           >
-            <option value="member">Member — submit daily standups</option>
+            <option value="employee">Employee — submit daily standups</option>
             <option value="manager">Manager — view team progress</option>
           </Select>
         </Field>

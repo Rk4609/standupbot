@@ -63,6 +63,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/ai', require('./routes/aiRoutes'))
 app.use('/api/retro', require('./routes/retroRoutes'))
+app.use('/api/employees', require('./routes/employeeRoutes'))
 
 // ✅ Socket.io auth — handshake mein JWT verify karo
 io.use((socket, next) => {

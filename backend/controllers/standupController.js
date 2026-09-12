@@ -5,7 +5,7 @@ const Notification = require('../models/Notification')
 
 // ✅ Helper
 const getTeamId = async (user) => {
-  if (user.role === 'member' && user.team) return user.team
+  if (user.role === 'employee' && user.team) return user.team
   if (user.role === 'manager') {
     const team = await Team.findOne({ manager: user._id })
     return team?._id || null
