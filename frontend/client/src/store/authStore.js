@@ -13,4 +13,10 @@ export const saveUser = (userData) => {
 
 export const removeUser = () => {
   localStorage.removeItem('standupbot_user')
+
+  // PWA — cached API responses clear karo, warna next user ko
+  // purane user ka data offline/stale serve ho sakta hai
+  if (typeof caches !== 'undefined') {
+    caches.delete('standupbot-api-cache').catch(() => {})
+  }
 }
