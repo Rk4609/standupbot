@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
@@ -7,6 +7,7 @@ import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
+import Pagination from '../components/ui/Pagination'
 import Skeleton, { SkeletonText } from '../components/ui/Skeleton'
 import { Input, Select } from '../components/ui/Field'
 import { IconAlert, IconSearch, IconUsers } from '../components/ui/icons'
@@ -17,8 +18,7 @@ import { apiErrorMessage } from '../lib/apiError'
 
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 const WEEKDAY = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-
-const loadRoster = () => API.get('/employees').then(r => r.data)
+const DEFAULT_PAGE_SIZES = [10, 20, 50, 100]
 
 /** Seven squares showing which of the last 7 days this person submitted. */
 function WeekStrip({ week, dates }) {
@@ -91,7 +91,6 @@ function EmployeeDetail({ id }) {
 
   return (
     <div className="grid gap-6 px-4 py-5 md:grid-cols-3 md:px-6">
-      {/* Facts */}
       <dl className="space-y-3 text-sm">
         <div>
           <dt className="eyebrow">Email</dt>
@@ -129,7 +128,6 @@ function EmployeeDetail({ id }) {
         )}
       </dl>
 
-      {/* Recent standups */}
       <div className="md:col-span-2">
         <p className="eyebrow mb-2.5">Recent standups</p>
         {standups.length === 0 ? (
@@ -162,63 +160,92 @@ function EmployeeDetail({ id }) {
 }
 
 export default function Employees() {
-  const [week, setWeek] = useState([])
-  const [employees, setEmployees] = useState([])
-  const [loading, setLoading] = useState(true)
+  // Data is stored with the query that produced it, so "a newer query is in
+  // flight" is derived rather than tracked in its own state.
+  const [loaded, setLoaded] = useState(null)
+  const [summary, setSummary] = useState(null)
   const [error, setError] = useState('')
 
+  // The typed value is separate from the committed query so typing does not
+  // fire a request per keystroke.
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState('all')
-  const [teamFilter, setTeamFilter] = useState('all')
   const [openId, setOpenId] = useState(null)
 
+  // One object, so every filter change can reset the page in the same update
+  // rather than through a follow-up effect.
+  const [query, setQuery] = useState({
+    page: 1,
+    limit: 20,
+    search: '',
+    role: 'all',
+    team: 'all'
+  })
+
+  const patch = (changes) => setQuery(q => ({ ...q, page: 1, ...changes }))
+
+  // Headline counts describe the whole roster, so they are fetched once
   useEffect(() => {
     let cancelled = false
-
-    loadRoster()
-      .then(data => {
-        if (cancelled) return
-        setWeek(data.week)
-        setEmployees(data.employees)
+    API.get('/employees/summary')
+      .then(res => {
+        if (!cancelled) setSummary(res.data)
       })
-      .catch(err => {
-        if (!cancelled) setError(apiErrorMessage(err, 'Could not load employees'))
+      .catch(() => {
+        /* the table's own error state already covers a failure here */
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
     return () => {
       cancelled = true
     }
   }, [])
 
-  const teams = useMemo(
-    () => [...new Set(employees.map(e => e.team?.name).filter(Boolean))].sort(),
-    [employees]
-  )
+  useEffect(() => {
+    // setState from a timeout is async, so it does not cascade the render
+    const t = setTimeout(
+      () => setQuery(q => (q.search === search ? q : { ...q, search, page: 1 })),
+      350
+    )
+    return () => clearTimeout(t)
+  }, [search])
 
-  const filtered = useMemo(
-    () =>
-      employees.filter(e => {
-        if (roleFilter !== 'all' && e.role !== roleFilter) return false
-        if (teamFilter !== 'all' && e.team?.name !== teamFilter) return false
-        if (search.trim()) {
-          const q = search.toLowerCase()
-          if (
-            !e.name?.toLowerCase().includes(q) &&
-            !e.email?.toLowerCase().includes(q) &&
-            !e.team?.name?.toLowerCase().includes(q)
-          )
-            return false
-        }
-        return true
-      }),
-    [employees, search, roleFilter, teamFilter]
-  )
+  useEffect(() => {
+    let cancelled = false
 
-  const submittedToday = employees.filter(e => e.submittedToday).length
-  const withBlockers = employees.filter(e => e.blockerCount > 0).length
+    API.get('/employees', {
+      params: {
+        page: query.page,
+        limit: query.limit,
+        search: query.search || undefined,
+        role: query.role !== 'all' ? query.role : undefined,
+        team: query.team !== 'all' ? query.team : undefined
+      }
+    })
+      .then(res => {
+        if (cancelled) return
+        setLoaded({ data: res.data, query })
+        setError('')
+        // A row open on the previous page should not stay open on the next
+        setOpenId(null)
+      })
+      .catch(err => {
+        if (cancelled) return
+        setError(apiErrorMessage(err, 'Could not load employees'))
+        setLoaded(prev => prev ?? { data: null, query })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [query])
+
+  const data = loaded?.data
+  const loading = loaded === null
+  // A newer query than the one that produced the data on screen
+  const fetching = loaded !== null && loaded.query !== query
+
+  const week = data?.week || []
+  const employees = data?.employees || []
+  const teams = data?.teams || []
+  const pageSizes = data?.pageSizes || DEFAULT_PAGE_SIZES
 
   if (loading) {
     return (
@@ -247,29 +274,37 @@ export default function Employees() {
       ) : (
         <>
           <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-            <StatCard value={employees.length} label="On the roster" tone="brand" />
-            <StatCard value={submittedToday} label="Submitted today" tone="positive" />
-            <StatCard value={withBlockers} label="Have raised blockers" tone="warning" />
-            <StatCard value={teams.length} label="Teams" tone="neutral" />
+            <StatCard value={summary?.rosterTotal ?? 0} label="On the roster" tone="brand" />
+            <StatCard
+              value={summary?.submittedToday ?? 0}
+              label="Submitted today"
+              tone="positive"
+            />
+            <StatCard
+              value={summary?.withBlockers ?? 0}
+              label="Have raised blockers"
+              tone="warning"
+            />
+            <StatCard value={summary?.teamCount ?? 0} label="Teams" tone="neutral" />
           </div>
 
           {/* Filters */}
           <motion.div
             variants={itemVariants}
-            className="mb-4 flex flex-col gap-2.5 sm:flex-row sm:items-center"
+            className="mb-4 flex flex-col gap-2.5 lg:flex-row lg:items-center"
           >
             <Input
               type="search"
               icon={IconSearch}
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name, email or team…"
-              className="sm:flex-1"
+              placeholder="Search by name or email…"
+              className="lg:flex-1"
             />
             <Select
-              value={roleFilter}
-              onChange={e => setRoleFilter(e.target.value)}
-              className="sm:w-44"
+              value={query.role}
+              onChange={e => patch({ role: e.target.value })}
+              className="lg:w-40"
             >
               <option value="all">All roles</option>
               <option value="employee">Employee</option>
@@ -277,9 +312,9 @@ export default function Employees() {
               <option value="admin">Admin</option>
             </Select>
             <Select
-              value={teamFilter}
-              onChange={e => setTeamFilter(e.target.value)}
-              className="sm:w-44"
+              value={query.team}
+              onChange={e => patch({ team: e.target.value })}
+              className="lg:w-40"
             >
               <option value="all">All teams</option>
               {teams.map(t => (
@@ -288,10 +323,40 @@ export default function Employees() {
                 </option>
               ))}
             </Select>
+            <Select
+              value={query.limit}
+              onChange={e => patch({ limit: Number(e.target.value) })}
+              aria-label="Rows per page"
+              className="lg:w-36"
+            >
+              {pageSizes.map(n => (
+                <option key={n} value={n}>
+                  {n} per page
+                </option>
+              ))}
+            </Select>
           </motion.div>
 
-          <Card padded={false} className="overflow-hidden">
-            {/* Column headings — desktop only; rows stack on small screens */}
+          <Card padded={false} className="relative overflow-hidden">
+            {/* Keep the current page visible while the next one loads, rather
+                than collapsing the table back to a skeleton */}
+            <AnimatePresence>
+              {fetching && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden bg-brand-500/20"
+                >
+                  <motion.div
+                    className="h-full w-1/3 bg-brand-500"
+                    animate={{ x: ['-100%', '300%'] }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="hidden border-b border-line px-4 py-2.5 md:flex md:px-6">
               <span className="eyebrow flex-1">Employee</span>
               <span className="eyebrow w-32">Team</span>
@@ -302,15 +367,16 @@ export default function Employees() {
               <span className="w-6" />
             </div>
 
-            {filtered.length === 0 ? (
+            {employees.length === 0 ? (
               <EmptyState
                 icon={<IconUsers className="h-6 w-6" />}
                 title="No one matches those filters"
+                description="Try a different search, role or team."
                 className="border-0 bg-transparent"
               />
             ) : (
-              <div className="divide-y divide-line">
-                {filtered.map(e => {
+              <div className={cn('divide-y divide-line transition-opacity', fetching && 'opacity-60')}>
+                {employees.map(e => {
                   const open = openId === e._id
                   return (
                     <div key={e._id}>
@@ -322,7 +388,6 @@ export default function Employees() {
                           open ? 'bg-surface-sunken/70' : 'hover:bg-surface-sunken/50'
                         )}
                       >
-                        {/* Identity */}
                         <span className="flex min-w-0 flex-1 items-center gap-3">
                           <Avatar user={e} />
                           <span className="min-w-0">
@@ -397,9 +462,14 @@ export default function Employees() {
             )}
           </Card>
 
-          <p className="mt-3 text-xs text-content-subtle">
-            Showing {filtered.length} of {employees.length}
-          </p>
+          <Pagination
+            className="mt-4"
+            page={data?.page || 1}
+            totalPages={data?.totalPages || 1}
+            total={data?.total || 0}
+            limit={data?.limit || query.limit}
+            onPage={p => setQuery(q => ({ ...q, page: p }))}
+          />
         </>
       )}
     </PageShell>

@@ -2,6 +2,9 @@ const User = require('../models/User')
 const Team = require('../models/Team')
 const Standup = require('../models/Standup')
 
+const PAGE_SIZES = [10, 20, 50, 100]
+const DEFAULT_LIMIT = 20
+
 /** Last 7 ISO dates, oldest first. */
 const last7Dates = () => {
   const dates = []
@@ -12,6 +15,9 @@ const last7Dates = () => {
   }
   return dates
 }
+
+/** Treat user input as literal text, not as a pattern. */
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
  * Which people the caller may see: an admin sees everyone, a manager sees
@@ -25,7 +31,7 @@ const resolveScope = async (user) => {
   return { team: team._id }
 }
 
-// GET /api/employees — roster with per-person standup stats
+// GET /api/employees?page=1&limit=20&search=&role=&team=
 const listEmployees = async (req, res) => {
   try {
     const scope = await resolveScope(req.user)
@@ -33,17 +39,45 @@ const listEmployees = async (req, res) => {
       return res.status(400).json({ message: 'You are not managing any team!' })
     }
 
-    const users = await User.find(scope)
+    const limit = PAGE_SIZES.includes(Number(req.query.limit))
+      ? Number(req.query.limit)
+      : DEFAULT_LIMIT
+    const page = Math.max(1, Number(req.query.page) || 1)
+
+    const filter = { ...scope }
+
+    if (req.query.role && req.query.role !== 'all') {
+      filter.role = req.query.role
+    }
+
+    if (req.query.team && req.query.team !== 'all') {
+      const team = await Team.findOne({ name: req.query.team }).select('_id')
+      // An unknown team name must match nothing rather than silently everything
+      filter.team = team?._id || null
+    }
+
+    if (req.query.search?.trim()) {
+      const rx = new RegExp(escapeRegex(req.query.search.trim()), 'i')
+      filter.$or = [{ name: rx }, { email: rx }]
+    }
+
+    const total = await User.countDocuments(filter)
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+    const safePage = Math.min(page, totalPages)
+
+    const users = await User.find(filter)
       .select('-password -resetPasswordToken -resetPasswordExpire')
       .populate('team', 'name')
       .sort({ name: 1 })
+      .skip((safePage - 1) * limit)
+      .limit(limit)
       .lean()
 
     const ids = users.map(u => u._id)
     const week = last7Dates()
 
-    // Two aggregations rather than a query per person — this list is the whole
-    // point of the page, so it has to stay flat as the roster grows.
+    // Stats are aggregated for this page only — two queries regardless of how
+    // large the roster grows.
     const [totals, recent] = await Promise.all([
       Standup.aggregate([
         { $match: { user: { $in: ids } } },
@@ -81,9 +115,56 @@ const listEmployees = async (req, res) => {
       }
     })
 
-    res.json({ week, employees })
+    // Filter options and headline counts describe the whole roster, not the
+    // page — otherwise the team dropdown would shrink as you page through.
+    const [teamDocs, rosterTotal] = await Promise.all([
+      Team.find(scope.team ? { _id: scope.team } : {}).select('name').sort({ name: 1 }).lean(),
+      User.countDocuments(scope)
+    ])
+
+    res.json({
+      week,
+      employees,
+      teams: teamDocs.map(t => t.name),
+      pageSizes: PAGE_SIZES,
+      total,
+      rosterTotal,
+      page: safePage,
+      limit,
+      totalPages
+    })
   } catch (err) {
     console.error('List employees error:', err.message)
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// GET /api/employees/summary — headline counts across the whole roster
+const getSummary = async (req, res) => {
+  try {
+    const scope = await resolveScope(req.user)
+    if (!scope) {
+      return res.status(400).json({ message: 'You are not managing any team!' })
+    }
+
+    const users = await User.find(scope).select('_id').lean()
+    const ids = users.map(u => u._id)
+    const today = new Date().toISOString().split('T')[0]
+
+    const [submittedToday, withBlockers, teamCount] = await Promise.all([
+      Standup.distinct('user', { user: { $in: ids }, date: today }),
+      Standup.distinct('user', { user: { $in: ids }, hasBlocker: true }),
+      Team.countDocuments(scope.team ? { _id: scope.team } : {})
+    ])
+
+    res.json({
+      rosterTotal: users.length,
+      submittedToday: submittedToday.length,
+      withBlockers: withBlockers.length,
+      teamCount
+    })
+  } catch (err) {
+    console.error('Employee summary error:', err.message)
     res.status(500).json({ message: err.message })
   }
 }
@@ -105,15 +186,15 @@ const getEmployee = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' })
     }
 
-    const standups = await Standup.find({ user: user._id })
-      .sort({ date: -1 })
-      .limit(10)
-      .lean()
+    const [standups, moods] = await Promise.all([
+      Standup.find({ user: user._id }).sort({ date: -1 }).limit(10).lean(),
+      Standup.aggregate([
+        { $match: { user: user._id } },
+        { $group: { _id: '$mood', n: { $sum: 1 } } }
+      ])
+    ])
 
-    const moodBreakdown = {}
-    for (const s of await Standup.find({ user: user._id }).select('mood').lean()) {
-      moodBreakdown[s.mood] = (moodBreakdown[s.mood] || 0) + 1
-    }
+    const moodBreakdown = Object.fromEntries(moods.map(m => [m._id, m.n]))
 
     res.json({ user, standups, moodBreakdown })
   } catch (err) {
@@ -122,4 +203,4 @@ const getEmployee = async (req, res) => {
   }
 }
 
-module.exports = { listEmployees, getEmployee }
+module.exports = { listEmployees, getSummary, getEmployee }
