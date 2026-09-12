@@ -61,9 +61,8 @@ app.use('/api/standups', standupRoutes)
 app.use('/api/teams', teamRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/notifications', notificationRoutes)
-const aiRoutes = require('./routes/aiRoutes')
-console.log("✅ AI routes registered")
-app.use('/api/ai', aiRoutes)
+app.use('/api/ai', require('./routes/aiRoutes'))
+app.use('/api/retro', require('./routes/retroRoutes'))
 
 // ✅ Socket.io auth — handshake mein JWT verify karo
 io.use((socket, next) => {

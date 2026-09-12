@@ -112,8 +112,78 @@ const sendResetPasswordEmail = async (toEmail, name, resetUrl) => {
   }
 }
 
+// ✅ Weekly retro — plain-text report rendered into the email body
+const sendRetroEmail = async (toEmail, managerName, teamName, week, content, stats) => {
+  try {
+    // The model returns lightweight markdown; convert the few constructs it uses
+    const body = content
+      .split('\n')
+      .map(line => {
+        const trimmed = line.trim()
+        if (trimmed === '') return '<div style="height:8px"></div>'
+        if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+          return '<hr style="border:none;border-top:1px solid #e5e7eb;margin:14px 0;" />'
+        }
+        if (/^\*\*.*\*\*$/.test(trimmed)) {
+          return `<p style="margin:18px 0 6px;font-size:15px;font-weight:700;color:#111827;">${trimmed.replace(/\*\*/g, '')}</p>`
+        }
+        const withBold = trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        if (/^[•\-*]\s/.test(trimmed)) {
+          return `<p style="margin:4px 0 4px 16px;font-size:14px;color:#4b5563;">• ${withBold.slice(2)}</p>`
+        }
+        return `<p style="margin:4px 0;font-size:14px;color:#4b5563;">${withBold}</p>`
+      })
+      .join('')
+
+    const { data, error } = await resend.emails.send({
+      from: `StandupBot <${FROM_EMAIL}>`,
+      to: [toEmail],
+      subject: `🗓️ ${teamName} — Weekly Retro (${week.weekLabel})`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;padding:24px;">
+          <h2 style="color:#7c3aed;margin:0 0 4px;">${teamName} — Weekly Retro</h2>
+          <p style="color:#6b7280;font-size:13px;margin:0 0 20px;">${week.weekLabel}</p>
+
+          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;background:#f5f3ff;border-radius:10px;">
+            <tr>
+              <td style="padding:12px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#7c3aed;">${stats.submissions}</div>
+                <div style="font-size:11px;color:#6b7280;">Submissions</div>
+              </td>
+              <td style="padding:12px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#16a34a;">${stats.participationRate}%</div>
+                <div style="font-size:11px;color:#6b7280;">Participation</div>
+              </td>
+              <td style="padding:12px;text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#dc2626;">${stats.blockerCount}</div>
+                <div style="font-size:11px;color:#6b7280;">Blockers</div>
+              </td>
+            </tr>
+          </table>
+
+          <p style="color:#4b5563;font-size:14px;">Hello ${managerName},</p>
+          ${body}
+
+          <a href="${process.env.CLIENT_URL}/retro"
+             style="display:inline-block;background:#7c3aed;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;margin-top:20px;font-weight:bold;font-size:14px;">
+            Open in StandupBot →
+          </a>
+
+          <p style="color:#9ca3af;font-size:12px;margin-top:24px;">© 2025 StandupBot</p>
+        </div>
+      `
+    })
+
+    if (error) console.error('Resend retro error:', error)
+    else console.log('✅ Retro email sent:', data?.id)
+  } catch (err) {
+    console.error('sendRetroEmail error:', err.message)
+  }
+}
+
 module.exports = {
   sendReminderEmail,
   sendManagerSummary,
-  sendResetPasswordEmail
+  sendResetPasswordEmail,
+  sendRetroEmail
 }
