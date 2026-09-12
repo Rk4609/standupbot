@@ -33,6 +33,7 @@ const Retro = lazy(() => import("./pages/Retro"))
 const Employees = lazy(() => import("./pages/Employees"))
 const Analytics = lazy(() => import("./pages/Analytics"))
 const Activity = lazy(() => import("./pages/Activity"))
+const Templates = lazy(() => import("./pages/Templates"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 const AdminPanel = lazy(() => import("./pages/AdminPanel"))
 
@@ -102,6 +103,7 @@ function AnimatedRoutes({ user, setUser }) {
           <Route path="/employees" element={<Employees />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/activity" element={<Activity />} />
+          <Route path="/templates" element={<Templates />} />
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>

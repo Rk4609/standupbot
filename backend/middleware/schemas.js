@@ -42,10 +42,17 @@ const resetPassword = {
 const MOODS = ['great', 'good', 'okay', 'bad', 'stressed']
 
 const submitStandup = z.object({
-  yesterday: z.string().trim().min(1, 'is required').max(2000, 'is too long'),
+  // Which of these are actually required depends on the team's template, so
+  // that check lives in the controller. This only bounds the shape.
+  yesterday: z.string().trim().max(2000, 'is too long').optional().default(''),
   today: z.string().trim().min(1, 'is required').max(2000, 'is too long'),
   blockers: z.string().trim().max(2000, 'is too long').optional().default(''),
-  mood: z.enum(MOODS).optional().default('good')
+  mood: z.enum(MOODS).optional().default('good'),
+  // Answers to the team's own questions, keyed by question
+  answers: z.record(
+    z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),
+    z.string().trim().max(2000, 'is too long')
+  ).optional().default({})
 }).strict()
 
 const updateBlocker = {
@@ -63,7 +70,11 @@ const updateStandup = {
     yesterday: z.string().trim().min(1, 'cannot be emptied').max(2000, 'is too long').optional(),
     today: z.string().trim().min(1, 'cannot be emptied').max(2000, 'is too long').optional(),
     blockers: z.string().trim().max(2000, 'is too long').optional(),
-    mood: z.enum(MOODS).optional()
+    mood: z.enum(MOODS).optional(),
+    answers: z.record(
+      z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),
+      z.string().trim().max(2000, 'is too long')
+    ).optional()
   }).strict().refine(
     b => Object.keys(b).length > 0,
     'Send at least one field to change'
@@ -120,6 +131,30 @@ const analyticsRange = {
   }).strip()
 }
 
+/* templates -------------------------------------------------------- */
+
+const questionKey = z
+  .string()
+  .trim()
+  .regex(/^[a-z][a-z0-9_]{0,39}$/, 'must be lowercase letters, digits and underscores')
+
+const saveTemplate = z.object({
+  team: objectId.optional(),
+  name: z.string().trim().min(1, 'is required').max(80, 'is too long').optional(),
+  askMood: z.boolean().optional(),
+  questions: z.array(z.object({
+    key: questionKey,
+    label: z.string().trim().min(1, 'is required').max(160, 'is too long'),
+    placeholder: z.string().trim().max(160, 'is too long').optional().default(''),
+    type: z.enum(['short', 'long']).optional().default('long'),
+    required: z.boolean().optional().default(false)
+  }).strict()).min(1, 'needs at least one question').max(15, 'is too long to fill in daily')
+}).strict()
+
+const templateTeam = {
+  query: z.object({ team: objectId.optional() }).strip()
+}
+
 /* audit ------------------------------------------------------------ */
 
 const listAudit = {
@@ -143,6 +178,8 @@ module.exports = {
   submitStandup,
   updateBlocker,
   updateStandup,
+  saveTemplate,
+  templateTeam,
   listAudit,
   idParam,
   dateQuery,

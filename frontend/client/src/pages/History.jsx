@@ -85,6 +85,27 @@ export default function History() {
   const [showFilters, setShowFilters] = useState(false)
   const [editing, setEditing] = useState(null)
 
+  // The team's own wording for each question, so a card labels an answer the
+  // way it was asked rather than by its key
+  const [questionLabels, setQuestionLabels] = useState({})
+
+  useEffect(() => {
+    let cancelled = false
+    API.get('/templates/active')
+      .then(res => {
+        if (cancelled) return
+        setQuestionLabels(
+          Object.fromEntries(res.data.questions.map(q => [q.key, q.label]))
+        )
+      })
+      .catch(() => {
+        // Falling back to the default labels is fine — the answers still show
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   useEffect(() => {
     const fetchHistory = async () => {
       try {
@@ -340,6 +361,7 @@ export default function History() {
               >
                 <StandupCard
                   standup={s}
+                  questionLabels={questionLabels}
                   // The server only lets an author edit the day a standup
                   // covers, so offering the button on older ones would be a
                   // promise the API refuses
@@ -354,6 +376,7 @@ export default function History() {
       {editing && (
         <EditStandupDialog
           standup={editing}
+          questionLabels={questionLabels}
           onClose={() => setEditing(null)}
           onSaved={updated =>
             setStandups(list => list.map(s => (s._id === updated._id ? updated : s)))

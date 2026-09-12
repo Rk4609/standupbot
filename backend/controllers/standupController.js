@@ -5,6 +5,8 @@ const Notification = require('../models/Notification')
 const AuditLog = require('../models/AuditLog')
 const { addDays, lastNDates, todayIn, zoneOf } = require('../utils/time')
 const audit = require('../services/auditService')
+const { resolveTemplate, teamForUser } = require('./templateController')
+const { CORE_KEYS } = require('../models/StandupTemplate')
 
 /** The fields an edit may touch, and the ones the audit trail compares. */
 const EDITABLE = ['yesterday', 'today', 'blockers', 'mood']
@@ -71,15 +73,28 @@ const canEditStandup = async (user, standup) => {
 // POST /api/standups
 const submitStandup = async (req, res) => {
   try {
-    const { yesterday, today, blockers, mood } = req.body
+    const { yesterday, today, blockers, mood, answers = {} } = req.body
 
     // The day this standup belongs to is the submitter's day, not the
     // server's — those differ for most of the world for part of every day
     const zone = zoneOf(req.user)
     const today_date = todayIn(zone)
 
-    if (!yesterday || !today) {
-      return res.status(400).json({ message: 'Yesterday and Today fields are required' })
+    // Which questions were actually asked decides what must be answered. The
+    // form is built from the same template, so validating against the fixed
+    // three would either demand something nobody was shown or let a team's
+    // own required question through empty.
+    const template = await resolveTemplate(await teamForUser(req.user))
+    const given = { yesterday, today, blockers, ...answers }
+
+    const unanswered = template.questions
+      .filter(q => q.required && !String(given[q.key] || '').trim())
+      .map(q => q.label)
+
+    if (unanswered.length > 0) {
+      return res.status(400).json({
+        message: `Please answer: ${unanswered.join(', ')}`
+      })
     }
 
     const exists = await Standup.findOne({ user: req.user._id, date: today_date })
@@ -92,12 +107,19 @@ const submitStandup = async (req, res) => {
     const standup = await Standup.create({
       user: req.user._id,
       team: req.user.team || null,
-      yesterday,
+      yesterday: yesterday || '',
       today,
       blockers: blockers || 'None',
       hasBlocker,
       mood: mood || 'good',
-      date: today_date
+      date: today_date,
+      // Only the team's own questions — the core three have their own fields
+      answers: Object.fromEntries(
+        template.questions
+          .filter(q => !CORE_KEYS.includes(q.key))
+          .map(q => [q.key, String(answers[q.key] || '').trim()])
+          .filter(([, value]) => value !== '')
+      )
     })
 
     if (req.user.team) {
@@ -305,16 +327,32 @@ const updateStandup = async (req, res) => {
       return res.status(verdict.status).json({ message: verdict.message })
     }
 
-    const before = EDITABLE.reduce((acc, f) => ({ ...acc, [f]: standup[f] }), {})
+    // A team's own answers are as editable as the core three, and the trail
+    // has to show them changing by the same names the team gave them
+    const answerKeys = [...new Set([
+      ...standup.answers?.keys() || [],
+      ...Object.keys(req.body.answers || {})
+    ])]
+    const fields = [...EDITABLE, ...answerKeys]
+
+    const snapshot = () => ({
+      ...EDITABLE.reduce((acc, f) => ({ ...acc, [f]: standup[f] }), {}),
+      ...answerKeys.reduce((acc, k) => ({ ...acc, [k]: standup.answers?.get(k) || '' }), {})
+    })
+
+    const before = snapshot()
 
     for (const field of EDITABLE) {
       if (req.body[field] !== undefined) standup[field] = req.body[field]
     }
+    for (const [key, value] of Object.entries(req.body.answers || {})) {
+      if (!standup.answers) standup.answers = new Map()
+      standup.answers.set(key, String(value).trim())
+    }
     standup.blockers = standup.blockers || 'None'
     standup.hasBlocker = describesBlocker(standup.blockers)
 
-    const after = EDITABLE.reduce((acc, f) => ({ ...acc, [f]: standup[f] }), {})
-    const changes = audit.diff(before, after, EDITABLE)
+    const changes = audit.diff(before, snapshot(), fields)
 
     // Nothing moved, so there is nothing to record and nothing to save
     if (changes.length === 0) {

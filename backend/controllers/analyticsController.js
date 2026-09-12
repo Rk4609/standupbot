@@ -237,6 +237,14 @@ const exportStandups = async (req, res) => {
       .sort({ date: -1 })
       .lean()
 
+    // Teams can add their own questions, and an export that silently dropped
+    // those answers would be missing exactly the part that team cares about.
+    // The columns come from the data rather than from the current template,
+    // so answers to a question since removed still come out.
+    const extraKeys = [
+      ...new Set(standups.flatMap(s => Object.keys(s.answers || {})))
+    ].sort()
+
     const header = [
       'Date',
       'Name',
@@ -246,7 +254,8 @@ const exportStandups = async (req, res) => {
       'Accomplished yesterday',
       'Plan for today',
       'Has blocker',
-      'Blocker'
+      'Blocker',
+      ...extraKeys
     ]
 
     const rows = standups.map(s => [
@@ -258,7 +267,8 @@ const exportStandups = async (req, res) => {
       s.yesterday,
       s.today,
       s.hasBlocker ? 'yes' : 'no',
-      s.hasBlocker ? s.blockers : ''
+      s.hasBlocker ? s.blockers : '',
+      ...extraKeys.map(k => s.answers?.[k] || '')
     ])
 
     // A BOM so Excel reads it as UTF-8, and CRLF line endings because that is

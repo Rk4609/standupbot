@@ -32,8 +32,19 @@ function Section({ label, children }) {
   )
 }
 
-export default function StandupCard({ standup, showUser = false, onEdit }) {
+/** Last resort when the question that produced an answer is no longer asked. */
+const humanise = (key) =>
+  key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())
+
+export default function StandupCard({
+  standup,
+  showUser = false,
+  onEdit,
+  // key -> the team's own wording, from the active template
+  questionLabels = {}
+}) {
   const { user, yesterday, today, blockers, hasBlocker, mood, date } = standup
+  const extras = Object.entries(standup.answers || {}).filter(([, v]) => v)
   const [showHistory, setShowHistory] = useState(false)
   const edited = wasEdited(standup)
 
@@ -92,8 +103,20 @@ export default function StandupCard({ standup, showUser = false, onEdit }) {
       </div>
 
       <div className="space-y-3">
-        <Section label="Accomplished yesterday">{yesterday}</Section>
-        <Section label="Today's plan">{today}</Section>
+        {yesterday && (
+          <Section label={questionLabels.yesterday || 'Accomplished yesterday'}>
+            {yesterday}
+          </Section>
+        )}
+        <Section label={questionLabels.today || "Today's plan"}>{today}</Section>
+
+        {/* A team's own questions, in whatever words they asked them */}
+        {extras.map(([key, value]) => (
+          <Section key={key} label={questionLabels[key] || humanise(key)}>
+            {value}
+          </Section>
+        ))}
+
         {hasBlocker && <BlockerBadge text={blockers} />}
       </div>
 

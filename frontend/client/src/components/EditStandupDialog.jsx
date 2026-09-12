@@ -10,7 +10,7 @@ import { DURATION, EASE, SPRING } from '../lib/motion'
 import { MOOD_OPTIONS } from '../lib/moods'
 import { apiErrorMessage } from '../lib/apiError'
 
-const FIELDS = ['yesterday', 'today', 'blockers', 'mood']
+const CORE_FIELDS = ['yesterday', 'today', 'blockers', 'mood']
 
 /**
  * Edit one standup.
@@ -19,13 +19,24 @@ const FIELDS = ['yesterday', 'today', 'blockers', 'mood']
  * entry per field, and submitting the whole form would log four changes for a
  * one-word fix.
  */
-export default function EditStandupDialog({ standup, onClose, onSaved }) {
-  const [form, setForm] = useState({
+export default function EditStandupDialog({
+  standup,
+  onClose,
+  onSaved,
+  questionLabels = {}
+}) {
+  // A team's own answers are as correctable as the core three
+  const answerKeys = Object.keys(standup.answers || {})
+
+  const original = {
     yesterday: standup.yesterday || '',
     today: standup.today || '',
     blockers: standup.hasBlocker ? standup.blockers || '' : '',
-    mood: standup.mood || 'good'
-  })
+    mood: standup.mood || 'good',
+    ...Object.fromEntries(answerKeys.map(k => [k, standup.answers[k] || '']))
+  }
+
+  const [form, setForm] = useState(original)
   const [saving, setSaving] = useState(false)
   const firstField = useRef(null)
 
@@ -39,15 +50,11 @@ export default function EditStandupDialog({ standup, onClose, onSaved }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const original = {
-    yesterday: standup.yesterday || '',
-    today: standup.today || '',
-    blockers: standup.hasBlocker ? standup.blockers || '' : '',
-    mood: standup.mood || 'good'
-  }
-
-  const changed = FIELDS.filter(f => form[f].trim() !== original[f].trim())
-  const emptied = ['yesterday', 'today'].some(f => form[f].trim() === '')
+  const changed = [...CORE_FIELDS, ...answerKeys].filter(
+    f => form[f].trim() !== original[f].trim()
+  )
+  // Only the plan is structurally required; a template may make the rest optional
+  const emptied = form.today.trim() === ''
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -56,10 +63,19 @@ export default function EditStandupDialog({ standup, onClose, onSaved }) {
     setSaving(true)
     try {
       const patch = Object.fromEntries(
-        changed.map(f => [f, f === 'mood' ? form[f] : form[f].trim()])
+        changed
+          .filter(f => CORE_FIELDS.includes(f))
+          .map(f => [f, f === 'mood' ? form[f] : form[f].trim()])
       )
       // An emptied blockers box means "there is no blocker any more"
       if (patch.blockers === '') patch.blockers = 'None'
+
+      const changedAnswers = changed.filter(f => answerKeys.includes(f))
+      if (changedAnswers.length > 0) {
+        patch.answers = Object.fromEntries(
+          changedAnswers.map(k => [k, form[k].trim()])
+        )
+      }
 
       const { data } = await API.put(`/standups/${standup._id}`, patch)
       onSaved(data.standup)
@@ -112,10 +128,7 @@ export default function EditStandupDialog({ standup, onClose, onSaved }) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-            <Field
-              label="Accomplished yesterday"
-              error={form.yesterday.trim() === '' ? 'Cannot be emptied' : ''}
-            >
+            <Field label={questionLabels.yesterday || 'Accomplished yesterday'}>
               <Textarea
                 ref={firstField}
                 rows={3}
@@ -125,7 +138,7 @@ export default function EditStandupDialog({ standup, onClose, onSaved }) {
             </Field>
 
             <Field
-              label="Today's plan"
+              label={questionLabels.today || "Today's plan"}
               error={form.today.trim() === '' ? 'Cannot be emptied' : ''}
             >
               <Textarea
@@ -135,13 +148,26 @@ export default function EditStandupDialog({ standup, onClose, onSaved }) {
               />
             </Field>
 
-            <Field label="Blockers" hint="Leave empty if nothing is in the way.">
+            <Field
+              label={questionLabels.blockers || 'Blockers'}
+              hint="Leave empty if nothing is in the way."
+            >
               <Textarea
                 rows={2}
                 value={form.blockers}
                 onChange={e => setForm(f => ({ ...f, blockers: e.target.value }))}
               />
             </Field>
+
+            {answerKeys.map(key => (
+              <Field key={key} label={questionLabels[key] || key.replace(/_/g, ' ')}>
+                <Textarea
+                  rows={2}
+                  value={form[key]}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                />
+              </Field>
+            ))}
 
             <div>
               <p className="mb-2 text-sm font-medium text-content-muted">Mood</p>
