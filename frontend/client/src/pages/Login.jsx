@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import toast from "react-hot-toast"
 import API from "../api/axios"
 import { saveUser } from "../store/authStore"
@@ -15,6 +15,18 @@ export default function Login({ setUser }) {
   const [reveal, setReveal] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
+
+  // Landing here because a session lapsed should say so. Otherwise the sign-in
+  // form appears mid-task with no explanation and reads as the app logging
+  // people out at random.
+  useEffect(() => {
+    if (!params.get('expired')) return
+
+    toast('Your session expired — sign in again', { icon: '🔒' })
+    params.delete('expired')
+    setParams(params, { replace: true })
+  }, [params, setParams])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

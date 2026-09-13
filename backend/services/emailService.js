@@ -1,6 +1,36 @@
 const { Resend } = require('resend')
 
-const FROM_EMAIL = 'onboarding@resend.dev'
+/**
+ * Resend's shared sandbox sender.
+ *
+ * It accepts anything and returns a success id, but it only *delivers* to the
+ * address the Resend account was registered with. Left as the default, every
+ * reminder, every end-of-day summary and every retro looks sent and reaches
+ * nobody — which is exactly what was happening.
+ */
+const SANDBOX_FROM = 'onboarding@resend.dev'
+
+/** `EMAIL_FROM=StandupBot <standups@yourdomain.com>` once a domain is verified. */
+const from = () => process.env.EMAIL_FROM || `StandupBot <${SANDBOX_FROM}>`
+
+/** Is this still the sandbox, and therefore going nowhere? */
+const usingSandbox = () => from().includes(SANDBOX_FROM)
+
+// Said once per process rather than per email, so it is visible in the logs
+// without burying everything else
+let warned = false
+const warnOnce = () => {
+  if (warned || !usingSandbox()) return
+  warned = true
+  console.warn(
+    [
+      'EMAIL_FROM is not set, so mail goes out from Resend\'s sandbox address.',
+      'Resend only delivers those to the address the account is registered with,',
+      'so reminders, summaries and retros will not reach your team.',
+      'Verify a domain at resend.com/domains and set EMAIL_FROM.'
+    ].join('\n    ')
+  )
+}
 
 /**
  * The Resend client is built on first use, not at import.
@@ -24,14 +54,15 @@ const send = async (payload) => {
     console.warn(`Email skipped (RESEND_API_KEY not set): "${payload.subject}"`)
     return { data: null, error: null }
   }
-  return resend.emails.send(payload)
+
+  warnOnce()
+  return resend.emails.send({ ...payload, from: payload.from || from() })
 }
 
 // ✅ Reminder email
 const sendReminderEmail = async (toEmail, name) => {
   try {
     const { data, error } = await send({
-      from: `StandupBot <${FROM_EMAIL}>`,
       to: [toEmail],
       subject: '⏰ Daily Standup Reminder',
       html: `
@@ -69,7 +100,6 @@ const sendManagerSummary = async (managerEmail, managerName, standups, teamName)
     `).join('')
 
     const { data, error } = await send({
-      from: `StandupBot <${FROM_EMAIL}>`,
       to: [managerEmail],
       subject: `📋 ${teamName} — Daily Standup Summary`,
       html: `
@@ -103,7 +133,6 @@ const sendResetPasswordEmail = async (toEmail, name, resetUrl) => {
   try {
     console.log('Sending reset email via Resend to:', toEmail)
     const { data, error } = await send({
-      from: `StandupBot <${FROM_EMAIL}>`,
       to: [toEmail],
       subject: '🔒 Reset Your StandupBot Password',
       html: `
@@ -159,7 +188,6 @@ const sendRetroEmail = async (toEmail, managerName, teamName, week, content, sta
       .join('')
 
     const { data, error } = await send({
-      from: `StandupBot <${FROM_EMAIL}>`,
       to: [toEmail],
       subject: `🗓️ ${teamName} — Weekly Retro (${week.weekLabel})`,
       html: `
@@ -205,6 +233,8 @@ const sendRetroEmail = async (toEmail, managerName, teamName, week, content, sta
 }
 
 module.exports = {
+  from,
+  usingSandbox,
   sendReminderEmail,
   sendManagerSummary,
   sendResetPasswordEmail,
