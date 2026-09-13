@@ -11,6 +11,7 @@ import { Toaster } from "react-hot-toast"
 import { getUser } from "./store/authStore"
 
 import AppShell from "./components/AppShell"
+import ErrorBoundary from "./components/ErrorBoundary"
 import ProtectedRoute from "./components/ProtectedRoute"
 import OfflineIndicator from "./components/OfflineIndicator"
 import Skeleton from "./components/ui/Skeleton"
@@ -147,10 +148,14 @@ function AnimatedRoutes({ user, setUser }) {
 export default function App() {
   const [user, setUser] = useState(getUser())
 
+  // Inside the shell rather than around it: a page that throws should leave
+  // the navigation, the theme toggle and the sign-out button working.
   const routes = (
-    <Suspense fallback={<RouteFallback />}>
-      <AnimatedRoutes user={user} setUser={setUser} />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<RouteFallback />}>
+        <AnimatedRoutes user={user} setUser={setUser} />
+      </Suspense>
+    </ErrorBoundary>
   )
 
   return (
