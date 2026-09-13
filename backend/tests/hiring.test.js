@@ -160,6 +160,19 @@ describe('approving', () => {
     expect((await approve(manager, made.body._id)).status).toBe(403)
   })
 
+  it('goes through with no body at all, which is what the button sends', async () => {
+    const admin = await makeUser({ role: 'admin' })
+    const { manager } = await withTeam()
+    const made = await submit(manager)
+
+    // No .send(): axios posts nothing when there is nothing to say
+    const res = await request(app)
+      .post(`/api/hiring/${made.body._id}/approve`).set(...authHeader(admin))
+
+    expect(res.status).toBe(200)
+    expect(res.body.account.email).toBe(made.body.email)
+  })
+
   it('creates the account with the record already filled in', async () => {
     const admin = await makeUser({ role: 'admin' })
     const { manager, team } = await withTeam()

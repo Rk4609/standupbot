@@ -50,7 +50,9 @@ export default function CandidateList({ candidates, canDecide, maySeePay, onChan
   const approve = async (candidate) => {
     setBusy(true)
     try {
-      const { data } = await API.post(`/hiring/${candidate._id}/approve`)
+      // An explicit empty body: axios sends none otherwise, and a POST with
+      // nothing in it used to reach the validator as undefined
+      const { data } = await API.post(`/hiring/${candidate._id}/approve`, {})
       toast.success(data.message)
       setCreated({ name: candidate.name, ...data.account })
       onChanged?.()

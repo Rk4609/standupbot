@@ -13,7 +13,19 @@ const validate = (schemas) => (req, res, next) => {
     const schema = schemas[source]
     if (!schema) continue
 
-    const result = schema.safeParse(req[source])
+    /**
+     * A request with no body at all is an empty one, not a broken one.
+     *
+     * Express leaves `req.body` undefined when nothing was sent, and a POST
+     * whose fields are all optional — "approve this, no comment" — sends
+     * nothing. Parsing undefined against an object schema produced "expected
+     * object, received undefined", which says nothing to the person reading
+     * it and turned a valid request into a 400. An empty object still fails
+     * the same way for a schema with required fields, naming the field.
+     */
+    const value = source === 'body' && req.body === undefined ? {} : req[source]
+
+    const result = schema.safeParse(value)
 
     if (!result.success) {
       const issue = result.error.issues[0]

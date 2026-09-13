@@ -170,7 +170,7 @@ describe('an admin deciding', () => {
     render(<Hiring decide />)
     await userEvent.click(await screen.findByRole('button', { name: /^approve$/i }))
 
-    await waitFor(() => expect(API.post).toHaveBeenCalledWith('/hiring/c1/approve'))
+    await waitFor(() => expect(API.post).toHaveBeenCalledWith('/hiring/c1/approve', {}))
     expect(await screen.findByText('a1b2c3d4-e5f6')).toBeInTheDocument()
   })
 
