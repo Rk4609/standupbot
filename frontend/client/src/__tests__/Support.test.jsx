@@ -9,7 +9,13 @@ vi.mock('../api/axios', () => ({
 import API from '../api/axios'
 import Support from '../pages/Support'
 
-const CATEGORIES = ['bug', 'question', 'access', 'other']
+const CATEGORIES = ['bug', 'question', 'access', 'data', 'other']
+
+const REQUESTABLE = [
+  { key: 'name', label: 'Full name', kind: 'text' },
+  { key: 'phone', label: 'Phone number', kind: 'text' },
+  { key: 'address.city', label: 'City', kind: 'text' }
+]
 
 const ticket = (over = {}) => ({
   _id: 't1',
@@ -25,6 +31,7 @@ const ticket = (over = {}) => ({
 
 const queue = (tickets, over = {}) => ({
   tickets,
+  requestable: REQUESTABLE,
   openCount: tickets.filter(t => t.status === 'open').length,
   statuses: ['open', 'answered', 'closed'],
   categories: CATEGORIES,
@@ -39,7 +46,7 @@ const queue = (tickets, over = {}) => ({
 const answer = ({ mine = [], all = [] }) => {
   API.get.mockImplementation(url =>
     url.startsWith('/support/mine')
-      ? Promise.resolve({ data: { tickets: mine, categories: CATEGORIES } })
+      ? Promise.resolve({ data: { tickets: mine, categories: CATEGORIES, requestable: REQUESTABLE } })
       : Promise.resolve({ data: queue(all) })
   )
 }
@@ -190,5 +197,106 @@ describe('the queue', () => {
     await waitFor(() =>
       expect(API.get).toHaveBeenCalledWith(expect.stringContaining('status=closed'))
     )
+  })
+})
+
+describe('asking for a detail to be changed', () => {
+  const changeTicket = (over = {}) => ticket({
+    _id: 't9',
+    subject: 'Please update my phone number',
+    kind: 'data-change',
+    category: 'data',
+    request: { field: 'phone', current: '+91 11111 00000', proposed: '+91 90000 11111' },
+    ...over
+  })
+
+  it('is a different form, not a bug report', async () => {
+    answer({ mine: [] })
+
+    render(<Support user={employee} />)
+    await screen.findByText(/have not reported anything/i)
+    await userEvent.click(screen.getAllByRole('button', { name: /report an issue/i })[0])
+    await userEvent.click(screen.getByText('Change my details'))
+
+    expect(screen.getByLabelText('Which detail')).toBeInTheDocument()
+    expect(screen.queryByLabelText('What kind of thing is it?')).not.toBeInTheDocument()
+  })
+
+  it('sends the field and the value, not just a sentence', async () => {
+    answer({ mine: [] })
+    API.post.mockResolvedValue({ data: changeTicket() })
+
+    render(<Support user={employee} />)
+    await screen.findByText(/have not reported anything/i)
+    await userEvent.click(screen.getAllByRole('button', { name: /report an issue/i })[0])
+    await userEvent.click(screen.getByText('Change my details'))
+    await userEvent.selectOptions(screen.getByLabelText('Which detail'), 'phone')
+    await userEvent.type(screen.getByLabelText('It should be'), '+91 90000 11111')
+    await userEvent.type(screen.getByLabelText(/Anything else/), 'I changed my number.')
+
+    answer({ mine: [changeTicket()] })
+    await userEvent.click(screen.getByRole('button', { name: /ask for the change/i }))
+
+    await waitFor(() => expect(API.post).toHaveBeenCalledWith('/support', expect.objectContaining({
+      kind: 'data-change',
+      request: { field: 'phone', proposed: '+91 90000 11111' }
+    })))
+  })
+
+  it('will not send a change with no value in it', async () => {
+    answer({ mine: [] })
+
+    render(<Support user={employee} />)
+    await screen.findByText(/have not reported anything/i)
+    await userEvent.click(screen.getAllByRole('button', { name: /report an issue/i })[0])
+    await userEvent.click(screen.getByText('Change my details'))
+    await userEvent.type(screen.getByLabelText('In one line'), 'Change my phone')
+    await userEvent.type(screen.getByLabelText(/Anything else/), 'Because it moved.')
+
+    expect(screen.getByRole('button', { name: /ask for the change/i })).toBeDisabled()
+  })
+
+  it('shows an admin what was asked, and what it is now', async () => {
+    answer({ mine: [], all: [changeTicket()] })
+
+    render(<Support user={admin} />)
+    await userEvent.click(await screen.findByRole('button', { name: /update my phone/i }))
+
+    expect(screen.getByText('Phone number')).toBeInTheDocument()
+    expect(screen.getByText('+91 11111 00000')).toBeInTheDocument()
+    expect(screen.getByText('+91 90000 11111')).toBeInTheDocument()
+  })
+
+  it('makes the change with one click', async () => {
+    answer({ mine: [], all: [changeTicket()] })
+    API.post.mockResolvedValue({
+      data: changeTicket({
+        status: 'answered',
+        request: {
+          field: 'phone',
+          current: '+91 11111 00000',
+          proposed: '+91 90000 11111',
+          appliedAt: '2026-09-13T10:00:00.000Z',
+          appliedBy: 'The Admin'
+        }
+      })
+    })
+
+    render(<Support user={admin} />)
+    await userEvent.click(await screen.findByRole('button', { name: /update my phone/i }))
+    await userEvent.click(screen.getByRole('button', { name: /apply this change/i }))
+
+    await waitFor(() => expect(API.post).toHaveBeenCalledWith('/support/t9/apply'))
+    expect(await screen.findByText(/Applied by The Admin/)).toBeInTheDocument()
+  })
+
+  it('offers the reporter no button of their own', async () => {
+    answer({ mine: [changeTicket()] })
+
+    render(<Support user={employee} />)
+    await userEvent.click(await screen.findByRole('button', { name: /update my phone/i }))
+
+    expect(screen.queryByRole('button', { name: /apply this change/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/Waiting for an admin/)).toBeInTheDocument()
   })
 })

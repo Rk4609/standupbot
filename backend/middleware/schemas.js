@@ -225,7 +225,12 @@ const personWeek = {
 const createTicket = z.object({
   subject: z.string().trim().min(3, 'is too short').max(160, 'is too long'),
   body: z.string().trim().min(5, 'is too short').max(4000, 'is too long'),
-  category: z.enum(['bug', 'question', 'access', 'other']).optional()
+  category: z.enum(['bug', 'question', 'access', 'data', 'other']).optional(),
+  kind: z.enum(['issue', 'data-change']).optional(),
+  request: z.object({
+    field: z.string().max(40),
+    proposed: z.string().trim().min(1, 'is required').max(200, 'is too long')
+  }).strict().optional()
 }).strict()
 
 const listTickets = {
@@ -233,7 +238,7 @@ const listTickets = {
     page: z.coerce.number().int().positive().optional(),
     limit: z.coerce.number().int().positive().optional(),
     status: z.enum(['open', 'answered', 'closed']).optional(),
-    category: z.enum(['bug', 'question', 'access', 'other']).optional()
+    category: z.enum(['bug', 'question', 'access', 'data', 'other']).optional()
   }).strip()
 }
 
@@ -247,6 +252,57 @@ const replyTicket = {
 const ticketStatus = {
   params: z.object({ id: objectId }),
   body: z.object({ status: z.enum(['open', 'answered', 'closed']) }).strict()
+}
+
+/* people records ---------------------------------------------------- */
+
+const shortText = (max) => z.string().trim().max(max)
+const isoDateish = z.union([z.string().trim().max(40), z.null()])
+
+const listPeople = {
+  query: z.object({
+    page: z.coerce.number().int().positive().optional(),
+    limit: z.coerce.number().int().positive().optional(),
+    search: z.string().trim().max(120).optional(),
+    role: z.enum(['employee', 'manager', 'admin']).optional(),
+    type: z.enum(['intern', 'probation', 'full-time', 'contract']).optional(),
+    team: objectId.optional()
+  }).strip()
+}
+
+const updatePerson = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    name: shortText(120).min(1, 'is required').optional(),
+    phone: shortText(30).optional(),
+    dob: isoDateish.optional(),
+
+    address: z.object({
+      line1: shortText(200).optional(),
+      city: shortText(80).optional(),
+      state: shortText(80).optional(),
+      pincode: shortText(12).optional(),
+      country: shortText(80).optional()
+    }).strict().optional(),
+
+    employment: z.object({
+      employeeId: shortText(24).optional(),
+      position: shortText(80).optional(),
+      department: shortText(80).optional(),
+      type: z.enum(['intern', 'probation', 'full-time', 'contract']).optional(),
+      joinedOn: isoDateish.optional(),
+      startsOn: isoDateish.optional(),
+      endsOn: isoDateish.optional(),
+      experienceYears: z.coerce.number().min(0).max(60).optional()
+    }).strict().optional(),
+
+    salary: z.object({
+      amount: z.union([z.coerce.number().min(0).max(1e12), z.null()]).optional(),
+      currency: shortText(8).optional(),
+      period: z.enum(['month', 'year']).optional(),
+      reviewedOn: isoDateish.optional()
+    }).strict().optional()
+  }).strict()
 }
 
 /* roles and access -------------------------------------------------- */
@@ -335,6 +391,8 @@ module.exports = {
   updateProject,
   projectMembers,
   transferMember,
+  listPeople,
+  updatePerson,
   createRole,
   updateRole,
   roleId,

@@ -40,6 +40,7 @@ const WorkspaceLayout = lazy(() => import("./components/WorkspaceLayout"))
 const Timesheet = lazy(() => import("./pages/Timesheet"))
 const Support = lazy(() => import("./pages/Support"))
 const Roles = lazy(() => import("./pages/Roles"))
+const People = lazy(() => import("./pages/People"))
 const Projects = lazy(() => import("./pages/Projects"))
 const TeamTimesheets = lazy(() => import("./pages/TeamTimesheets"))
 const NotFound = lazy(() => import("./pages/NotFound"))
@@ -150,6 +151,9 @@ function AnimatedRoutes({ user, setUser }) {
             </Route>
             <Route element={<ProtectedRoute user={user} module="activity" />}>
               <Route path="activity" element={<Activity />} />
+            </Route>
+            <Route element={<ProtectedRoute user={user} module="records" />}>
+              <Route path="records" element={<People user={user} />} />
             </Route>
           </Route>
         </Route>

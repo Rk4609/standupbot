@@ -17,6 +17,7 @@ const ACTIONS = [
   'user.role_changed',
   'timesheet.reviewed',
   'project.transfer',
+  'user.record_updated',
   'role.created',
   'role.updated',
   'role.deleted'

@@ -9,7 +9,15 @@ const mongoose = require('mongoose')
  * button does nothing.
  */
 const STATUSES = ['open', 'answered', 'closed']
-const CATEGORIES = ['bug', 'question', 'access', 'other']
+const CATEGORIES = ['bug', 'question', 'access', 'data', 'other']
+
+/**
+ * Two shapes of ticket. An `issue` is a sentence somebody wrote; a
+ * `data-change` also names one field and the value it should hold, which is
+ * what lets an admin act on it with a click instead of retyping it into
+ * another screen and getting it wrong.
+ */
+const KINDS = ['issue', 'data-change']
 
 const replySchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -32,6 +40,17 @@ const supportTicketSchema = new mongoose.Schema({
   body: { type: String, required: true, trim: true, maxlength: 4000 },
 
   category: { type: String, enum: CATEGORIES, default: 'other' },
+  kind: { type: String, enum: KINDS, default: 'issue' },
+
+  // Only on a data-change. `current` is a snapshot taken when it was raised,
+  // so a reader can see what it was even after it has been changed.
+  request: {
+    field: { type: String, default: '' },
+    current: { type: String, default: '' },
+    proposed: { type: String, default: '' },
+    appliedAt: { type: Date, default: null },
+    appliedBy: { type: String, default: '' }
+  },
   status: { type: String, enum: STATUSES, default: 'open' },
 
   replies: { type: [replySchema], default: [] },
@@ -49,3 +68,4 @@ module.exports = mongoose.models.SupportTicket ||
   mongoose.model('SupportTicket', supportTicketSchema)
 module.exports.STATUSES = STATUSES
 module.exports.CATEGORIES = CATEGORIES
+module.exports.KINDS = KINDS

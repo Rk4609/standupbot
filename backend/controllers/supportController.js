@@ -1,7 +1,10 @@
 const SupportTicket = require('../models/SupportTicket')
 const User = require('../models/User')
+const audit = require('../services/auditService')
 const { notify, notifyMany } = require('../services/notifyService')
+const { canUse } = require('../services/roleService')
 const { ownTeam } = require('../utils/teams')
+const { REQUESTABLE, REQUESTABLE_KEYS, labelOf, readField } = require('../utils/requestable')
 
 const { STATUSES, CATEGORIES } = SupportTicket
 
@@ -29,7 +32,26 @@ const trim = (text, max = 60) =>
 // POST /api/support — raise something
 const createTicket = async (req, res) => {
   try {
-    const { subject, body, category = 'other' } = req.body
+    const { subject, body, category = 'other', kind = 'issue', request } = req.body
+
+    let change = undefined
+    if (kind === 'data-change') {
+      if (!request?.field || !REQUESTABLE_KEYS.includes(request.field)) {
+        return res.status(400).json({ message: 'That is not a field you can ask to change' })
+      }
+      if (!String(request.proposed || '').trim()) {
+        return res.status(400).json({ message: 'Say what it should be instead' })
+      }
+
+      // Snapshot what it holds right now, so the thread still reads correctly
+      // after somebody changes it
+      const current = readField(req.user.toObject?.() || req.user, request.field)
+      change = {
+        field: request.field,
+        current: current instanceof Date ? current.toISOString().slice(0, 10) : String(current || ''),
+        proposed: String(request.proposed).trim()
+      }
+    }
 
     const ticket = await SupportTicket.create({
       user: req.user._id,
@@ -38,7 +60,9 @@ const createTicket = async (req, res) => {
       team: await ownTeam(req.user),
       subject,
       body,
-      category
+      category: kind === 'data-change' ? 'data' : category,
+      kind,
+      ...(change ? { request: change } : {})
     })
 
     // Before the response, so the bell is already right when the page
@@ -66,7 +90,7 @@ const myTickets = async (req, res) => {
       .limit(50)
       .lean()
 
-    res.json({ tickets, categories: CATEGORIES })
+    res.json({ tickets, categories: CATEGORIES, requestable: REQUESTABLE })
   } catch (err) {
     console.error('My tickets error:', err.message)
     res.status(500).json({ message: err.message })
@@ -128,6 +152,7 @@ const listTickets = async (req, res) => {
       openCount,
       statuses: STATUSES,
       categories: CATEGORIES,
+      requestable: REQUESTABLE,
       pageSizes: PAGE_SIZES,
       total,
       page: safePage,
@@ -242,4 +267,87 @@ const setStatus = async (req, res) => {
   }
 }
 
-module.exports = { createTicket, myTickets, listTickets, replyToTicket, setStatus }
+// POST /api/support/:id/apply — make the change they asked for
+const applyRequest = async (req, res) => {
+  try {
+    if (!canSeeAll(req.user)) {
+      return res.status(403).json({ message: 'Only an admin can apply a change' })
+    }
+    if (!(await canUse(req.user, 'records'))) {
+      return res.status(403).json({ message: 'Your role does not include people records' })
+    }
+
+    const ticket = await SupportTicket.findById(req.params.id)
+    if (!ticket) return res.status(404).json({ message: 'Not found' })
+
+    if (ticket.kind !== 'data-change' || !ticket.request?.field) {
+      return res.status(400).json({ message: 'This ticket does not ask for a change' })
+    }
+    if (ticket.request.appliedAt) {
+      return res.status(400).json({ message: 'That change is already in' })
+    }
+    if (!REQUESTABLE_KEYS.includes(ticket.request.field)) {
+      return res.status(400).json({ message: 'That field cannot be changed from here' })
+    }
+
+    const person = await User.findById(ticket.user)
+    if (!person) return res.status(404).json({ message: 'That account is gone' })
+
+    const { field, proposed } = ticket.request
+    const before = readField(person.toObject(), field)
+
+    // A date field is stored as a date, whatever the form sent
+    const value = field === 'dob' ? new Date(proposed) : proposed
+    if (field === 'dob' && Number.isNaN(value.getTime())) {
+      return res.status(400).json({ message: 'That is not a date' })
+    }
+
+    person.set(field, value)
+    await person.save()
+
+    ticket.request.appliedAt = new Date()
+    ticket.request.appliedBy = req.user.name
+    ticket.replies.push({
+      author: req.user._id,
+      authorName: req.user.name,
+      authorRole: req.user.role,
+      body: `Done — ${labelOf(field)} is now “${proposed}”.`
+    })
+    ticket.status = 'answered'
+    ticket.lastReplyAt = new Date()
+    ticket.lastReplyBy = req.user.name
+    await ticket.save()
+
+    await audit.record({
+      action: 'user.record_updated',
+      actor: req.user,
+      subject: person,
+      team: person.team || null,
+      entityType: 'User',
+      entityId: person._id,
+      note: 'Asked for through help & support',
+      changes: [{
+        field,
+        from: before instanceof Date ? before.toISOString().slice(0, 10) : String(before || ''),
+        to: proposed
+      }]
+    })
+
+    await notify(req.app.get('io'), {
+      recipient: person._id,
+      sender: req.user._id,
+      type: 'support_replied',
+      message: `${labelOf(field)} updated as you asked`,
+      link: '/support'
+    })
+
+    res.json(ticket)
+  } catch (err) {
+    console.error('Apply request error:', err.message)
+    res.status(500).json({ message: err.message })
+  }
+}
+
+module.exports = {
+  createTicket, myTickets, listTickets, replyToTicket, setStatus, applyRequest
+}

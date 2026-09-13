@@ -33,6 +33,60 @@
       }
     },
     avatar:   { type: String, default: '' },
+
+    /* who they are outside work ------------------------------------- */
+
+    dob: { type: Date, default: null },
+    phone: { type: String, default: '', trim: true, maxlength: 30 },
+
+    address: {
+      line1: { type: String, default: '', trim: true, maxlength: 200 },
+      city: { type: String, default: '', trim: true, maxlength: 80 },
+      state: { type: String, default: '', trim: true, maxlength: 80 },
+      // Kept as text, not a number: leading zeros are real in half the world
+      pincode: { type: String, default: '', trim: true, maxlength: 12 },
+      country: { type: String, default: '', trim: true, maxlength: 80 }
+    },
+
+    /* what they do here ---------------------------------------------- */
+
+    employment: {
+      employeeId: { type: String, default: '', trim: true, maxlength: 24 },
+      position: { type: String, default: '', trim: true, maxlength: 80 },
+      department: { type: String, default: '', trim: true, maxlength: 80 },
+
+      // An intern and a permanent hire are the same person to every other
+      // part of this app; the difference is a date somebody has to watch
+      type: {
+        type: String,
+        enum: ['intern', 'probation', 'full-time', 'contract'],
+        default: 'full-time'
+      },
+
+      joinedOn: { type: Date, default: null },
+
+      // Only meaningful while `type` is intern or probation, and the reason
+      // this exists at all: somebody has to be told before it runs out
+      startsOn: { type: Date, default: null },
+      endsOn: { type: Date, default: null },
+
+      // Years brought in from elsewhere. What they have done here is the
+      // joining date, which does not need storing twice.
+      experienceYears: { type: Number, default: 0, min: 0, max: 60 }
+    },
+
+    /* what they are paid --------------------------------------------- */
+
+    // Its own field rather than part of `employment` so it can be left out
+    // of a query in one word. Every reader that is not allowed pay details
+    // selects '-salary', and the roles module decides who that is.
+    salary: {
+      amount: { type: Number, default: null, min: 0 },
+      currency: { type: String, default: 'INR', trim: true, maxlength: 8 },
+      period: { type: String, enum: ['month', 'year'], default: 'year' },
+      reviewedOn: { type: Date, default: null }
+    },
+
     // Forgot password fields
   resetPasswordToken: { type: String, default: null },
   resetPasswordExpire: { type: Date, default: null }
@@ -44,6 +98,10 @@
 
   // The hourly reminder round walks every employee
   userSchema.index({ role: 1 })
+
+  // People records: filtered by what somebody is, and by whose internship
+  // is running out next
+  userSchema.index({ 'employment.type': 1, 'employment.endsOn': 1 })
 
   // async/await
   userSchema.pre('save', async function() {

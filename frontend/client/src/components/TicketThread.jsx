@@ -5,13 +5,25 @@ import API from '../api/axios'
 import Button from './ui/Button'
 import Badge from './ui/Badge'
 import { Textarea } from './ui/Field'
-import { IconCheck, IconRefresh } from './ui/icons'
+import { IconCheck, IconPencil, IconRefresh } from './ui/icons'
 import { cn } from '../lib/cn'
 import { collapseVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 
 const STATUS_TONE = { open: 'warning', answered: 'info', closed: 'neutral' }
 const STATUS_LABEL = { open: 'Waiting', answered: 'Answered', closed: 'Closed' }
+
+/** The dotted path, written the way the form wrote it. */
+const FIELD_LABEL = {
+  name: 'Full name',
+  phone: 'Phone number',
+  dob: 'Date of birth',
+  'address.line1': 'Address',
+  'address.city': 'City',
+  'address.state': 'State',
+  'address.pincode': 'Pincode',
+  'address.country': 'Country'
+}
 
 const when = (iso) => {
   const d = new Date(iso)
@@ -26,7 +38,7 @@ const when = (iso) => {
  * the reporter can add to their own thread through the same box the admin
  * answers in, so nobody has to raise a second ticket to add a detail.
  */
-export default function TicketThread({ ticket: initial, isAdmin, showWho, defaultOpen }) {
+export default function TicketThread({ ticket: initial, isAdmin, showWho, defaultOpen, onChanged }) {
   const [ticket, setTicket] = useState(initial)
   const [open, setOpen] = useState(Boolean(defaultOpen))
   const [reply, setReply] = useState('')
@@ -45,6 +57,20 @@ export default function TicketThread({ ticket: initial, isAdmin, showWho, defaul
       toast.success(isAdmin ? 'Answer sent' : 'Added to your report')
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Could not send that'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const apply = async () => {
+    setBusy(true)
+    try {
+      const { data } = await API.post(`/support/${ticket._id}/apply`)
+      setTicket(data)
+      onChanged?.()
+      toast.success('Their record is updated')
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not make that change'))
     } finally {
       setBusy(false)
     }
@@ -84,7 +110,9 @@ export default function TicketThread({ ticket: initial, isAdmin, showWho, defaul
         </span>
 
         <span className="flex shrink-0 items-center gap-2">
-          <Badge tone="neutral">{ticket.category}</Badge>
+          <Badge tone={ticket.kind === 'data-change' ? 'info' : 'neutral'}>
+            {ticket.kind === 'data-change' ? 'Data change' : ticket.category}
+          </Badge>
           <Badge tone={STATUS_TONE[ticket.status]}>{STATUS_LABEL[ticket.status]}</Badge>
         </span>
       </button>
@@ -99,6 +127,43 @@ export default function TicketThread({ ticket: initial, isAdmin, showWho, defaul
             className="overflow-hidden"
           >
             <div className="border-t border-line bg-surface-sunken/40 px-4 py-4 md:px-6">
+              {ticket.kind === 'data-change' && ticket.request?.field && (
+                <div className="mb-4 rounded-xl border border-line bg-surface px-3.5 py-3">
+                  <p className="eyebrow mb-1.5">Asked to change</p>
+                  <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                    <span className="font-medium text-content">
+                      {FIELD_LABEL[ticket.request.field] || ticket.request.field}
+                    </span>
+                    <span className="text-content-subtle line-through">
+                      {ticket.request.current || '(empty)'}
+                    </span>
+                    <span aria-hidden="true" className="text-content-subtle">→</span>
+                    <span className="font-medium text-content">{ticket.request.proposed}</span>
+                  </p>
+
+                  {ticket.request.appliedAt ? (
+                    <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                      <IconCheck className="h-3.5 w-3.5" />
+                      Applied by {ticket.request.appliedBy}
+                    </p>
+                  ) : isAdmin ? (
+                    <Button
+                      type="button"
+                      onClick={apply}
+                      loading={busy}
+                      className="mt-3"
+                    >
+                      <IconPencil className="h-4 w-4" />
+                      Apply this change
+                    </Button>
+                  ) : (
+                    <p className="mt-2 text-xs text-content-subtle">
+                      Waiting for an admin to make it.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <p className="whitespace-pre-line text-sm text-content-muted">{ticket.body}</p>
 
               {ticket.replies?.length > 0 && (

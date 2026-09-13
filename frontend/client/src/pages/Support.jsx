@@ -17,7 +17,14 @@ import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, itemVariants, listVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 
-const blank = { subject: '', body: '', category: 'bug' }
+const blank = {
+  subject: '',
+  body: '',
+  category: 'bug',
+  kind: 'issue',
+  field: '',
+  proposed: ''
+}
 
 const CATEGORY_LABEL = {
   bug: 'Something is broken',
@@ -78,10 +85,17 @@ export default function Support({ user }) {
     e.preventDefault()
     setSaving(true)
     try {
+      const asking = form.kind === 'data-change'
+
       await API.post('/support', {
         subject: form.subject.trim(),
         body: form.body.trim(),
-        category: form.category
+        ...(asking
+          ? {
+              kind: 'data-change',
+              request: { field: form.field, proposed: form.proposed.trim() }
+            }
+          : { category: form.category })
       })
       setForm(blank)
       setRaising(false)
@@ -115,6 +129,7 @@ export default function Support({ user }) {
   }
 
   const waiting = queue?.openCount || 0
+  const asking = form.kind === 'data-change'
 
   const tabs = [
     isAdmin && { id: 'queue', label: 'Everyone', icon: IconInbox, count: waiting },
@@ -154,8 +169,78 @@ export default function Support({ user }) {
             transition={{ duration: DURATION.fast, ease: EASE }}
             className="mb-4"
           >
-            <CardTitle>What went wrong?</CardTitle>
+            <CardTitle>
+              {asking ? 'What should we change?' : 'What went wrong?'}
+            </CardTitle>
             <form onSubmit={raise} className="space-y-4">
+              {/* Two shapes of request. A change to somebody's own details is
+                  the common one, and it is not a bug report — it names a
+                  field, which is what lets an admin act on it in one click */}
+              <Field label="What do you need?">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[
+                    { id: 'issue', title: 'Report a problem', hint: 'Something is broken or confusing' },
+                    { id: 'data-change', title: 'Change my details', hint: 'Name, phone, address…' }
+                  ].map(option => (
+                    <label
+                      key={option.id}
+                      className={cn(
+                        'cursor-pointer rounded-xl border px-3.5 py-3 transition-colors',
+                        form.kind === option.id
+                          ? 'border-brand-500/40 bg-brand-600/[0.06]'
+                          : 'border-line bg-surface hover:bg-surface-sunken'
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="kind"
+                        className="sr-only"
+                        checked={form.kind === option.id}
+                        onChange={() => setForm(f => ({ ...f, kind: option.id }))}
+                      />
+                      <span className="block text-sm font-medium text-content">{option.title}</span>
+                      <span className="mt-0.5 block text-xs text-content-subtle">{option.hint}</span>
+                    </label>
+                  ))}
+                </div>
+              </Field>
+
+              {asking && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Which detail">
+                    <Select
+                      value={form.field}
+                      onChange={e => setForm(f => ({
+                        ...f,
+                        field: e.target.value,
+                        subject: f.subject || `Please update my ${
+                          (mine.requestable || []).find(r => r.key === e.target.value)?.label
+                            ?.toLowerCase() || 'details'
+                        }`
+                      }))}
+                    >
+                      <option value="">Choose one…</option>
+                      {(mine.requestable || []).map(r => (
+                        <option key={r.key} value={r.key}>{r.label}</option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="It should be">
+                    <Input
+                      type={
+                        (mine.requestable || []).find(r => r.key === form.field)?.kind === 'date'
+                          ? 'date'
+                          : 'text'
+                      }
+                      value={form.proposed}
+                      onChange={e => setForm(f => ({ ...f, proposed: e.target.value }))}
+                      placeholder="The correct value"
+                      maxLength={200}
+                    />
+                  </Field>
+                </div>
+              )}
+
               <Field label="In one line">
                 <Input
                   required
@@ -166,29 +251,39 @@ export default function Support({ user }) {
                 />
               </Field>
 
-              <Field label="What kind of thing is it?">
-                <Select
-                  value={form.category}
-                  onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                >
-                  {(mine.categories || []).map(c => (
-                    <option key={c} value={c}>
-                      {CATEGORY_LABEL[c] || c}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
+              {!asking && (
+                <Field label="What kind of thing is it?">
+                  <Select
+                    value={form.category}
+                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                  >
+                    {(mine.categories || []).filter(c => c !== 'data').map(c => (
+                      <option key={c} value={c}>
+                        {CATEGORY_LABEL[c] || c}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              )}
 
               <Field
-                label="What happened"
-                hint="What you did, and what you expected instead. A screenshot is not needed — say which page."
+                label={asking ? 'Anything else the admin should know' : 'What happened'}
+                hint={
+                  asking
+                    ? 'Why it is changing, if it matters. One line is plenty.'
+                    : 'What you did, and what you expected instead. A screenshot is not needed — say which page.'
+                }
               >
                 <Textarea
                   required
-                  rows={5}
+                  rows={asking ? 3 : 5}
                   value={form.body}
                   onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
-                  placeholder="I click Export CSV on Analytics and no file arrives."
+                  placeholder={
+                    asking
+                      ? 'I moved last month, so the old address is wrong.'
+                      : 'I click Export CSV on Analytics and no file arrives.'
+                  }
                   maxLength={4000}
                 />
               </Field>
@@ -196,9 +291,13 @@ export default function Support({ user }) {
               <Button
                 type="submit"
                 loading={saving}
-                disabled={form.subject.trim().length < 3 || form.body.trim().length < 5}
+                disabled={
+                  form.subject.trim().length < 3 ||
+                  form.body.trim().length < 5 ||
+                  (asking && (!form.field || !form.proposed.trim()))
+                }
               >
-                Send it
+                {asking ? 'Ask for the change' : 'Send it'}
               </Button>
             </form>
           </Card>
@@ -287,7 +386,7 @@ export default function Support({ user }) {
               ) : (
                 <ul className="divide-y divide-line border-t border-line">
                   {queue.tickets.map(t => (
-                    <TicketThread key={t._id} ticket={t} isAdmin showWho />
+                    <TicketThread key={t._id} ticket={t} isAdmin showWho onChanged={loadQueue} />
                   ))}
                 </ul>
               )}

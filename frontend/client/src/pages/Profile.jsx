@@ -31,6 +31,7 @@ import {
   timezoneOptions
 } from '../lib/timezone'
 import { apiErrorMessage } from '../lib/apiError'
+import { prettyDate } from '../lib/dates'
 
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 
@@ -117,6 +118,13 @@ function Metric({ icon: Icon, value, label, tone = 'brand' }) {
       </div>
     </div>
   )
+}
+
+const EMPLOYMENT_LABEL = {
+  intern: 'Intern',
+  probation: 'On probation',
+  'full-time': 'Full time',
+  contract: 'Contract'
 }
 
 export default function Profile({ user, setUser }) {
@@ -252,6 +260,14 @@ export default function Profile({ user, setUser }) {
   const days = lastNDatesForUser(7)
   const today = days[days.length - 1]
   const submitted = days.filter(d => profile.submittedDates?.includes(d))
+
+  const job = profile.employment || {}
+  const address = [
+    profile.address?.line1,
+    profile.address?.city,
+    profile.address?.state,
+    profile.address?.pincode
+  ].filter(Boolean).join(', ')
   // Counted against working days only, or a Saturday standup would read as
   // one of five weekdays covered
   const onWorkingDays = submitted.filter(d => !isWeekend(d)).length
@@ -555,14 +571,16 @@ export default function Profile({ user, setUser }) {
             </Card>
           </motion.div>
 
-          {/* The things nobody here can edit */}
-          <motion.div variants={itemVariants}>
+          {/* The things nobody here can edit, stacked in the side column so
+              the record sits under the account rather than starting a new
+              grid row of its own */}
+          <motion.div variants={itemVariants} className="space-y-4">
             <Card>
               <CardTitle>Account</CardTitle>
               <dl className="divide-y divide-line">
                 <Fact label="Email">{profile.email}</Fact>
                 <Fact label="Role">
-                  <span className="capitalize">{profile.role}</span>
+                  <span className="capitalize">{profile.roleName || profile.role}</span>
                 </Fact>
                 <Fact label="Team">{profile.team?.name || 'Not on a team'}</Fact>
                 <Fact label="Member since">{monthYear(profile.createdAt)}</Fact>
@@ -570,6 +588,53 @@ export default function Profile({ user, setUser }) {
               <p className="mt-3 text-xs text-content-subtle">
                 Your email and role are set by an admin.
               </p>
+            </Card>
+
+            {/* Their own record, as it is held for them. Read-only on
+                purpose: a correction goes through help & support, so there is
+                a trail of who asked and who changed it. */}
+            <Card>
+              <CardTitle>Your record</CardTitle>
+
+              {job.position || profile.phone || profile.dob ? (
+                <dl className="divide-y divide-line">
+                  {job.position && <Fact label="Position">{job.position}</Fact>}
+                  {job.employeeId && <Fact label="Employee ID">{job.employeeId}</Fact>}
+                  <Fact label="Kind of hire">
+                    {EMPLOYMENT_LABEL[job.type] || 'Full time'}
+                  </Fact>
+                  {job.joinedOn && <Fact label="Joined">{prettyDate(job.joinedOn)}</Fact>}
+                  {job.endsOn && (
+                    <Fact label={job.type === 'intern' ? 'Internship ends' : 'Probation ends'}>
+                      {prettyDate(job.endsOn)}
+                    </Fact>
+                  )}
+                  {job.experienceYears > 0 && (
+                    <Fact label="Experience before this">{job.experienceYears} years</Fact>
+                  )}
+                  {profile.phone && <Fact label="Phone">{profile.phone}</Fact>}
+                  {profile.dob && <Fact label="Date of birth">{prettyDate(profile.dob)}</Fact>}
+                  {address && (
+                    <Fact label="Address">
+                      <span className="block whitespace-normal text-right">{address}</span>
+                    </Fact>
+                  )}
+                  {profile.salary?.amount && (
+                    <Fact label="Salary">
+                      {profile.salary.currency} {Number(profile.salary.amount).toLocaleString()}
+                      {profile.salary.period === 'month' ? ' / month' : ' / year'}
+                    </Fact>
+                  )}
+                </dl>
+              ) : (
+                <p className="text-sm text-content-muted">
+                  Nothing has been filled in yet. An admin keeps this part.
+                </p>
+              )}
+
+              <Button to="/support" variant="outline" className="mt-4 w-full">
+                Ask for a correction
+              </Button>
             </Card>
           </motion.div>
         </div>

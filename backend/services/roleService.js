@@ -56,6 +56,15 @@ const ensureBuiltIns = async () => {
     )
   ))
 
+  /**
+   * Admin holds every module, including ones added after the workspace was
+   * created. Without this an upgrade that introduces a module leaves it
+   * reachable by nobody — not even the person whose job is handing it out —
+   * and the roles screen refuses to edit the admin role for exactly the
+   * reason that makes this safe: it is meant to hold everything.
+   */
+  await Role.updateOne({ key: 'admin' }, { $set: { modules: DEFAULTS.admin } })
+
   invalidate()
 }
 
