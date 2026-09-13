@@ -43,6 +43,32 @@
     color-scheme: dark;
   }
 
+  /**
+   * Keep a subtree on the light palette whatever the app theme is.
+   *
+   * The sign-in screens sit beside a panel that is deep purple in every
+   * theme. Letting the form half flip to dark put two unrelated darks next to
+   * each other and lost the contrast the split is built on, so the frame
+   * restates the light values for everything inside it.
+   *
+   * These are the values from :root above; they are repeated rather than
+   * shared because a CSS variable cannot be un-overridden by reference.
+   */
+  .theme-light {
+    --surface-muted:  247 247 249;
+    --surface:        255 255 255;
+    --surface-raised: 255 255 255;
+    --surface-sunken: 241 241 245;
+    --line:           229 229 235;
+    --line-strong:    214 214 222;
+
+    --content:        17 17 24;
+    --content-muted:  90 95 112;
+    --content-subtle: 139 145 163;
+
+    color-scheme: light;
+  }
+
   html {
     -webkit-tap-highlight-color: transparent;
 

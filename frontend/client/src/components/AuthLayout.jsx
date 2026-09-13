@@ -68,7 +68,9 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: DURATION.base, ease: EASE }}
-      className="grid min-h-screen bg-surface lg:grid-cols-2"
+      // theme-light: the panel beside this is dark in every theme, so the
+      // form half stays light and the split keeps its contrast
+      className="theme-light grid min-h-screen bg-surface lg:grid-cols-2"
     >
       {/* Brand panel — hidden on small screens, where it would just push the
           form below the fold */}
