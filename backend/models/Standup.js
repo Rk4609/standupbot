@@ -36,6 +36,21 @@ const standupSchema = new mongoose.Schema({
   answers:   { type: Map, of: String, default: undefined }
 }, { timestamps: true })
 
+/**
+ * One person, one day.
+ *
+ * The controller checks for an existing standup before creating one, which
+ * two quick submissions can both pass. The database is the only place that
+ * can actually hold this, and the index that enforces it is the same one
+ * every per-person query wants: submit, the profile, the timesheet, the
+ * employee drill-down and the analytics all filter on user and then date.
+ */
+standupSchema.index({ user: 1, date: 1 }, { unique: true })
+
+// The other direction: the end-of-day summary, the weekly retro and the team
+// views all ask for a team's standups over a range of dates
+standupSchema.index({ team: 1, date: 1 })
+
 // Reuse an already-compiled model. The same file can be reached both as CJS
 // (require, from the controllers) and as ESM (import, from the tests), which
 // would otherwise register the schema twice and throw OverwriteModelError.

@@ -271,6 +271,13 @@ const submitStandup = async (req, res) => {
 
     res.status(201).json(standup)
   } catch (err) {
+    // The check above loses a race between two quick submissions; the unique
+    // index on (user, date) is what actually holds. Same answer either way,
+    // rather than a duplicate-key error in the face of whoever lost.
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Today's standup is already submitted!" })
+    }
+
     console.error('Standup submit error:', err)
     res.status(500).json({ message: err.message })
   }

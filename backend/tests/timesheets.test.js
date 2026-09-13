@@ -530,3 +530,30 @@ describe('who a project belongs to', () => {
     expect(String(asManager.body.defaultTeam)).toBe(String(team._id))
   })
 })
+
+describe('one standup per person per day', () => {
+  it('is held by the database, not just by the check before the insert', async () => {
+    const { team, member } = await withTeam()
+    const project = await makeProject({ team: team._id })
+
+    onTuesday()
+
+    // Two submissions at once: the findOne check can let both through, and
+    // only the unique index can decide
+    const [a, b] = await Promise.all([
+      submitStandup(member, { work: [{ project: String(project._id), hours: 4 }] }),
+      submitStandup(member, { work: [{ project: String(project._id), hours: 4 }] })
+    ])
+    vi.useRealTimers()
+
+    const statuses = [a.status, b.status].sort()
+    expect(statuses).toEqual([201, 400])
+
+    const loser = [a, b].find(r => r.status === 400)
+    // A duplicate-key error would be a 500 with a mongo message in it
+    expect(loser.body.message).toMatch(/already submitted/i)
+
+    const { default: Standup } = await import('../models/Standup.js')
+    expect(await Standup.countDocuments({ user: member._id, date: TUESDAY })).toBe(1)
+  })
+})

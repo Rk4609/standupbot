@@ -23,4 +23,8 @@ const notificationSchema = new mongoose.Schema({
 // Reuse an already-compiled model. The same file can be reached both as CJS
 // (require, from the controllers) and as ESM (import, from the tests), which
 // would otherwise register the schema twice and throw OverwriteModelError.
+// The bell: newest first for one person, and an unread count for the badge
+notificationSchema.index({ recipient: 1, createdAt: -1 })
+notificationSchema.index({ recipient: 1, isRead: 1 })
+
 module.exports = mongoose.models.Notification || mongoose.model('Notification', notificationSchema)

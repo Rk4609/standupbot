@@ -193,29 +193,79 @@ const getTeamWeek = async (req, res) => {
       .sort({ name: 1 })
       .lean()
 
-    const people = await Promise.all(
-      roster.map(async (u) => {
-        const [grid, state] = await Promise.all([
-          buildWeek(u._id, weekStart),
-          statusFor(u._id, weekStart)
-        ])
+    // Two queries for the whole roster, not two per person. This used to
+    // build each person's week individually, so opening the page on a team
+    // of thirty ran sixty round trips to answer one screen.
+    const ids = roster.map(u => u._id)
+    const dates = weekDates(weekStart)
 
-        return {
-          _id: u._id,
-          name: u.name,
-          email: u.email,
-          avatar: u.avatar || '',
-          totalHours: grid.totalHours,
-          billableHours: grid.billableHours,
-          daysSubmitted: grid.daysSubmitted,
-          ...state,
-          // A week edited after submission is the one thing a reviewer must
-          // not miss, so it is computed here rather than left to be spotted
-          changedSinceSubmit:
-            state.status !== 'draft' && state.submittedTotal !== grid.totalHours
+    const [totals, sheets] = await Promise.all([
+      Standup.aggregate([
+        { $match: { user: { $in: ids }, date: { $in: dates } } },
+        { $unwind: { path: '$work', preserveNullAndEmptyArrays: true } },
+        {
+          $lookup: {
+            // From the model rather than a spelled-out collection name, which
+            // also keeps the Project import doing something
+            from: Project.collection.name,
+            localField: 'work.project',
+            foreignField: '_id',
+            as: 'projectDoc'
+          }
+        },
+        {
+          $group: {
+            _id: '$user',
+            hours: { $sum: { $ifNull: ['$work.hours', 0] } },
+            billable: {
+              $sum: {
+                $cond: [
+                  // A project row with no project document left is counted as
+                  // billable, matching how the grid treats one
+                  { $ne: [{ $arrayElemAt: ['$projectDoc.billable', 0] }, false] },
+                  { $ifNull: ['$work.hours', 0] },
+                  0
+                ]
+              }
+            },
+            days: { $addToSet: '$date' }
+          }
         }
-      })
-    )
+      ]),
+      Timesheet.find({ user: { $in: ids }, weekStart })
+        .populate('reviewedBy', 'name')
+        .lean()
+    ])
+
+    const totalsBy = new Map(totals.map(t => [String(t._id), t]))
+    const sheetBy = new Map(sheets.map(s => [String(s.user), s]))
+
+    const people = roster.map((u) => {
+      const t = totalsBy.get(String(u._id))
+      const sheet = sheetBy.get(String(u._id))
+
+      const totalHours = round(t?.hours || 0)
+      const status = sheet?.status || 'draft'
+
+      return {
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        avatar: u.avatar || '',
+        totalHours,
+        billableHours: round(t?.billable || 0),
+        daysSubmitted: t?.days?.length || 0,
+        status,
+        submittedAt: sheet?.submittedAt || null,
+        reviewedAt: sheet?.reviewedAt || null,
+        reviewedBy: sheet?.reviewedBy?.name || null,
+        note: sheet?.note || '',
+        submittedTotal: sheet?.totalHours,
+        // A week edited after submission is the one thing a reviewer must
+        // not miss, so it is computed here rather than left to be spotted
+        changedSinceSubmit: status !== 'draft' && sheet?.totalHours !== totalHours
+      }
+    })
 
     res.json({
       week,

@@ -32,6 +32,13 @@
   resetPasswordExpire: { type: Date, default: null }
   }, { timestamps: true })
 
+  // The employees list pages through one team, ordered by name. Email is
+  // already unique, which indexes it for sign-in.
+  userSchema.index({ team: 1, name: 1 })
+
+  // The hourly reminder round walks every employee
+  userSchema.index({ role: 1 })
+
   // async/await
   userSchema.pre('save', async function() {
     if (!this.isModified('password')) return
