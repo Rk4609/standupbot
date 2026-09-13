@@ -9,6 +9,7 @@ const {
   collectWeek,
   summarise,
   buildPrompt,
+  previousRetro,
   SYSTEM_PROMPT
 } = require('../controllers/retroController')
 const { resolveWeek, previousWeek } = require('../utils/week')
@@ -47,6 +48,10 @@ const runRetroForTeam = async (team, week) => {
     .filter(s => s.hasBlocker)
     .map(s => ({ member: s.user?.name || 'Unknown', blocker: s.blockers }))
 
+  // The Friday job writes the same report the page does, so it has to read
+  // last week's too or the two would disagree about what was promised
+  const lastRetro = await previousRetro(team._id, week)
+
   const content = await completeChat({
     system: SYSTEM_PROMPT,
     prompt: buildPrompt({
@@ -54,7 +59,8 @@ const runRetroForTeam = async (team, week) => {
       week,
       standups,
       stats,
-      previousBlockers
+      previousBlockers,
+      lastRetro
     }),
     maxTokens: 1800
   })

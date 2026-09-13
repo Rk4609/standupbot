@@ -36,6 +36,37 @@ const collectWeek = async (teamId, week) => {
   return standups
 }
 
+/**
+ * The parts of a retro that made a claim about the future.
+ *
+ * Feeding the whole of last week's report back in invites the model to
+ * summarise it again. What is worth checking is only what it said would
+ * happen — the actions it assigned and the risks it named.
+ */
+const CLAIM_HEADINGS = ['Action items', 'Watch list']
+
+const extractClaims = (content = '') => {
+  if (!content.trim()) return ''
+
+  // Sections are "**<emoji> <heading>**" on their own line
+  const sections = content.split(/\n(?=\*\*)/)
+
+  const claims = sections.filter(section => {
+    const heading = section.split('\n')[0] || ''
+    return CLAIM_HEADINGS.some(h => heading.includes(h))
+  })
+
+  // An older report with different headings still deserves to be checked,
+  // so fall back to the whole thing rather than silently skipping the section
+  return (claims.length > 0 ? claims.join('\n\n') : content).slice(0, 2000).trim()
+}
+
+/** Last week's saved report for this team, if one was ever written. */
+const previousRetro = async (teamId, week) => {
+  const prev = previousWeek(new Date(`${week.weekStart}T00:00:00.000Z`))
+  return Retro.findOne({ team: teamId, weekStart: prev.weekStart }).lean()
+}
+
 const summarise = (standups, totalMembers) => {
   const byMember = new Map()
   const moodBreakdown = {}
@@ -60,7 +91,8 @@ const summarise = (standups, totalMembers) => {
   }
 }
 
-const buildPrompt = ({ teamName, week, standups, stats, previousBlockers }) => {
+const buildPrompt = ({ teamName, week, standups, stats, previousBlockers, lastRetro }) => {
+  const claims = extractClaims(lastRetro?.content)
   const work = standups.map(s => ({
     member: s.user?.name || 'Unknown',
     date: s.date,
@@ -86,7 +118,15 @@ ${JSON.stringify(work, null, 2)}
 Blockers raised the PREVIOUS week (use these to spot repeats):
 ${previousBlockers.length ? JSON.stringify(previousBlockers, null, 2) : 'None recorded.'}
 
+What LAST WEEK's retrospective said would happen${lastRetro ? ` (week of ${lastRetro.weekStart})` : ''}:
+${claims || 'No retrospective was written last week.'}
+
 Use these exact section headings, each on its own line wrapped in double asterisks:
+
+**🔎 Since last week**
+${claims
+  ? 'Take each action and each risk quoted above and say what actually happened to it, using this week\'s standups as the evidence. Quote the original in a few words so the reader recognises it. Mark each one done, still open with how long it has now run, or no longer relevant. Do not check anything that is not quoted above, and do not invent an outcome the standups do not show.'
+  : 'There was no retrospective last week, so write exactly: This is the first retrospective for this team.'}
 
 **🚀 Shipped this week**
 Group the completed work into themes. Name who drove each one.
@@ -106,7 +146,7 @@ Risks that are visible in the data.
 **🎯 Action items**
 Exactly 3 specific, assignable actions for the manager. Each on its own numbered line.
 
-Use bullet points starting with "- ". Keep the whole report under 500 words. Be direct and specific, not generic.`
+Use bullet points starting with "- ". Keep the whole report under 600 words. Be direct and specific, not generic.`
 }
 
 // POST /api/retro/generate — stream a retro and save it when the stream ends
@@ -133,12 +173,18 @@ const generateRetro = async (req, res) => {
       .filter(s => s.hasBlocker)
       .map(s => ({ member: s.user?.name || 'Unknown', blocker: s.blockers }))
 
+    // The report has always read last week's standups. It has never read what
+    // it said about them, so every week started as though the last one did
+    // not happen.
+    const lastRetro = await previousRetro(scope.teamId, week)
+
     const prompt = buildPrompt({
       teamName: scope.teamName,
       week,
       standups,
       stats,
-      previousBlockers
+      previousBlockers,
+      lastRetro
     })
 
     const content = await streamChat({
@@ -224,5 +270,7 @@ module.exports = {
   collectWeek,
   summarise,
   buildPrompt,
+  previousRetro,
+  extractClaims,
   SYSTEM_PROMPT
 }
