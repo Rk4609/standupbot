@@ -32,7 +32,7 @@ const validateWork = async (user, work) => {
   const ids = [...new Set(work.map(w => String(w.project)))]
   const allowed = await Project.find({
     _id: { $in: ids },
-    ...bookableFilter(user.team)
+    ...bookableFilter(user._id, user.team)
   }).select('_id').lean()
 
   const allowedIds = new Set(allowed.map(p => String(p._id)))

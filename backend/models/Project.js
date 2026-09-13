@@ -21,6 +21,16 @@ const projectSchema = new mongoose.Schema({
   // Non-billable work still has to be recorded, or the week never adds up
   billable: { type: Boolean, default: true },
 
+  /**
+   * Who works on this.
+   *
+   * An empty list means the whole team, which is what every project was
+   * before anyone could be assigned to one — so turning this on does not
+   * suddenly make existing work unbookable. Name even one person and the
+   * project becomes theirs.
+   */
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+
   // Archived rather than deleted: past timesheets still point at it
   active: { type: Boolean, default: true },
 
@@ -30,5 +40,8 @@ const projectSchema = new mongoose.Schema({
 // The two ways this is read: a team's pickable list, and the whole catalogue
 projectSchema.index({ team: 1, active: 1 })
 projectSchema.index({ name: 1 })
+
+// "What may this person book to" is asked on every standup form
+projectSchema.index({ members: 1, active: 1 })
 
 module.exports = mongoose.models.Project || mongoose.model('Project', projectSchema)

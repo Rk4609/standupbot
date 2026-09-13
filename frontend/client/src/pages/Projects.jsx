@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
@@ -10,15 +10,22 @@ import Badge from '../components/ui/Badge'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import { Checkbox, Field, Input, Select } from '../components/ui/Field'
-import { IconAlert, IconBriefcase, IconPlus } from '../components/ui/icons'
+import { IconAlert, IconBriefcase, IconCalendar, IconPlus, IconUsers } from '../components/ui/icons'
+import ProjectMembers from '../components/ProjectMembers'
+import ProjectActivity from '../components/ProjectActivity'
 import { cn } from '../lib/cn'
-import { DURATION, EASE } from '../lib/motion'
+import { collapseVariants, DURATION, EASE, SPRING } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 
 const blank = { name: '', code: '', client: '', billable: true }
 
 /** The value the picker uses for "every team can book to this". */
 const SHARED = '__shared__'
+
+const TABS = [
+  { id: 'projects', label: 'Projects', icon: IconBriefcase },
+  { id: 'today', label: 'Who is on what', icon: IconCalendar }
+]
 
 export default function Projects() {
   const [data, setData] = useState(null)
@@ -27,6 +34,8 @@ export default function Projects() {
   const [team, setTeam] = useState(null)
   const [adding, setAdding] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState('projects')
+  const [openId, setOpenId] = useState(null)
 
   const load = () =>
     API.get('/projects/all')
@@ -101,18 +110,55 @@ export default function Projects() {
     <PageShell>
       <PageHeader
         title="Projects"
-        subtitle="What your team books its hours against."
+        subtitle="Who works on what, and what your team books its hours against."
         actions={
-          <Button onClick={() => setAdding(v => !v)} variant={adding ? 'ghost' : 'solid'}>
-            {adding ? 'Cancel' : (
-              <>
-                <IconPlus className="h-4 w-4" />
-                New project
-              </>
-            )}
-          </Button>
+          tab === 'projects' && (
+            <Button onClick={() => setAdding(v => !v)} variant={adding ? 'ghost' : 'solid'}>
+              {adding ? 'Cancel' : (
+                <>
+                  <IconPlus className="h-4 w-4" />
+                  New project
+                </>
+              )}
+            </Button>
+          )
         }
       />
+
+      {/* A segmented control, not two buttons — these switch a view */}
+      <div
+        role="tablist"
+        aria-label="Projects view"
+        className="mb-4 inline-flex rounded-xl bg-surface-sunken p-1"
+      >
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            role="tab"
+            type="button"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={cn(
+              'relative rounded-lg px-4 py-1.5 text-sm font-medium transition-colors',
+              tab === t.id ? 'text-content' : 'text-content-muted hover:text-content'
+            )}
+          >
+            {tab === t.id && (
+              <motion.span
+                layoutId="projects-tab"
+                transition={SPRING}
+                className="absolute inset-0 rounded-lg bg-surface shadow-card"
+              />
+            )}
+            <span className="relative flex items-center gap-1.5">
+              <t.icon className="h-3.5 w-3.5" />
+              {t.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {tab === 'today' ? <ProjectActivity /> : <>
 
       <AnimatePresence initial={false}>
         {adding && (
@@ -198,7 +244,16 @@ export default function Projects() {
         />
       ) : (
         <>
-          <ProjectList title="Open" projects={open} onArchive={p => setActive(p, false)} />
+          <ProjectList
+            title="Open"
+            projects={open}
+            onArchive={p => setActive(p, false)}
+            assignable={data.assignable || []}
+            allProjects={data.projects}
+            openId={openId}
+            onToggle={id => setOpenId(openId === id ? null : id)}
+            onChanged={load}
+          />
           {archived.length > 0 && (
             <ProjectList
               title="Archived"
@@ -209,11 +264,15 @@ export default function Projects() {
           )}
         </>
       )}
+      </>}
     </PageShell>
   )
 }
 
-function ProjectList({ title, projects, onArchive, onReopen, muted }) {
+function ProjectList({
+  title, projects, onArchive, onReopen, muted,
+  assignable = [], allProjects = [], openId, onToggle, onChanged
+}) {
   if (projects.length === 0) return null
 
   return (
@@ -224,51 +283,89 @@ function ProjectList({ title, projects, onArchive, onReopen, muted }) {
       </div>
 
       <ul className="divide-y divide-line border-t border-line">
-        {projects.map(p => (
-          <li key={p._id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3.5">
-            <div className="min-w-0 flex-1">
-              <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-content">
-                {p.code && (
-                  <code className="rounded bg-surface-sunken px-1.5 py-0.5 text-[11px] text-content-subtle">
-                    {p.code}
-                  </code>
+        {projects.map(p => {
+          const open = openId === p._id
+          const named = p.members?.length || 0
+
+          return (
+            <li key={p._id}>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3.5">
+                <button
+                  type="button"
+                  onClick={() => onToggle?.(p._id)}
+                  aria-expanded={open}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-content">
+                    {p.code && (
+                      <code className="rounded bg-surface-sunken px-1.5 py-0.5 text-[11px] text-content-subtle">
+                        {p.code}
+                      </code>
+                    )}
+                    {p.name}
+                    {!p.billable && <Badge tone="neutral">Non-billable</Badge>}
+                    {!p.team && <Badge tone="neutral">Shared</Badge>}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-xs text-content-subtle">
+                    <IconUsers className="h-3 w-3" />
+                    {named > 0
+                      ? `${named} ${named === 1 ? 'person' : 'people'}`
+                      : 'Open to the team'}
+                    <span aria-hidden="true">·</span>
+                    {p.client || 'Internal'}
+                    {p.team?.name ? ` · ${p.team.name}` : ''}
+                  </span>
+                </button>
+
+                <div className="tabular shrink-0 text-right text-sm text-content-muted">
+                  {p.hours > 0 ? `${p.hours} h` : '—'}
+                </div>
+
+                <div className="shrink-0">
+                  {onArchive && (
+                    <button
+                      type="button"
+                      onClick={() => onArchive(p)}
+                      className="rounded-md px-2 py-1 text-xs text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content"
+                    >
+                      Archive
+                    </button>
+                  )}
+                  {onReopen && (
+                    <button
+                      type="button"
+                      onClick={() => onReopen(p)}
+                      className="rounded-md px-2 py-1 text-xs text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content"
+                    >
+                      Reopen
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <AnimatePresence initial={false}>
+                {open && (
+                  <motion.div
+                    variants={collapseVariants}
+                    initial="initial"
+                    animate="animate"
+                    exit="exit"
+                    className="overflow-hidden"
+                  >
+                    <div className="border-t border-line bg-surface-sunken/40 px-5 py-4">
+                      <ProjectMembers
+                        project={p}
+                        assignable={assignable}
+                        projects={allProjects}
+                        onChanged={onChanged}
+                      />
+                    </div>
+                  </motion.div>
                 )}
-                {p.name}
-                {!p.billable && <Badge tone="neutral">Non-billable</Badge>}
-                {!p.team && <Badge tone="neutral">Shared</Badge>}
-              </p>
-              <p className="mt-0.5 text-xs text-content-subtle">
-                {p.client || 'Internal'}
-                {p.team?.name ? ` · ${p.team.name}` : ''}
-              </p>
-            </div>
-
-            <div className="tabular shrink-0 text-right text-sm text-content-muted">
-              {p.hours > 0 ? `${p.hours} h` : '—'}
-            </div>
-
-            <div className="shrink-0">
-              {onArchive && (
-                <button
-                  type="button"
-                  onClick={() => onArchive(p)}
-                  className="rounded-md px-2 py-1 text-xs text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content"
-                >
-                  Archive
-                </button>
-              )}
-              {onReopen && (
-                <button
-                  type="button"
-                  onClick={() => onReopen(p)}
-                  className="rounded-md px-2 py-1 text-xs text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content"
-                >
-                  Reopen
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
+              </AnimatePresence>
+            </li>
+          )
+        })}
       </ul>
     </Card>
   )

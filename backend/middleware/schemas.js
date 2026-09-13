@@ -184,6 +184,22 @@ const updateProject = {
   }).strict()
 }
 
+const projectMembers = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    add: z.array(objectId).max(200).optional(),
+    remove: z.array(objectId).max(200).optional()
+  }).strict().refine(
+    b => (b.add?.length || 0) + (b.remove?.length || 0) > 0,
+    'Name at least one person to add or remove'
+  )
+}
+
+const transferMember = {
+  params: z.object({ id: objectId }),
+  body: z.object({ user: objectId, toProject: objectId }).strict()
+}
+
 const weekQuery = {
   query: z.object({ weekStart: isoDate.optional() }).strip()
 }
@@ -202,6 +218,35 @@ const reviewWeek = {
 const personWeek = {
   params: z.object({ userId: objectId }),
   query: z.object({ weekStart: isoDate.optional() }).strip()
+}
+
+/* help and support -------------------------------------------------- */
+
+const createTicket = z.object({
+  subject: z.string().trim().min(3, 'is too short').max(160, 'is too long'),
+  body: z.string().trim().min(5, 'is too short').max(4000, 'is too long'),
+  category: z.enum(['bug', 'question', 'access', 'other']).optional()
+}).strict()
+
+const listTickets = {
+  query: z.object({
+    page: z.coerce.number().int().positive().optional(),
+    limit: z.coerce.number().int().positive().optional(),
+    status: z.enum(['open', 'answered', 'closed']).optional(),
+    category: z.enum(['bug', 'question', 'access', 'other']).optional()
+  }).strip()
+}
+
+const replyTicket = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    body: z.string().trim().min(1, 'is required').max(4000, 'is too long')
+  }).strict()
+}
+
+const ticketStatus = {
+  params: z.object({ id: objectId }),
+  body: z.object({ status: z.enum(['open', 'answered', 'closed']) }).strict()
 }
 
 /* slack ------------------------------------------------------------ */
@@ -257,6 +302,12 @@ module.exports = {
   templateTeam,
   createProject,
   updateProject,
+  projectMembers,
+  transferMember,
+  createTicket,
+  listTickets,
+  replyTicket,
+  ticketStatus,
   weekQuery,
   submitWeek,
   reviewWeek,

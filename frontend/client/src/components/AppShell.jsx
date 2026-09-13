@@ -13,6 +13,7 @@ import {
   IconChart,
   IconClock,
   IconHome,
+  IconInbox,
   IconMenu,
   IconMoon,
   IconPlus,
@@ -41,7 +42,8 @@ const navGroups = (user) => {
         { to: '/dashboard', label: 'Dashboard', icon: IconHome },
         { to: '/standup/new', label: 'New standup', icon: IconPlus },
         { to: '/history', label: 'My history', icon: IconClock },
-        { to: '/timesheet', label: 'My timesheet', icon: IconTimer }
+        { to: '/timesheet', label: 'My timesheet', icon: IconTimer },
+        { to: '/support', label: 'Help & support', icon: IconInbox }
       ]
     },
     isLead && {
