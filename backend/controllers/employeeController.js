@@ -1,6 +1,7 @@
 const User = require('../models/User')
 const Team = require('../models/Team')
 const Standup = require('../models/Standup')
+const { canUse } = require('../services/roleService')
 const { lastNDates, todayIn, zoneOf } = require('../utils/time')
 
 const PAGE_SIZES = [10, 20, 50, 100]
@@ -61,8 +62,14 @@ const listEmployees = async (req, res) => {
     const totalPages = Math.max(1, Math.ceil(total / limit))
     const safePage = Math.min(page, totalPages)
 
+    // Pay is its own permission, and this list is open to every lead. The
+    // field is left out of the query rather than deleted afterwards: a figure
+    // that never leaves the database cannot leak from a payload.
+    const maySeePay = await canUse(req.user, 'pay')
+    const hidden = '-password -resetPasswordToken -resetPasswordExpire'
+
     const users = await User.find(filter)
-      .select('-password -resetPasswordToken -resetPasswordExpire')
+      .select(maySeePay ? hidden : `${hidden} -salary`)
       .populate('team', 'name')
       .sort({ name: 1 })
       .skip((safePage - 1) * limit)
@@ -121,6 +128,7 @@ const listEmployees = async (req, res) => {
     res.json({
       week,
       employees,
+      maySeePay,
       teams: teamDocs.map(t => t.name),
       pageSizes: PAGE_SIZES,
       total,
@@ -173,8 +181,11 @@ const getEmployee = async (req, res) => {
       return res.status(400).json({ message: 'You are not managing any team!' })
     }
 
+    const maySeePay = await canUse(req.user, 'pay')
+    const hidden = '-password -resetPasswordToken -resetPasswordExpire'
+
     const user = await User.findOne({ _id: req.params.id, ...scope })
-      .select('-password -resetPasswordToken -resetPasswordExpire')
+      .select(maySeePay ? hidden : `${hidden} -salary`)
       .populate('team', 'name')
       .lean()
 
@@ -182,17 +193,17 @@ const getEmployee = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' })
     }
 
-    const [standups, moods] = await Promise.all([
-      Standup.find({ user: user._id }).sort({ date: -1 }).limit(10).lean(),
-      Standup.aggregate([
-        { $match: { user: user._id } },
-        { $group: { _id: '$mood', n: { $sum: 1 } } }
-      ])
+    // An open row used to repeat the last ten standups, blockers and all —
+    // which is the blockers board, one person at a time, next to a table that
+    // already counts them. What is not anywhere else is who this person is.
+    const moods = await Standup.aggregate([
+      { $match: { user: user._id } },
+      { $group: { _id: '$mood', n: { $sum: 1 } } }
     ])
 
     const moodBreakdown = Object.fromEntries(moods.map(m => [m._id, m.n]))
 
-    res.json({ user, standups, moodBreakdown })
+    res.json({ user, moodBreakdown, maySeePay })
   } catch (err) {
     console.error('Get employee error:', err.message)
     res.status(500).json({ message: err.message })

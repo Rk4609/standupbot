@@ -15,6 +15,7 @@ import { MOOD_EMOJI } from '../lib/moods'
 import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, itemVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
+import { prettyDate } from '../lib/dates'
 
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 const WEEKDAY = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -52,7 +53,51 @@ function Avatar({ user }) {
   )
 }
 
-/** Detail body — fetched only when a row is opened. */
+/** One line of the record. Blank values are left out, not shown empty. */
+function Detail({ label, children }) {
+  if (children === null || children === undefined || children === '') return null
+
+  return (
+    <div>
+      <dt className="eyebrow">{label}</dt>
+      <dd className="mt-0.5 text-sm text-content">{children}</dd>
+    </div>
+  )
+}
+
+const TYPE_LABEL = {
+  intern: 'Intern',
+  probation: 'On probation',
+  'full-time': 'Full time',
+  contract: 'Contract'
+}
+
+/** "2 yr 3 mo" from a joining date. */
+const served = (joinedOn) => {
+  const from = joinedOn ? new Date(joinedOn) : null
+  if (!from || Number.isNaN(from.getTime())) return null
+
+  const now = new Date()
+  const months = Math.max(
+    0,
+    (now.getFullYear() - from.getFullYear()) * 12 + (now.getMonth() - from.getMonth())
+  )
+  const years = Math.floor(months / 12)
+  const rest = months % 12
+
+  if (years === 0) return `${rest} mo`
+  return rest === 0 ? `${years} yr` : `${years} yr ${rest} mo`
+}
+
+/**
+ * Detail body — fetched only when a row is opened.
+ *
+ * This used to repeat somebody's last five standups with their blockers in
+ * red, which is the blockers board one person at a time, sitting next to a
+ * table that already counts them. What an open row is actually for is the
+ * part that is nowhere else on the screen: who this person is, when they
+ * started, what they do and how to reach them.
+ */
 function EmployeeDetail({ id }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
@@ -86,34 +131,81 @@ function EmployeeDetail({ id }) {
     )
   }
 
-  const { user, standups, moodBreakdown } = data
-  const moods = Object.entries(moodBreakdown).sort((a, b) => b[1] - a[1])
+  const { user, moodBreakdown, maySeePay } = data
+  const job = user.employment || {}
+  const moods = Object.entries(moodBreakdown || {}).sort((a, b) => b[1] - a[1])
+
+  const address = [
+    user.address?.line1,
+    user.address?.city,
+    user.address?.state,
+    user.address?.pincode,
+    user.address?.country
+  ].filter(Boolean).join(', ')
+
+  const here = served(job.joinedOn)
 
   return (
     <div className="grid gap-6 px-4 py-5 md:grid-cols-3 md:px-6">
-      <dl className="space-y-3 text-sm">
-        <div>
-          <dt className="eyebrow">Email</dt>
-          <dd className="mt-0.5 truncate text-content">{user.email}</dd>
-        </div>
-        <div>
-          <dt className="eyebrow">Team</dt>
-          <dd className="mt-0.5 text-content">{user.team?.name || 'Unassigned'}</dd>
-        </div>
-        <div>
-          <dt className="eyebrow">Joined</dt>
-          <dd className="mt-0.5 text-content">
-            {new Date(user.createdAt).toLocaleDateString('en-US', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric'
-            })}
-          </dd>
-        </div>
+      <section>
+        <p className="eyebrow mb-2.5 text-content-muted">Who they are</p>
+        <dl className="space-y-3">
+          <Detail label="Email">
+            <span className="break-all">{user.email}</span>
+          </Detail>
+          <Detail label="Phone">{user.phone}</Detail>
+          <Detail label="Date of birth">{prettyDate(user.dob)}</Detail>
+          <Detail label="Address">{address}</Detail>
+        </dl>
+      </section>
+
+      <section>
+        <p className="eyebrow mb-2.5 text-content-muted">What they do here</p>
+        <dl className="space-y-3">
+          <Detail label="Position">{job.position}</Detail>
+          <Detail label="Department">{job.department}</Detail>
+          <Detail label="Employee ID">{job.employeeId}</Detail>
+          <Detail label="Team">{user.team?.name || 'Unassigned'}</Detail>
+          <Detail label="Kind of hire">
+            <span className="flex flex-wrap items-center gap-2">
+              {TYPE_LABEL[job.type] || 'Full time'}
+              {job.endsOn && (
+                <Badge tone="warning">
+                  until {prettyDate(job.endsOn)}
+                </Badge>
+              )}
+            </span>
+          </Detail>
+          <Detail label="Joined">
+            {prettyDate(job.joinedOn)
+              ? `${prettyDate(job.joinedOn)}${here ? ` · ${here} here` : ''}`
+              : prettyDate(user.createdAt)}
+          </Detail>
+          <Detail label="Experience before this">
+            {job.experienceYears ? `${job.experienceYears} years` : null}
+          </Detail>
+        </dl>
+      </section>
+
+      <section>
+        {maySeePay && (
+          <>
+            <p className="eyebrow mb-2.5 text-content-muted">What they are paid</p>
+            <dl className="mb-5 space-y-3">
+              <Detail label="Salary">
+                {user.salary?.amount
+                  ? `${user.salary.currency || ''} ${Number(user.salary.amount).toLocaleString()} / ${user.salary.period === 'month' ? 'month' : 'year'}`
+                  : 'Not set'}
+              </Detail>
+              <Detail label="Last reviewed">{prettyDate(user.salary?.reviewedOn)}</Detail>
+            </dl>
+          </>
+        )}
+
         {moods.length > 0 && (
-          <div>
-            <dt className="eyebrow">Mood spread</dt>
-            <dd className="mt-1.5 flex flex-wrap gap-1.5">
+          <>
+            <p className="eyebrow mb-2.5 text-content-muted">Mood spread</p>
+            <div className="flex flex-wrap gap-1.5">
               {moods.map(([mood, n]) => (
                 <span
                   key={mood}
@@ -123,38 +215,10 @@ function EmployeeDetail({ id }) {
                   {MOOD_EMOJI[mood]} {n}
                 </span>
               ))}
-            </dd>
-          </div>
+            </div>
+          </>
         )}
-      </dl>
-
-      <div className="md:col-span-2">
-        <p className="eyebrow mb-2.5">Recent standups</p>
-        {standups.length === 0 ? (
-          <p className="text-sm text-content-subtle">No standups submitted yet.</p>
-        ) : (
-          <div className="space-y-2.5">
-            {standups.slice(0, 5).map(s => (
-              <div key={s._id} className="rounded-lg bg-surface-sunken/60 px-3.5 py-3">
-                <div className="mb-1.5 flex items-center gap-2">
-                  <span aria-hidden="true">{MOOD_EMOJI[s.mood]}</span>
-                  <span className="tabular text-xs text-content-subtle">{s.date}</span>
-                  {s.hasBlocker && (
-                    <Badge tone="danger">
-                      <IconAlert className="h-3 w-3" />
-                      Blocker
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-content">{s.today}</p>
-                {s.hasBlocker && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{s.blockers}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      </section>
     </div>
   )
 }
