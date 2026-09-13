@@ -12,7 +12,14 @@ const mongoose = require('mongoose')
 const reportIndexFailures = () => {
   for (const name of mongoose.modelNames()) {
     mongoose.model(name).on('index', (err) => {
-      if (err) console.error(`Index build failed on ${name}: ${err.message}`)
+      if (!err) return
+
+      // A one-off script that finishes and disconnects interrupts whatever
+      // build was still running. That is not a failure, and reporting it as
+      // one teaches people to ignore this line.
+      if (mongoose.connection.readyState !== 1) return
+
+      console.error(`Index build failed on ${name}: ${err.message}`)
     })
   }
 }

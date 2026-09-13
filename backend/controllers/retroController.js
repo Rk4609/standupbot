@@ -93,12 +93,15 @@ const summarise = (standups, totalMembers) => {
 
 const buildPrompt = ({ teamName, week, standups, stats, previousBlockers, lastRetro }) => {
   const claims = extractClaims(lastRetro?.content)
+  // A team that does not ask what happened yesterday should not have empty
+  // "shipped" fields in the prompt — the model reads those as work that was
+  // reported and came to nothing
   const work = standups.map(s => ({
     member: s.user?.name || 'Unknown',
     date: s.date,
-    shipped: s.yesterday,
+    ...(s.yesterday?.trim() ? { shipped: s.yesterday } : {}),
     planned: s.today,
-    blocker: s.hasBlocker ? s.blockers : null,
+    ...(s.hasBlocker ? { blocker: s.blockers } : {}),
     mood: s.mood
   }))
 
@@ -129,7 +132,7 @@ ${claims
   : 'There was no retrospective last week, so write exactly: This is the first retrospective for this team.'}
 
 **🚀 Shipped this week**
-Group the completed work into themes. Name who drove each one.
+Group the completed work into themes. Name who drove each one. Where an entry has no "shipped" field, the team does not report finished work separately — read what was planned across consecutive days to tell what actually landed, and do not claim anything the standups do not support.
 
 **🔁 Recurring blockers**
 Compare this week's blockers against last week's. Call out anything that appears in both and say how many weeks it has persisted. If nothing repeats, say so plainly.

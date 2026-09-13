@@ -49,6 +49,11 @@ export default function Templates() {
   const core = template?.coreKeys || []
   const isCore = (key) => core.includes(key)
 
+  // Two questions the rest of the app is built on; everything else, including
+  // "what did you do yesterday", is the team's call
+  const required = template?.requiredKeys || []
+  const isRequired = (key) => required.includes(key)
+
   const patch = (index, changes) =>
     setTemplate(t => ({
       ...t,
@@ -234,7 +239,7 @@ export default function Templates() {
                     >
                       ↓
                     </button>
-                    {!isCore(q.key) && (
+                    {!isRequired(q.key) && (
                       <button
                         type="button"
                         onClick={() => remove(i)}

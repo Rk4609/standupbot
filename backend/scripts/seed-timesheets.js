@@ -256,10 +256,25 @@ const run = async () => {
 
   /* ---- and switch the standup form over ---------------------------- */
 
+  const { DEFAULT_QUESTIONS } = StandupTemplate
+
   for (const team of teams) {
+    const existing = await StandupTemplate.findOne({ team: team._id })
+
+    // Turning on time tracking must not also wipe the questions. Creating a
+    // row with none left every member of that team staring at a form with
+    // nothing on it.
     await StandupTemplate.findOneAndUpdate(
       { team: team._id },
-      { $set: { trackTime: true }, $setOnInsert: { team: team._id, name: 'Daily standup' } },
+      {
+        $set: {
+          trackTime: true,
+          questions: existing?.questions?.length
+            ? existing.questions
+            : DEFAULT_QUESTIONS.map(q => ({ ...q }))
+        },
+        $setOnInsert: { team: team._id, name: 'Daily standup' }
+      },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     )
   }

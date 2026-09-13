@@ -2,7 +2,7 @@ const StandupTemplate = require('../models/StandupTemplate')
 const Team = require('../models/Team')
 const { ownTeam } = require('../utils/teams')
 
-const { CORE_KEYS, defaultTemplate } = StandupTemplate
+const { CORE_KEYS, REQUIRED_KEYS, defaultTemplate } = StandupTemplate
 
 /** The team whose template applies to this user, or null for the fallback. */
 const teamForUser = (user) => ownTeam(user)
@@ -29,12 +29,17 @@ const editableTeam = async (user, requested) => {
  * anything should not accumulate a row just for opening the form.
  */
 const resolveTemplate = async (teamId) => {
+  // A stored template with no questions in it would render a form with
+  // nothing to fill in. The API cannot save one, but a migration or a script
+  // can write one, and an empty form is never the right answer.
+  const usable = (t) => (t && t.questions?.length > 0 ? t : null)
+
   if (teamId) {
-    const own = await StandupTemplate.findOne({ team: teamId }).lean()
+    const own = usable(await StandupTemplate.findOne({ team: teamId }).lean())
     if (own) return own
   }
 
-  const fallback = await StandupTemplate.findOne({ team: null }).lean()
+  const fallback = usable(await StandupTemplate.findOne({ team: null }).lean())
   return fallback || defaultTemplate(teamId || null)
 }
 
@@ -72,6 +77,7 @@ const getTemplate = async (req, res) => {
       questions: template.questions,
       askMood: template.askMood,
       coreKeys: CORE_KEYS,
+      requiredKeys: REQUIRED_KEYS,
       // Whether this team has actually written one, or is seeing the default
       custom,
       updatedAt: template.updatedAt || null
@@ -85,14 +91,14 @@ const getTemplate = async (req, res) => {
 /**
  * Reject a question list that would break the rest of the app.
  *
- * The three core questions must all still be there. Everything else is the
- * team's business, except that keys have to be unique — answers are stored
- * under them, so a duplicate would silently overwrite.
+ * Only two questions have to stay. Everything else is the team's business,
+ * except that keys have to be unique — answers are stored under them, so a
+ * duplicate would silently overwrite.
  */
 const validateQuestions = (questions) => {
   const keys = questions.map(q => q.key)
 
-  const missing = CORE_KEYS.filter(k => !keys.includes(k))
+  const missing = REQUIRED_KEYS.filter(k => !keys.includes(k))
   if (missing.length > 0) {
     return `These questions cannot be removed: ${missing.join(', ')}. They are what the blocker board and the reports read.`
   }
@@ -141,6 +147,7 @@ const saveTemplate = async (req, res) => {
       askMood: template.askMood,
       trackTime: Boolean(template.trackTime),
       coreKeys: CORE_KEYS,
+      requiredKeys: REQUIRED_KEYS,
       custom: true,
       updatedAt: template.updatedAt
     })
@@ -170,6 +177,7 @@ const resetTemplate = async (req, res) => {
       askMood: template.askMood,
       trackTime: Boolean(template.trackTime),
       coreKeys: CORE_KEYS,
+      requiredKeys: REQUIRED_KEYS,
       custom: Boolean(template._id),
       updatedAt: template.updatedAt || null
     })

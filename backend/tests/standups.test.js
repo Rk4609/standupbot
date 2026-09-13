@@ -38,11 +38,23 @@ describe('POST /api/standups', () => {
     expect(await Standup.countDocuments({ user: user._id })).toBe(1)
   })
 
-  it('requires both the yesterday and today fields', async () => {
+  it('accepts a standup with only a plan, which is the default now', async () => {
+    // "What did you do yesterday" is no longer asked by default — the answer
+    // is usually yesterday's plan, which the app already has
     const user = await makeUser()
 
     const res = await request(app)
       .post('/api/standups').set(...authHeader(user)).send({ today: 'only today' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.yesterday).toBe('')
+  })
+
+  it('still refuses one with no plan in it', async () => {
+    const user = await makeUser()
+
+    const res = await request(app)
+      .post('/api/standups').set(...authHeader(user)).send({ yesterday: 'did a thing' })
 
     expect(res.status).toBe(400)
   })

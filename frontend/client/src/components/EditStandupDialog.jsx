@@ -28,6 +28,10 @@ export default function EditStandupDialog({
   // A team's own answers are as correctable as the core three
   const answerKeys = Object.keys(standup.answers || {})
 
+  // questionLabels carries exactly the questions the team asks today
+  const asksYesterday = Object.keys(questionLabels).length === 0 ||
+    'yesterday' in questionLabels
+
   const original = {
     yesterday: standup.yesterday || '',
     today: standup.today || '',
@@ -128,14 +132,18 @@ export default function EditStandupDialog({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-            <Field label={questionLabels.yesterday || 'Accomplished yesterday'}>
-              <Textarea
-                ref={firstField}
-                rows={3}
-                value={form.yesterday}
-                onChange={e => setForm(f => ({ ...f, yesterday: e.target.value }))}
-              />
-            </Field>
+            {/* Only shown when the team asks it, or when this standup already
+                has an answer from back when they did */}
+            {(asksYesterday || original.yesterday) && (
+              <Field label={questionLabels.yesterday || 'Accomplished yesterday'}>
+                <Textarea
+                  ref={firstField}
+                  rows={3}
+                  value={form.yesterday}
+                  onChange={e => setForm(f => ({ ...f, yesterday: e.target.value }))}
+                />
+              </Field>
+            )}
 
             <Field
               label={questionLabels.today || "Today's plan"}

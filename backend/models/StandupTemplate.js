@@ -3,16 +3,21 @@ const mongoose = require('mongoose')
 /**
  * The questions a team is asked each day.
  *
- * Three questions carry meaning elsewhere in the app: `blockers` is what the
- * blocker board and the alerts read, and `today` and `yesterday` are what the
- * retro and the export summarise. Those keep their keys and can be reworded,
- * reordered or made optional — but not removed, because dropping them would
- * quietly blind half the product rather than customise it.
+ * Three questions have their own column on a standup rather than living in
+ * the answers map, because the rest of the app reads them directly.
+ *
+ * Two of those cannot be removed: `today`, because a standup with no plan in
+ * it is not a standup, and `blockers`, because it is what the blocker board
+ * and the alerts are built on. `yesterday` is the team's choice — plenty of
+ * teams find it redundant when yesterday's plan is already on the page above.
  *
  * Anything else a team wants to ask is a free question, and its answers live
  * in the standup's `answers` map.
  */
 const CORE_KEYS = ['yesterday', 'today', 'blockers']
+
+/** The questions a template cannot drop. */
+const REQUIRED_KEYS = ['today', 'blockers']
 
 const questionSchema = new mongoose.Schema({
   // Stable identifier: answers are keyed by it, so renaming a label must not
@@ -47,15 +52,15 @@ const templateSchema = new mongoose.Schema({
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, { timestamps: true })
 
-/** The classic three, used when a team has not written its own. */
+/**
+ * What a team is asked when it has not written its own.
+ *
+ * "What did you do yesterday" is not here. The answer is usually what the
+ * person said they would do the day before, which the app already has and
+ * shows, so asking again mostly collects it twice. A team that wants it can
+ * add it back.
+ */
 const DEFAULT_QUESTIONS = [
-  {
-    key: 'yesterday',
-    label: 'What did you accomplish yesterday?',
-    placeholder: 'Describe the tasks you completed…',
-    type: 'long',
-    required: true
-  },
   {
     key: 'today',
     label: 'What are you working on today?',
@@ -83,5 +88,6 @@ const defaultTemplate = (team = null) => ({
 module.exports = mongoose.models.StandupTemplate ||
   mongoose.model('StandupTemplate', templateSchema)
 module.exports.CORE_KEYS = CORE_KEYS
+module.exports.REQUIRED_KEYS = REQUIRED_KEYS
 module.exports.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS
 module.exports.defaultTemplate = defaultTemplate

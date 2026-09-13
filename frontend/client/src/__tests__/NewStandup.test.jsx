@@ -121,9 +121,18 @@ describe('the standup form', () => {
     render(<NewStandup />)
 
     expect(
-      await screen.findByText('What did you accomplish yesterday?')
+      await screen.findByText('What are you working on today?')
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /submit standup/i })).toBeInTheDocument()
+  })
+
+  it('does not ask about yesterday by default', async () => {
+    // The answer is usually yesterday's plan, which the app already has
+    API.get.mockRejectedValue(new Error('offline'))
+    render(<NewStandup />)
+
+    await screen.findByText('What are you working on today?')
+    expect(screen.queryByText(/accomplish yesterday/i)).not.toBeInTheDocument()
   })
 
   it('renders a short question as a single-line box', async () => {

@@ -57,7 +57,9 @@ const analyzeTeam = async (req, res) => {
     const standupData = standups.map(s => ({
       member: s.user.name,
       streak: s.user.streak || 0,
-      accomplished_yesterday: s.yesterday,
+      // Only when the team asks for it — an empty field reads as work that
+      // was reported and amounted to nothing
+      ...(s.yesterday?.trim() ? { accomplished_yesterday: s.yesterday } : {}),
       plan_for_today: s.today,
       blockers: s.hasBlocker ? s.blockers : 'None',
       mood: s.mood

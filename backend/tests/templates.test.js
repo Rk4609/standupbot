@@ -28,14 +28,16 @@ const save = (user, body) =>
   request(app).put('/api/templates').set(...authHeader(user)).send(body)
 
 describe('the default template', () => {
-  it('is the classic three, without writing a row for it', async () => {
+  it('asks for the plan and the blockers, without writing a row for it', async () => {
     const person = await makeUser()
 
     const res = await request(app)
       .get('/api/templates/active').set(...authHeader(person))
 
     expect(res.status).toBe(200)
-    expect(res.body.questions.map(q => q.key)).toEqual(['yesterday', 'today', 'blockers'])
+    // Not "what did you do yesterday" — that answer is usually yesterday's
+    // plan, which is already on the page above
+    expect(res.body.questions.map(q => q.key)).toEqual(['today', 'blockers'])
     expect(res.body.askMood).toBe(true)
 
     // Reading the form must not create anything
@@ -84,6 +86,20 @@ describe('saving a team template', () => {
       .get('/api/templates/active').set(...authHeader(other.member))
 
     expect(res.body.name).toBe('Daily standup')
+  })
+
+  it('lets a team drop the question about yesterday', async () => {
+    const { manager, member } = await withTeam()
+
+    const res = await save(manager, {
+      questions: CORE.filter(q => q.key !== 'yesterday')
+    })
+
+    expect(res.status).toBe(200)
+
+    const active = await request(app)
+      .get('/api/templates/active').set(...authHeader(member))
+    expect(active.body.questions.map(q => q.key)).toEqual(['today', 'blockers'])
   })
 
   it('refuses to remove a question the rest of the app reads', async () => {
@@ -310,5 +326,29 @@ describe('custom answers downstream', () => {
 
     expect(res.text).toContain('"learned"')
     expect(res.text).toContain('Maps serialise as objects')
+  })
+})
+
+describe('a template with nothing in it', () => {
+  it('falls back to the questions rather than rendering an empty form', async () => {
+    const { team, member } = await withTeam()
+
+    // The API cannot save one of these, but a script can write one — and it
+    // did, which left every member of two teams with a form to fill in that
+    // had no questions on it
+    await StandupTemplate.collection.insertOne({
+      team: team._id,
+      name: 'Broken',
+      questions: [],
+      askMood: true,
+      trackTime: false
+    })
+
+    const res = await request(app)
+      .get('/api/templates/active').set(...authHeader(member))
+
+    expect(res.status).toBe(200)
+    expect(res.body.questions.length).toBeGreaterThan(0)
+    expect(res.body.questions.map(q => q.key)).toContain('today')
   })
 })

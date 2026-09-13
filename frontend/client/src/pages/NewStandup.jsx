@@ -23,13 +23,6 @@ const DEFAULT_TEMPLATE = {
   coreKeys: ['yesterday', 'today', 'blockers'],
   questions: [
     {
-      key: 'yesterday',
-      label: 'What did you accomplish yesterday?',
-      placeholder: 'Describe the tasks you completed…',
-      type: 'long',
-      required: true
-    },
-    {
       key: 'today',
       label: 'What are you working on today?',
       placeholder: 'Share your plan for today…',
