@@ -1,10 +1,34 @@
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const User = require('../models/User')
+const { modulesFor, roleFor } = require('../services/roleService')
 const { sendResetPasswordEmail } = require('../services/emailService')
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+
+/**
+ * What the browser keeps about the signed-in person.
+ *
+ * `modules` travels with the session so the sidebar and the route guard are
+ * right on the first paint; the server checks them again on every request
+ * that matters, because nothing sent to a browser is a permission.
+ */
+const session = async (user) => {
+  const role = await roleFor(user)
+
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    roleName: role?.name || user.role,
+    modules: await modulesFor(user),
+    streak: user.streak || 0,
+    timezone: user.timezone || '',
+    token: generateToken(user._id)
+  }
+}
 
 // POST /api/auth/register — (existing)
 const register = async (req, res) => {
@@ -29,15 +53,7 @@ const register = async (req, res) => {
       timezone: timezone || ''
     })
 
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      streak: user.streak || 0,
-      timezone: user.timezone || '',
-      token: generateToken(user._id)
-    })
+    res.status(201).json(await session(user))
   } catch (err) {
     console.error('Register error:', err)
     res.status(500).json({ message: err.message })
@@ -58,15 +74,7 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email ya password' })
     }
 
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      streak: user.streak || 0,
-      timezone: user.timezone || '',
-      token: generateToken(user._id)
-    })
+    res.json(await session(user))
   } catch (err) {
     console.error('Login error:', err)
     res.status(500).json({ message: err.message })

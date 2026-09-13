@@ -1,8 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/cn'
+import { can } from '../lib/permissions'
 import { SPRING } from '../lib/motion'
-import { IconBolt, IconBriefcase, IconList, IconShield, IconTarget } from './ui/icons'
+import {
+  IconBolt, IconBriefcase, IconList, IconShield, IconShieldCheck, IconTarget
+} from './ui/icons'
 
 /**
  * The things a team sets up once and then rarely touches.
@@ -13,15 +16,16 @@ import { IconBolt, IconBriefcase, IconList, IconShield, IconTarget } from './ui/
  * own row of tabs.
  */
 const SECTIONS = [
-  { to: 'projects', label: 'Projects', icon: IconBriefcase },
-  { to: 'template', label: 'Standup template', icon: IconTarget },
-  { to: 'integrations', label: 'Integrations', icon: IconBolt },
-  { to: 'activity', label: 'Activity', icon: IconList },
-  { to: 'admin', label: 'People & roles', icon: IconShield, adminOnly: true }
+  { to: 'projects', label: 'Projects', icon: IconBriefcase, module: 'projects' },
+  { to: 'template', label: 'Standup template', icon: IconTarget, module: 'templates' },
+  { to: 'integrations', label: 'Integrations', icon: IconBolt, module: 'integrations' },
+  { to: 'activity', label: 'Activity', icon: IconList, module: 'activity' },
+  { to: 'admin', label: 'People & teams', icon: IconShield, module: 'people' },
+  { to: 'roles', label: 'Roles & access', icon: IconShieldCheck, module: 'roles' }
 ]
 
 export default function WorkspaceLayout({ user }) {
-  const sections = SECTIONS.filter(s => !s.adminOnly || user?.role === 'admin')
+  const sections = SECTIONS.filter(s => can(user, s.module))
 
   return (
     <>

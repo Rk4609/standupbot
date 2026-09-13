@@ -7,6 +7,12 @@
     email:    { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role:     { type: String, enum: ['admin', 'manager', 'employee'], default: 'employee' },
+
+    // The named role somebody was given, when it is not simply one of the
+    // three. `role` above stays the authority the server enforces — a named
+    // role carries its own `base` and is only ever assigned together with it,
+    // so every existing check keeps working and cannot be widened from here.
+    accessRole: { type: mongoose.Schema.Types.ObjectId, ref: 'Role', default: null },
     team:     { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
     streak:   { type: Number, default: 0 },
     lastSubmission: { type: Date, default: null },

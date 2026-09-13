@@ -16,7 +16,10 @@ const ACTIONS = [
   'standup.deleted',
   'user.role_changed',
   'timesheet.reviewed',
-  'project.transfer'
+  'project.transfer',
+  'role.created',
+  'role.updated',
+  'role.deleted'
 ]
 
 const changeSchema = new mongoose.Schema({

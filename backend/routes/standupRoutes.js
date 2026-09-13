@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { protect } = require('../middleware/authMiddleware')
-const { allowRoles } = require('../middleware/roleMiddleware')
+const { allowRoles, requireModule } = require('../middleware/roleMiddleware')
 const { validate } = require('../middleware/validate')
 const S = require('../middleware/schemas')
 const {
@@ -16,11 +16,12 @@ router.get(
   '/team',
   protect,
   allowRoles('manager', 'admin'),
+  requireModule('team'),
   validate(S.dateQuery),
   getTeamStandups
 )
-router.get('/blockers', protect, allowRoles('manager', 'admin'), getBlockers)
-router.get('/stats', protect, allowRoles('manager', 'admin'), getTeamStats)
+router.get('/blockers', protect, allowRoles('manager', 'admin'), requireModule('blockers'), getBlockers)
+router.get('/stats', protect, allowRoles('manager', 'admin'), requireModule('team'), getTeamStats)
 
 // Edit your own standup, or your team's as a lead. The controller decides
 // which, because "who may edit this" depends on the standup, not the route.

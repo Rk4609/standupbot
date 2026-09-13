@@ -4,6 +4,7 @@ const User = require('../models/User')
 const Standup = require('../models/Standup')
 const { isValidTimezone, lastNDates, zoneOf } = require('../utils/time')
 const audit = require('../services/auditService')
+const { invalidate, modulesFor, roleFor } = require('../services/roleService')
 
 // GET /api/users — admin ke liye sabhi users
 const getAllUsers = async (req, res) => {
@@ -33,7 +34,18 @@ const getProfile = async (req, res) => {
 
     const submittedDates = recentDates.map(s => s.date)
 
-    res.json({ ...user.toObject(), totalStandups, submittedDates })
+    const role = await roleFor(req.user)
+
+    res.json({
+      ...user.toObject(),
+      totalStandups,
+      submittedDates,
+      // What the sidebar and the route guard read. Sent with the profile so
+      // the first paint is already correct rather than briefly showing rows
+      // this person cannot open.
+      roleName: role?.name || user.role,
+      modules: await modulesFor(req.user)
+    })
   } catch (err) {
     console.error('Get profile error:', err)
     res.status(500).json({ message: err.message })
@@ -161,13 +173,17 @@ const setUserRole = async (req, res) => {
     const user = await User.findById(req.params.id)
     if (!user) return res.status(404).json({ message: 'User not found' })
 
-    if (user.role === role) {
+    if (user.role === role && !user.accessRole) {
       return res.json({ message: `Already ${role}`, user: sanitise(user) })
     }
 
     const previous = user.role
     user.role = role
+    // The three-way select means one of the three. Somebody moved back to a
+    // plain role should not keep a named one whose modules still apply.
+    user.accessRole = null
     await user.save()
+    invalidate()
 
     // This used to be a console line only, which Render discards. Granting
     // someone manager or admin is the most consequential thing anyone can do

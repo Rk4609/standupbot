@@ -5,6 +5,7 @@ import { removeUser } from '../store/authStore'
 import socket from '../socket'
 import API from '../api/axios'
 import { cn } from '../lib/cn'
+import { can } from '../lib/permissions'
 import { SPRING, popVariants } from '../lib/motion'
 import NotificationList from './NotificationList'
 import { showNotificationToast } from '../lib/notificationToast'
@@ -34,35 +35,41 @@ import {
  * a team configures once now lives behind Workspace.
  */
 const navGroups = (user) => {
-  const isLead = user?.role === 'manager' || user?.role === 'admin'
-
-  return [
+  // Each row names the module it belongs to, so a role that had that module
+  // taken away loses the row rather than finding a page that refuses it
+  const groups = [
     {
       label: null,
       items: [
-        { to: '/dashboard', label: 'Dashboard', icon: IconHome },
-        { to: '/standup/new', label: 'New standup', icon: IconPlus },
-        { to: '/history', label: 'My history', icon: IconClock },
-        { to: '/timesheet', label: 'My timesheet', icon: IconTimer },
-        { to: '/support', label: 'Help & support', icon: IconInbox }
+        { to: '/dashboard', label: 'Dashboard', icon: IconHome, module: 'dashboard' },
+        { to: '/standup/new', label: 'New standup', icon: IconPlus, module: 'standup' },
+        { to: '/history', label: 'My history', icon: IconClock, module: 'history' },
+        { to: '/timesheet', label: 'My timesheet', icon: IconTimer, module: 'timesheet' },
+        { to: '/support', label: 'Help & support', icon: IconInbox, module: 'support' }
       ]
     },
-    isLead && {
+    {
       label: 'Team',
       items: [
-        { to: '/team', label: 'Overview', icon: IconChart },
-        { to: '/employees', label: 'Employees', icon: IconUsers },
-        { to: '/blockers', label: 'Blockers', icon: IconAlert },
-        { to: '/timesheets', label: 'Timesheets', icon: IconTimer },
-        { to: '/analytics', label: 'Analytics', icon: IconTrendUp },
-        { to: '/retro', label: 'Weekly retro', icon: IconSparkles }
+        { to: '/team', label: 'Overview', icon: IconChart, module: 'team' },
+        { to: '/employees', label: 'Employees', icon: IconUsers, module: 'employees' },
+        { to: '/blockers', label: 'Blockers', icon: IconAlert, module: 'blockers' },
+        { to: '/timesheets', label: 'Timesheets', icon: IconTimer, module: 'timesheets' },
+        { to: '/analytics', label: 'Analytics', icon: IconTrendUp, module: 'analytics' },
+        { to: '/retro', label: 'Weekly retro', icon: IconSparkles, module: 'retro' }
       ]
     },
-    isLead && {
+    {
       label: 'Manage',
-      items: [{ to: '/workspace', label: 'Workspace', icon: IconTarget }]
+      items: [
+        { to: '/workspace', label: 'Workspace', icon: IconTarget, module: 'projects' }
+      ]
     }
-  ].filter(Boolean)
+  ]
+
+  return groups
+    .map(group => ({ ...group, items: group.items.filter(i => can(user, i.module)) }))
+    .filter(group => group.items.length > 0)
 }
 
 function NavItem({ to, label, icon: Icon, onNavigate, idPrefix }) {

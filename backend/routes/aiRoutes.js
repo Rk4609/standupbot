@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { protect } = require('../middleware/authMiddleware')
-const { allowRoles } = require('../middleware/roleMiddleware')
+const { allowRoles, requireModule } = require('../middleware/roleMiddleware')
 const { validate } = require('../middleware/validate')
 const { aiLimiter } = require('../middleware/rateLimiters')
 const S = require('../middleware/schemas')
@@ -11,6 +11,7 @@ router.post(
   '/analyze-team',
   protect,
   allowRoles('manager', 'admin'),
+  requireModule('team'),
   aiLimiter,
   validate({ body: S.analyzeTeam }),
   analyzeTeam

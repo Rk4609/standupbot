@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { protect } = require('../middleware/authMiddleware')
-const { allowRoles } = require('../middleware/roleMiddleware')
+const { allowRoles, requireModule } = require('../middleware/roleMiddleware')
 const { upload } = require('../config/cloudinary')
 const { validate } = require('../middleware/validate')
 const S = require('../middleware/schemas')
@@ -10,11 +10,12 @@ const {
   changePassword, uploadAvatar
 } = require('../controllers/userController')
 
-router.get('/', protect, allowRoles('admin'), getAllUsers)
+router.get('/', protect, allowRoles('admin'), requireModule('people'), getAllUsers)
 router.patch(
   '/:id/role',
   protect,
   allowRoles('admin'),
+  requireModule('people'),
   validate(S.setRole),
   setUserRole
 )

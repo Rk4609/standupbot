@@ -249,6 +249,37 @@ const ticketStatus = {
   body: z.object({ status: z.enum(['open', 'answered', 'closed']) }).strict()
 }
 
+/* roles and access -------------------------------------------------- */
+
+const moduleList = z.array(z.string().max(40)).max(60)
+const base = z.enum(['employee', 'manager', 'admin'])
+
+const createRole = z.object({
+  name: z.string().trim().min(2, 'is too short').max(60, 'is too long'),
+  description: z.string().trim().max(200, 'is too long').optional(),
+  base: base.optional(),
+  modules: moduleList.optional()
+}).strict()
+
+const updateRole = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    name: z.string().trim().min(2, 'is too short').max(60, 'is too long').optional(),
+    description: z.string().trim().max(200, 'is too long').optional(),
+    base: base.optional(),
+    modules: moduleList.optional()
+  }).strict()
+}
+
+const roleId = { params: z.object({ id: objectId }) }
+
+const assignRole = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    users: z.array(objectId).min(1, 'needs at least one person').max(500)
+  }).strict()
+}
+
 /* slack ------------------------------------------------------------ */
 
 const slackEvents = z.object({
@@ -304,6 +335,10 @@ module.exports = {
   updateProject,
   projectMembers,
   transferMember,
+  createRole,
+  updateRole,
+  roleId,
+  assignRole,
   createTicket,
   listTickets,
   replyTicket,

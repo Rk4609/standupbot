@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { protect } = require('../middleware/authMiddleware')
-const { allowRoles } = require('../middleware/roleMiddleware')
+const { allowRoles, requireModule } = require('../middleware/roleMiddleware')
 const { validate } = require('../middleware/validate')
 const S = require('../middleware/schemas')
 const {
@@ -9,7 +9,7 @@ const {
 } = require('../controllers/slackController')
 
 // Wiring a channel is a lead's decision, and the webhook is a secret
-router.use(protect, allowRoles('manager', 'admin'))
+router.use(protect, allowRoles('manager', 'admin'), requireModule('integrations'))
 
 router.get('/', validate(S.slackTeam), getIntegration)
 router.put('/', validate({ body: S.saveSlack }), saveIntegration)

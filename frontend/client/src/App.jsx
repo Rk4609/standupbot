@@ -39,6 +39,7 @@ const Integrations = lazy(() => import("./pages/Integrations"))
 const WorkspaceLayout = lazy(() => import("./components/WorkspaceLayout"))
 const Timesheet = lazy(() => import("./pages/Timesheet"))
 const Support = lazy(() => import("./pages/Support"))
+const Roles = lazy(() => import("./pages/Roles"))
 const Projects = lazy(() => import("./pages/Projects"))
 const TeamTimesheets = lazy(() => import("./pages/TeamTimesheets"))
 const NotFound = lazy(() => import("./pages/NotFound"))
@@ -98,28 +99,58 @@ function AnimatedRoutes({ user, setUser }) {
 
         <Route element={<ProtectedRoute user={user} />}>
           <Route path="/dashboard" element={<Dashboard user={user} />} />
-          <Route path="/standup/new" element={<NewStandup />} />
-          <Route path="/history" element={<History />} />
           <Route path="/profile" element={<Profile user={user} setUser={setUser} />} />
-          <Route path="/timesheet" element={<Timesheet />} />
           <Route path="/support" element={<Support user={user} />} />
         </Route>
 
+        {/* Every route below names the module its role must still hold. The
+            server refuses these too — this only keeps somebody from walking
+            into a page that is going to turn them away. */}
+        <Route element={<ProtectedRoute user={user} module="standup" />}>
+          <Route path="/standup/new" element={<NewStandup />} />
+        </Route>
+        <Route element={<ProtectedRoute user={user} module="history" />}>
+          <Route path="/history" element={<History />} />
+        </Route>
+        <Route element={<ProtectedRoute user={user} module="timesheet" />}>
+          <Route path="/timesheet" element={<Timesheet />} />
+        </Route>
+
         <Route element={<ProtectedRoute user={user} roles={["manager", "admin"]} />}>
-          <Route path="/team" element={<TeamView />} />
-          <Route path="/blockers" element={<Blockers user={user} />} />
-          <Route path="/retro" element={<Retro user={user} />} />
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/timesheets" element={<TeamTimesheets />} />
+          <Route element={<ProtectedRoute user={user} module="team" />}>
+            <Route path="/team" element={<TeamView />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="blockers" />}>
+            <Route path="/blockers" element={<Blockers user={user} />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="retro" />}>
+            <Route path="/retro" element={<Retro user={user} />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="employees" />}>
+            <Route path="/employees" element={<Employees />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="analytics" />}>
+            <Route path="/analytics" element={<Analytics />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="timesheets" />}>
+            <Route path="/timesheets" element={<TeamTimesheets />} />
+          </Route>
 
           {/* Set-up lives together rather than as five more sidebar rows */}
           <Route path="/workspace" element={<WorkspaceLayout user={user} />}>
             <Route index element={<Navigate to="projects" replace />} />
-            <Route path="projects" element={<Projects />} />
-            <Route path="template" element={<Templates />} />
-            <Route path="integrations" element={<Integrations />} />
-            <Route path="activity" element={<Activity />} />
+            <Route element={<ProtectedRoute user={user} module="projects" />}>
+              <Route path="projects" element={<Projects />} />
+            </Route>
+            <Route element={<ProtectedRoute user={user} module="templates" />}>
+              <Route path="template" element={<Templates />} />
+            </Route>
+            <Route element={<ProtectedRoute user={user} module="integrations" />}>
+              <Route path="integrations" element={<Integrations />} />
+            </Route>
+            <Route element={<ProtectedRoute user={user} module="activity" />}>
+              <Route path="activity" element={<Activity />} />
+            </Route>
           </Route>
         </Route>
 
@@ -134,7 +165,12 @@ function AnimatedRoutes({ user, setUser }) {
 
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
           <Route path="/workspace" element={<WorkspaceLayout user={user} />}>
-            <Route path="admin" element={<AdminPanel user={user} />} />
+            <Route element={<ProtectedRoute user={user} module="people" />}>
+              <Route path="admin" element={<AdminPanel user={user} />} />
+            </Route>
+            <Route element={<ProtectedRoute user={user} module="roles" />}>
+              <Route path="roles" element={<Roles />} />
+            </Route>
           </Route>
           <Route path="/admin" element={<Navigate to="/workspace/admin" replace />} />
         </Route>

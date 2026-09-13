@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { protect } = require('../middleware/authMiddleware')
-const { allowRoles } = require('../middleware/roleMiddleware')
+const { allowRoles, requireModule } = require('../middleware/roleMiddleware')
 const { validate } = require('../middleware/validate')
 const S = require('../middleware/schemas')
 const {
@@ -10,7 +10,7 @@ const {
   getEmployee
 } = require('../controllers/employeeController')
 
-router.use(protect, allowRoles('manager', 'admin'))
+router.use(protect, allowRoles('manager', 'admin'), requireModule('employees'))
 
 router.get('/', validate(S.listEmployees), listEmployees)
 // Must come before /:id, or "summary" is read as an employee id
