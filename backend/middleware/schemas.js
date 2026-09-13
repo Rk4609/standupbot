@@ -305,6 +305,61 @@ const updatePerson = {
   }).strict()
 }
 
+/* hiring ------------------------------------------------------------ */
+
+const submitCandidate = z.object({
+  name: z.string().trim().min(2, 'is too short').max(120, 'is too long'),
+  email: z.string().trim().email('is not an email').max(160),
+  phone: z.string().trim().max(30).optional(),
+  dob: isoDateish.optional(),
+
+  address: z.object({
+    line1: shortText(200).optional(),
+    city: shortText(80).optional(),
+    state: shortText(80).optional(),
+    pincode: shortText(12).optional(),
+    country: shortText(80).optional()
+  }).strict().optional(),
+
+  position: z.string().trim().min(2, 'is too short').max(80, 'is too long'),
+  department: shortText(80).optional(),
+  team: z.union([objectId, z.null()]).optional(),
+  type: z.enum(['intern', 'probation', 'full-time', 'contract']).optional(),
+
+  joiningOn: isoDateish.optional(),
+  startsOn: isoDateish.optional(),
+  endsOn: isoDateish.optional(),
+  experienceYears: z.coerce.number().min(0).max(60).optional(),
+
+  expectedSalary: z.object({
+    amount: z.union([z.coerce.number().min(0).max(1e12), z.null()]).optional(),
+    currency: shortText(8).optional(),
+    period: z.enum(['month', 'year']).optional()
+  }).strict().optional(),
+
+  cv: z.object({
+    url: z.union([z.string().trim().url('is not a link').max(500), z.literal('')]).optional(),
+    name: shortText(200).optional()
+  }).strict().optional(),
+
+  notes: z.string().trim().max(2000, 'is too long').optional()
+}).strict()
+
+const listCandidates = {
+  query: z.object({
+    page: z.coerce.number().int().positive().optional(),
+    limit: z.coerce.number().int().positive().optional(),
+    status: z.enum(['pending', 'approved', 'rejected']).optional()
+  }).strip()
+}
+
+const decideCandidate = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    reason: z.string().trim().max(1000, 'is too long').optional()
+  }).strict()
+}
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -393,6 +448,9 @@ module.exports = {
   transferMember,
   listPeople,
   updatePerson,
+  submitCandidate,
+  listCandidates,
+  decideCandidate,
   createRole,
   updateRole,
   roleId,

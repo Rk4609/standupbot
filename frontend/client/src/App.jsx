@@ -41,6 +41,7 @@ const Timesheet = lazy(() => import("./pages/Timesheet"))
 const Support = lazy(() => import("./pages/Support"))
 const Roles = lazy(() => import("./pages/Roles"))
 const People = lazy(() => import("./pages/People"))
+const Hiring = lazy(() => import("./pages/Hiring"))
 const Projects = lazy(() => import("./pages/Projects"))
 const TeamTimesheets = lazy(() => import("./pages/TeamTimesheets"))
 const NotFound = lazy(() => import("./pages/NotFound"))
@@ -155,6 +156,9 @@ function AnimatedRoutes({ user, setUser }) {
             <Route element={<ProtectedRoute user={user} module="records" />}>
               <Route path="records" element={<People user={user} />} />
             </Route>
+            <Route element={<ProtectedRoute user={user} module="hiring" />}>
+              <Route path="hiring" element={<Hiring />} />
+            </Route>
           </Route>
         </Route>
 
@@ -174,6 +178,9 @@ function AnimatedRoutes({ user, setUser }) {
             </Route>
             <Route element={<ProtectedRoute user={user} module="roles" />}>
               <Route path="roles" element={<Roles />} />
+            </Route>
+            <Route element={<ProtectedRoute user={user} module="approvals" />}>
+              <Route path="approvals" element={<Hiring decide />} />
             </Route>
           </Route>
           <Route path="/admin" element={<Navigate to="/workspace/admin" replace />} />

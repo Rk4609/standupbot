@@ -4,7 +4,8 @@ import { cn } from '../lib/cn'
 import { can } from '../lib/permissions'
 import { SPRING } from '../lib/motion'
 import {
-  IconBolt, IconBriefcase, IconList, IconShield, IconShieldCheck, IconTarget, IconUser
+  IconBolt, IconBriefcase, IconCheck, IconList, IconShield, IconShieldCheck,
+  IconTarget, IconUser, IconUsers
 } from './ui/icons'
 
 /**
@@ -21,6 +22,8 @@ const SECTIONS = [
   { to: 'integrations', label: 'Integrations', icon: IconBolt, module: 'integrations' },
   { to: 'activity', label: 'Activity', icon: IconList, module: 'activity' },
   { to: 'records', label: 'People records', icon: IconUser, module: 'records' },
+  { to: 'hiring', label: 'Hiring', icon: IconUsers, module: 'hiring' },
+  { to: 'approvals', label: 'Approvals', icon: IconCheck, module: 'approvals' },
   { to: 'admin', label: 'People & teams', icon: IconShield, module: 'people' },
   { to: 'roles', label: 'Roles & access', icon: IconShieldCheck, module: 'roles' }
 ]

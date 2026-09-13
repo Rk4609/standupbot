@@ -18,6 +18,9 @@ const ACTIONS = [
   'timesheet.reviewed',
   'project.transfer',
   'user.record_updated',
+  'hiring.submitted',
+  'hiring.approved',
+  'hiring.rejected',
   'role.created',
   'role.updated',
   'role.deleted'

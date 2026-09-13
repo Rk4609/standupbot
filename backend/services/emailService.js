@@ -235,6 +235,9 @@ const sendRetroEmail = async (toEmail, managerName, teamName, week, content, sta
 module.exports = {
   from,
   usingSandbox,
+  // The templated helpers cover the recurring mail; this is for the one-off
+  // kind, and it no-ops with a warning when email is not configured
+  sendMail: (payload) => send({ ...payload, to: [payload.to] }),
   sendReminderEmail,
   sendManagerSummary,
   sendResetPasswordEmail,

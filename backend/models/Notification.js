@@ -19,7 +19,10 @@ const notificationSchema = new mongoose.Schema({
       // The help desk: somebody reported something, or somebody answered
       'support_raised',
       'support_replied',
-      'support_closed'
+      'support_closed',
+      // Hiring: one waiting on a decision, and the decision itself
+      'hiring_submitted',
+      'hiring_decided'
     ],
     required: true
   },

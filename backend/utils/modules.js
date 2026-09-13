@@ -33,6 +33,8 @@ const MODULES = [
   { key: 'integrations', label: 'Integrations', group: 'Workspace', minBase: 'manager' },
   { key: 'activity', label: 'Activity log', group: 'Workspace', minBase: 'manager' },
   { key: 'records', label: 'People records', group: 'Workspace', minBase: 'manager' },
+  { key: 'hiring', label: 'Hiring — put people forward', group: 'Workspace', minBase: 'manager' },
+  { key: 'approvals', label: 'Approvals — decide on hires', group: 'Workspace', minBase: 'admin' },
   { key: 'pay', label: 'Pay details', group: 'Workspace', minBase: 'admin' },
   { key: 'people', label: 'People & teams', group: 'Workspace', minBase: 'admin' },
   { key: 'roles', label: 'Roles & access', group: 'Workspace', minBase: 'admin' }
@@ -58,7 +60,7 @@ const DEFAULTS = {
   manager: [
     'dashboard', 'standup', 'history', 'timesheet', 'support',
     'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro',
-    'projects', 'templates', 'integrations', 'activity', 'records'
+    'projects', 'templates', 'integrations', 'activity', 'records', 'hiring'
   ],
   admin: MODULE_KEYS
 }

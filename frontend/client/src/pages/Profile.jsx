@@ -11,8 +11,9 @@ import Badge from '../components/ui/Badge'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import { Field, Input, Select } from '../components/ui/Field'
+import Modal from '../components/ui/Modal'
 import { cn } from '../lib/cn'
-import { DURATION, EASE, SPRING, itemVariants, listVariants } from '../lib/motion'
+import { SPRING, itemVariants, listVariants } from '../lib/motion'
 import {
   IconAlert,
   IconCamera,
@@ -143,7 +144,10 @@ export default function Profile({ user, setUser }) {
   const [nameLoading, setNameLoading] = useState(false)
   const [passLoading, setPassLoading] = useState(false)
   const [avatarLoading, setAvatarLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('profile')
+  // Which dialog is open, if any. The forms used to sit in a tabbed card
+  // that took two thirds of the page for something people touch twice a
+  // year — the record underneath is what they actually came to read.
+  const [dialog, setDialog] = useState(null)
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -281,16 +285,28 @@ export default function Profile({ user, setUser }) {
     (nameForm.timezone || '') !== (profile.timezone || '')
   const nameEmpty = nameForm.name.trim() === ''
 
-  const TABS = [
-    { id: 'profile', label: 'Profile', icon: IconPencil },
-    { id: 'password', label: 'Password', icon: IconLock }
-  ]
-
   return (
     <PageShell>
       <PageHeader
         title="My profile"
         subtitle="Your details, and how the app counts your days."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setDialog('profile')}>
+              <IconPencil className="h-4 w-4" />
+              Edit profile
+            </Button>
+            <button
+              type="button"
+              onClick={() => setDialog('password')}
+              aria-label="Change your password"
+              title="Change your password"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-content-muted transition-colors hover:text-content"
+            >
+              <IconLock className="h-4 w-4" />
+            </button>
+          </div>
+        }
       />
 
       <motion.div variants={listVariants} initial="initial" animate="animate">
@@ -393,211 +409,15 @@ export default function Profile({ user, setUser }) {
         </motion.div>
 
         <div className="grid gap-4 lg:grid-cols-3 lg:items-start">
-          {/* Settings */}
+          {/* What is actually worth reading here: the record, wide enough to
+              sit in two columns rather than squeezed beside a form nobody
+              opens twice */}
           <motion.div variants={itemVariants} className="lg:col-span-2">
-            <Card padded={false}>
-              {/* A segmented control, not two buttons — these switch a view,
-                  they do not perform an action */}
-              <div className="border-b border-line px-4 pt-4 md:px-6">
-                <div
-                  role="tablist"
-                  aria-label="Profile settings"
-                  className="inline-flex rounded-xl bg-surface-sunken p-1"
-                >
-                  {TABS.map(tab => (
-                    <button
-                      key={tab.id}
-                      role="tab"
-                      type="button"
-                      aria-selected={activeTab === tab.id}
-                      aria-controls={`panel-${tab.id}`}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={cn(
-                        'relative rounded-lg px-4 py-1.5 text-sm font-medium transition-colors',
-                        activeTab === tab.id
-                          ? 'text-content'
-                          : 'text-content-muted hover:text-content'
-                      )}
-                    >
-                      {activeTab === tab.id && (
-                        <motion.span
-                          layoutId="profile-tab"
-                          transition={SPRING}
-                          className="absolute inset-0 rounded-lg bg-surface shadow-card"
-                        />
-                      )}
-                      <span className="relative flex items-center gap-1.5">
-                        <tab.icon className="h-3.5 w-3.5" />
-                        {tab.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  id={`panel-${activeTab}`}
-                  role="tabpanel"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: DURATION.fast, ease: EASE }}
-                  className="px-4 py-5 md:px-6"
-                >
-                  {activeTab === 'profile' ? (
-                    <form onSubmit={handleNameUpdate} className="space-y-5">
-                      <Field
-                        label="Full name"
-                        error={nameEmpty ? 'Your name cannot be empty' : ''}
-                      >
-                        <Input
-                          type="text"
-                          value={nameForm.name}
-                          invalid={nameEmpty}
-                          onChange={e => setNameForm(f => ({ ...f, name: e.target.value }))}
-                        />
-                      </Field>
-
-                      <div>
-                        <Field
-                          label="Timezone"
-                          hint={
-                            zone
-                              ? `Your standups are filed against this clock — it is ${timeIn(zone)} there now.`
-                              : 'Not set, so your standups are filed against UTC.'
-                          }
-                        >
-                          <Select
-                            value={nameForm.timezone}
-                            onChange={e =>
-                              setNameForm(f => ({ ...f, timezone: e.target.value }))
-                            }
-                          >
-                            <option value="">Not set (UTC)</option>
-                            {zones.map(tz => (
-                              <option key={tz} value={tz}>
-                                {tz.replace(/_/g, ' ')} · {offsetLabel(tz)}
-                              </option>
-                            ))}
-                          </Select>
-                        </Field>
-
-                        {detected && detected !== nameForm.timezone && (
-                          <button
-                            type="button"
-                            onClick={() => setNameForm(f => ({ ...f, timezone: detected }))}
-                            className="mt-2 text-xs font-medium text-brand-600 underline-offset-2 hover:underline dark:text-brand-400"
-                          >
-                            Use this device&apos;s zone ({detected.replace(/_/g, ' ')})
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
-                        <Button
-                          type="submit"
-                          loading={nameLoading}
-                          disabled={!changed || nameEmpty}
-                        >
-                          Save changes
-                        </Button>
-                        <p className="text-xs text-content-subtle">
-                          {changed ? 'You have unsaved changes.' : 'Nothing to save.'}
-                        </p>
-                      </div>
-                    </form>
-                  ) : (
-                    <form onSubmit={handlePasswordChange} className="space-y-5">
-                      <Field label="Current password">
-                        <Input
-                          type="password"
-                          required
-                          autoComplete="current-password"
-                          value={passForm.currentPassword}
-                          onChange={e =>
-                            setPassForm({ ...passForm, currentPassword: e.target.value })
-                          }
-                          placeholder="••••••••"
-                        />
-                      </Field>
-
-                      <Field
-                        label="New password"
-                        error={passTooShort ? 'Use at least 6 characters' : ''}
-                        hint={passTooShort ? '' : 'At least 6 characters.'}
-                      >
-                        <Input
-                          type="password"
-                          required
-                          autoComplete="new-password"
-                          invalid={passTooShort}
-                          value={passForm.newPassword}
-                          onChange={e =>
-                            setPassForm({ ...passForm, newPassword: e.target.value })
-                          }
-                        />
-                      </Field>
-
-                      <Field
-                        label="Confirm new password"
-                        error={passMismatch ? 'These do not match' : ''}
-                      >
-                        <Input
-                          type="password"
-                          required
-                          autoComplete="new-password"
-                          invalid={passMismatch}
-                          value={passForm.confirmPassword}
-                          onChange={e =>
-                            setPassForm({ ...passForm, confirmPassword: e.target.value })
-                          }
-                        />
-                      </Field>
-
-                      <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
-                        <Button type="submit" loading={passLoading} disabled={!passReady}>
-                          Change password
-                        </Button>
-                        <p className="text-xs text-content-subtle">
-                          You stay signed in on this device.
-                        </p>
-                      </div>
-                    </form>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </Card>
-          </motion.div>
-
-          {/* The things nobody here can edit, stacked in the side column so
-              the record sits under the account rather than starting a new
-              grid row of its own */}
-          <motion.div variants={itemVariants} className="space-y-4">
-            <Card>
-              <CardTitle>Account</CardTitle>
-              <dl className="divide-y divide-line">
-                <Fact label="Email">{profile.email}</Fact>
-                <Fact label="Role">
-                  <span className="capitalize">{profile.roleName || profile.role}</span>
-                </Fact>
-                <Fact label="Team">{profile.team?.name || 'Not on a team'}</Fact>
-                <Fact label="Member since">{monthYear(profile.createdAt)}</Fact>
-              </dl>
-              <p className="mt-3 text-xs text-content-subtle">
-                Your email and role are set by an admin.
-              </p>
-            </Card>
-
-            {/* Their own record, as it is held for them. Read-only on
-                purpose: a correction goes through help & support, so there is
-                a trail of who asked and who changed it. */}
             <Card>
               <CardTitle>Your record</CardTitle>
 
               {job.position || profile.phone || profile.dob ? (
-                <dl className="divide-y divide-line">
+                <dl className="grid gap-x-8 sm:grid-cols-2">
                   {job.position && <Fact label="Position">{job.position}</Fact>}
                   {job.employeeId && <Fact label="Employee ID">{job.employeeId}</Fact>}
                   <Fact label="Kind of hire">
@@ -632,13 +452,159 @@ export default function Profile({ user, setUser }) {
                 </p>
               )}
 
-              <Button to="/support" variant="outline" className="mt-4 w-full">
+              <Button to="/support" variant="outline" className="mt-4">
                 Ask for a correction
               </Button>
             </Card>
           </motion.div>
+
+          {/* Set by somebody else, and shorter, so it takes the side column */}
+          <motion.div variants={itemVariants}>
+            <Card>
+              <CardTitle>Account</CardTitle>
+              <dl className="divide-y divide-line">
+                <Fact label="Email">{profile.email}</Fact>
+                <Fact label="Role">
+                  <span className="capitalize">{profile.roleName || profile.role}</span>
+                </Fact>
+                <Fact label="Team">{profile.team?.name || 'Not on a team'}</Fact>
+                <Fact label="Member since">{monthYear(profile.createdAt)}</Fact>
+              </dl>
+              <p className="mt-3 text-xs text-content-subtle">
+                Your email and role are set by an admin.
+              </p>
+            </Card>
+          </motion.div>
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {dialog === 'profile' && (
+          <Modal
+            title="Edit profile"
+            subtitle="Your name, and the clock your standups are filed against."
+            onClose={() => setDialog(null)}
+          >
+            <form onSubmit={handleNameUpdate} className="space-y-5">
+              <Field
+                label="Full name"
+                error={nameEmpty ? 'Your name cannot be empty' : ''}
+              >
+                <Input
+                  type="text"
+                  value={nameForm.name}
+                  invalid={nameEmpty}
+                  onChange={e => setNameForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </Field>
+
+              <div>
+                <Field
+                  label="Timezone"
+                  hint={
+                    zone
+                      ? `Your standups are filed against this clock — it is ${timeIn(zone)} there now.`
+                      : 'Not set, so your standups are filed against UTC.'
+                  }
+                >
+                  <Select
+                    value={nameForm.timezone}
+                    onChange={e => setNameForm(f => ({ ...f, timezone: e.target.value }))}
+                  >
+                    <option value="">Not set (UTC)</option>
+                    {zones.map(tz => (
+                      <option key={tz} value={tz}>
+                        {tz.replace(/_/g, ' ')} · {offsetLabel(tz)}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+
+                {detected && detected !== nameForm.timezone && (
+                  <button
+                    type="button"
+                    onClick={() => setNameForm(f => ({ ...f, timezone: detected }))}
+                    className="mt-2 text-xs font-medium text-brand-600 underline-offset-2 hover:underline dark:text-brand-400"
+                  >
+                    Use this device&apos;s zone ({detected.replace(/_/g, ' ')})
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+                <Button type="submit" loading={nameLoading} disabled={!changed || nameEmpty}>
+                  Save changes
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setDialog(null)}>
+                  Cancel
+                </Button>
+                <p className="text-xs text-content-subtle">
+                  {changed ? 'You have unsaved changes.' : 'Nothing to save.'}
+                </p>
+              </div>
+            </form>
+          </Modal>
+        )}
+
+        {dialog === 'password' && (
+          <Modal
+            title="Change password"
+            subtitle="You stay signed in on this device."
+            onClose={() => setDialog(null)}
+          >
+            <form onSubmit={handlePasswordChange} className="space-y-5">
+              <Field label="Current password">
+                <Input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={passForm.currentPassword}
+                  onChange={e => setPassForm({ ...passForm, currentPassword: e.target.value })}
+                  placeholder="••••••••"
+                />
+              </Field>
+
+              <Field
+                label="New password"
+                error={passTooShort ? 'Use at least 6 characters' : ''}
+                hint={passTooShort ? '' : 'At least 6 characters.'}
+              >
+                <Input
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  invalid={passTooShort}
+                  value={passForm.newPassword}
+                  onChange={e => setPassForm({ ...passForm, newPassword: e.target.value })}
+                />
+              </Field>
+
+              <Field
+                label="Confirm new password"
+                error={passMismatch ? 'These do not match' : ''}
+              >
+                <Input
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  invalid={passMismatch}
+                  value={passForm.confirmPassword}
+                  onChange={e => setPassForm({ ...passForm, confirmPassword: e.target.value })}
+                />
+              </Field>
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+                <Button type="submit" loading={passLoading} disabled={!passReady}>
+                  Change password
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setDialog(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </Modal>
+        )}
+      </AnimatePresence>
     </PageShell>
   )
 }
