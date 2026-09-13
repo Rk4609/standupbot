@@ -4,6 +4,7 @@ const User = require('../models/User')
 const Retro = require('../models/Retro')
 const { streamChat } = require('../services/groqService')
 const { resolveWeek, previousWeek } = require('../utils/week')
+const { condenseWeek, clip } = require('../utils/promptBudget')
 
 const SYSTEM_PROMPT =
   'You are an experienced engineering manager writing a weekly retrospective. ' +
@@ -93,17 +94,14 @@ const summarise = (standups, totalMembers) => {
 
 const buildPrompt = ({ teamName, week, standups, stats, previousBlockers, lastRetro }) => {
   const claims = extractClaims(lastRetro?.content)
-  // A team that does not ask what happened yesterday should not have empty
-  // "shipped" fields in the prompt — the model reads those as work that was
-  // reported and came to nothing
-  const work = standups.map(s => ({
-    member: s.user?.name || 'Unknown',
-    date: s.date,
-    ...(s.yesterday?.trim() ? { shipped: s.yesterday } : {}),
-    planned: s.today,
-    ...(s.hasBlocker ? { blocker: s.blockers } : {}),
-    mood: s.mood
-  }))
+  // Condensed to fit what the model will take. A week of two full teams ran
+  // to fifty thousand characters and was refused outright.
+  const week_ = condenseWeek(standups)
+
+  // Last week's blockers are the smaller list, but not bounded either
+  const repeats = previousBlockers
+    .slice(0, 40)
+    .map(b => ({ member: b.member, blocker: clip(b.blocker, 160) }))
 
   return `Write the weekly retrospective for this engineering team.
 
@@ -116,10 +114,12 @@ Mood counts: ${JSON.stringify(stats.moodBreakdown)}
 Submissions per member: ${JSON.stringify(stats.byMember)}
 
 This week's standups:
-${JSON.stringify(work, null, 2)}
+${week_.json}
+${week_.note ? `
+Note on the data above: ${week_.note}` : ''}
 
 Blockers raised the PREVIOUS week (use these to spot repeats):
-${previousBlockers.length ? JSON.stringify(previousBlockers, null, 2) : 'None recorded.'}
+${repeats.length ? JSON.stringify(repeats, null, 2) : 'None recorded.'}
 
 What LAST WEEK's retrospective said would happen${lastRetro ? ` (week of ${lastRetro.weekStart})` : ''}:
 ${claims || 'No retrospective was written last week.'}
@@ -132,13 +132,13 @@ ${claims
   : 'There was no retrospective last week, so write exactly: This is the first retrospective for this team.'}
 
 **🚀 Shipped this week**
-Group the completed work into themes. Name who drove each one. Where an entry has no "shipped" field, the team does not report finished work separately — read what was planned across consecutive days to tell what actually landed, and do not claim anything the standups do not support.
+At most 5 themes, and at most 3 names against each — a bullet listing twenty people is a roster, not a retrospective. Where an entry has no "shipped" field, the team does not report finished work separately, so read what was planned across consecutive days to tell what actually landed, and do not claim anything the standups do not support.
 
 **🔁 Recurring blockers**
 Compare this week's blockers against last week's. Call out anything that appears in both and say how many weeks it has persisted. If nothing repeats, say so plainly.
 
 **📈 Participation**
-State the rate, name anyone who submitted every day, and name anyone who missed several days — factually, without judgement.
+State the rate. Name at most 3 people who submitted every day and at most 3 who missed several — factually, without judgement.
 
 **😊 Mood & morale**
 Read the mood data. Flag any member trending negative.
@@ -149,7 +149,7 @@ Risks that are visible in the data.
 **🎯 Action items**
 Exactly 3 specific, assignable actions for the manager. Each on its own numbered line.
 
-Use bullet points starting with "- ". Keep the whole report under 600 words. Be direct and specific, not generic.`
+Use bullet points starting with "- ". Keep the whole report under 450 words — every section must appear, so a long first section costs the later ones. Be direct and specific, not generic.`
 }
 
 // POST /api/retro/generate — stream a retro and save it when the stream ends
@@ -194,7 +194,7 @@ const generateRetro = async (req, res) => {
       system: SYSTEM_PROMPT,
       prompt,
       res,
-      maxTokens: 1800
+      maxTokens: 2000
     })
 
     // Persist so the page can show past weeks without regenerating

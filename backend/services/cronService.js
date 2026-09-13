@@ -62,7 +62,7 @@ const runRetroForTeam = async (team, week) => {
       previousBlockers,
       lastRetro
     }),
-    maxTokens: 1800
+    maxTokens: 2000
   })
 
   if (!content.trim()) {

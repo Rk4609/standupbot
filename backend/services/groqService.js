@@ -5,6 +5,18 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 // check https://api.groq.com/openai/v1/models when requests start 404-ing.
 const DEFAULT_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
 
+/**
+ * How much of the completion budget the model may spend thinking.
+ *
+ * gpt-oss is a reasoning model. Left to itself on a long prompt it spent the
+ * entire allowance reasoning and returned an empty message with
+ * finish_reason "length" — a request that looks successful and produces
+ * nothing. 'low' leaves the budget for the answer. Set GROQ_REASONING_EFFORT
+ * to an empty string to stop sending it at all, for a model that has no such
+ * setting.
+ */
+const REASONING_EFFORT = process.env.GROQ_REASONING_EFFORT ?? 'low'
+
 const callGroq = async ({ system, prompt, maxTokens, temperature, stream }) => {
   if (!process.env.GROQ_API_KEY) {
     throw new Error('GROQ_API_KEY is not configured')
@@ -21,6 +33,7 @@ const callGroq = async ({ system, prompt, maxTokens, temperature, stream }) => {
       max_tokens: maxTokens,
       temperature,
       stream,
+      ...(REASONING_EFFORT ? { reasoning_effort: REASONING_EFFORT } : {}),
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: prompt }
@@ -107,7 +120,20 @@ const streamChat = async ({
 const completeChat = async ({ system, prompt, maxTokens = 1500, temperature = 0.7 }) => {
   const response = await callGroq({ system, prompt, maxTokens, temperature, stream: false })
   const data = await response.json()
-  return data.choices?.[0]?.message?.content || ''
+
+  const choice = data.choices?.[0]
+  const content = choice?.message?.content || ''
+
+  // An answer that ran out of room is not an answer, and returning '' here
+  // let the caller store nothing and report success
+  if (!content.trim() && choice?.finish_reason === 'length') {
+    throw new Error(
+      'The model used its whole reply on reasoning and produced no report. ' +
+      'Raise max_tokens or lower GROQ_REASONING_EFFORT.'
+    )
+  }
+
+  return content
 }
 
 module.exports = { streamChat, completeChat, DEFAULT_MODEL }
