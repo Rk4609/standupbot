@@ -168,6 +168,9 @@ export default function App() {
 
         <Toaster
           position="top-right"
+          // Below the top bar: a popup sitting on the bell hides the very
+          // badge it is telling you about
+          containerStyle={{ top: 64 }}
           toastOptions={{
             duration: 3500,
             className:

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { removeUser } from '../store/authStore'
@@ -7,6 +7,7 @@ import API from '../api/axios'
 import { cn } from '../lib/cn'
 import { SPRING, popVariants } from '../lib/motion'
 import NotificationList from './NotificationList'
+import { showNotificationToast } from '../lib/notificationToast'
 import {
   IconAlert,
   IconBell,
@@ -208,6 +209,19 @@ export default function AppShell({ user, setUser, children }) {
     }
   }, [drawerOpen])
 
+  // Declared above the socket effect that reaches for it, and memoised so
+  // that effect does not tear down and reconnect on every render
+  const openNotification = useCallback(async (id, link) => {
+    try {
+      await API.put(`/notifications/${id}/read`)
+      setNotifications(prev => prev.map(n => (n._id === id ? { ...n, isRead: true } : n)))
+      setShowDropdown(false)
+      navigate(link)
+    } catch (err) {
+      console.error(err)
+    }
+  }, [navigate])
+
   useEffect(() => {
     if (!user) return
     socket.connect()
@@ -216,7 +230,13 @@ export default function AppShell({ user, setUser, children }) {
       .then(({ data }) => setNotifications(data))
       .catch(err => console.error(err))
 
-    socket.on('new-notification', notif => setNotifications(prev => [notif, ...prev]))
+    socket.on('new-notification', notif => {
+      setNotifications(prev => (prev.some(n => n._id === notif._id) ? prev : [notif, ...prev]))
+
+      // The badge only counts. Something arriving while somebody is on
+      // another page should say so, and take them there in one click.
+      showNotificationToast(notif, n => openNotification(n._id, n.link))
+    })
     socket.on('connect_error', err => console.error('Socket connection failed:', err.message))
 
     return () => {
@@ -224,23 +244,12 @@ export default function AppShell({ user, setUser, children }) {
       socket.off('connect_error')
       socket.disconnect()
     }
-  }, [user])
+  }, [user, openNotification])
 
   const markAllRead = async () => {
     try {
       await API.put('/notifications/read-all')
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const openNotification = async (id, link) => {
-    try {
-      await API.put(`/notifications/${id}/read`)
-      setNotifications(prev => prev.map(n => (n._id === id ? { ...n, isRead: true } : n)))
-      setShowDropdown(false)
-      navigate(link)
     } catch (err) {
       console.error(err)
     }

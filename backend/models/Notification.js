@@ -12,7 +12,15 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['standup_submitted', 'blocker_added', 'reminder'],
+    enum: [
+      'standup_submitted',
+      'blocker_added',
+      'reminder',
+      // The help desk: somebody reported something, or somebody answered
+      'support_raised',
+      'support_replied',
+      'support_closed'
+    ],
     required: true
   },
   message: { type: String, required: true },

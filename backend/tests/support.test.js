@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import request from 'supertest'
 import { createApp } from '../app.js'
+import Notification from '../models/Notification.js'
 import SupportTicket from '../models/SupportTicket.js'
 import { authHeader, makeUser } from './helpers.js'
 
@@ -189,5 +190,78 @@ describe('closing', () => {
 
     expect(res.body.status).toBe('closed')
     expect(await SupportTicket.countDocuments({ status: 'closed' })).toBeGreaterThan(0)
+  })
+})
+
+describe('telling somebody it happened', () => {
+  const bellOf = (user) =>
+    Notification.find({ recipient: user._id }).sort({ createdAt: -1 }).lean()
+
+  it('puts a new report in front of whoever answers', async () => {
+    const admin = await makeUser({ role: 'admin' })
+    const asha = await makeUser({ name: 'Asha Rao' })
+
+    await raise(asha)
+
+    const [latest] = await bellOf(admin)
+    expect(latest.type).toBe('support_raised')
+    expect(latest.message).toMatch(/Asha Rao reported/)
+    expect(latest.link).toBe('/support')
+  })
+
+  it('does not notify the person who wrote it', async () => {
+    const admin = await makeUser({ role: 'admin' })
+    await raise(admin)
+
+    expect(await Notification.countDocuments({ recipient: admin._id })).toBe(0)
+  })
+
+  it('tells the reporter when they are answered', async () => {
+    const admin = await makeUser({ role: 'admin', name: 'The Admin' })
+    const asha = await makeUser()
+    const ticket = await raise(asha)
+
+    await request(app).post(`/api/support/${ticket.body._id}/reply`)
+      .set(...authHeader(admin)).send({ body: 'Fixed — try again.' })
+
+    const [latest] = await bellOf(asha)
+    expect(latest.type).toBe('support_replied')
+    expect(latest.message).toMatch(/The Admin answered/)
+  })
+
+  it('tells the answerers when the reporter adds something', async () => {
+    const admin = await makeUser({ role: 'admin' })
+    const asha = await makeUser({ name: 'Asha Rao' })
+    const ticket = await raise(asha)
+
+    await request(app).post(`/api/support/${ticket.body._id}/reply`)
+      .set(...authHeader(asha)).send({ body: 'It also happens on the timesheet page.' })
+
+    const [latest] = await bellOf(admin)
+    expect(latest.message).toMatch(/Asha Rao added to/)
+  })
+
+  it('says so when a report is closed', async () => {
+    const admin = await makeUser({ role: 'admin' })
+    const asha = await makeUser()
+    const ticket = await raise(asha)
+
+    await request(app).patch(`/api/support/${ticket.body._id}`)
+      .set(...authHeader(admin)).send({ status: 'closed' })
+
+    const [latest] = await bellOf(asha)
+    expect(latest.type).toBe('support_closed')
+    expect(latest.message).toMatch(/^Closed:/)
+  })
+
+  it('shortens a long subject rather than filling the bell with it', async () => {
+    const admin = await makeUser({ role: 'admin' })
+    const asha = await makeUser({ name: 'Asha Rao' })
+
+    await raise(asha, { subject: 'x'.repeat(140) })
+
+    const [latest] = await bellOf(admin)
+    expect(latest.message.length).toBeLessThan(90)
+    expect(latest.message).toMatch(/…$/)
   })
 })

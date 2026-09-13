@@ -1,4 +1,6 @@
 const SupportTicket = require('../models/SupportTicket')
+const User = require('../models/User')
+const { notify, notifyMany } = require('../services/notifyService')
 const { ownTeam } = require('../utils/teams')
 
 const { STATUSES, CATEGORIES } = SupportTicket
@@ -8,6 +10,21 @@ const DEFAULT_LIMIT = 20
 
 /** Anyone may read their own; an admin reads everything. */
 const canSeeAll = (user) => user.role === 'admin'
+
+/** Who answers. Everyone of them hears about a new report. */
+const answerers = async (exceptId) => {
+  try {
+    const admins = await User.find({ role: 'admin' }).select('_id').lean()
+    return admins.map(a => a._id).filter(id => String(id) !== String(exceptId))
+  } catch (err) {
+    console.error('Could not list the people who answer:', err.message)
+    return []
+  }
+}
+
+/** One line is all the bell has room for. */
+const trim = (text, max = 60) =>
+  text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
 
 // POST /api/support — raise something
 const createTicket = async (req, res) => {
@@ -22,6 +39,16 @@ const createTicket = async (req, res) => {
       subject,
       body,
       category
+    })
+
+    // Before the response, so the bell is already right when the page
+    // reloads behind the toast. Neither call throws — a notification that
+    // fails must not lose somebody what they wrote.
+    await notifyMany(req.app.get('io'), await answerers(req.user._id), {
+      sender: req.user._id,
+      type: 'support_raised',
+      message: `${req.user.name} reported: ${trim(ticket.subject)}`,
+      link: '/support'
     })
 
     res.status(201).json(ticket)
@@ -151,6 +178,29 @@ const replyToTicket = async (req, res) => {
     ticket.lastReplyBy = req.user.name
 
     await ticket.save()
+
+    const io = req.app.get('io')
+    const answering = canSeeAll(req.user) && String(ticket.user) !== String(req.user._id)
+
+    if (answering) {
+      await notify(io, {
+        recipient: ticket.user,
+        sender: req.user._id,
+        type: 'support_replied',
+        message: `${req.user.name} answered: ${trim(ticket.subject)}`,
+        link: '/support'
+      })
+    } else {
+      // The reporter added something. Whoever has to answer needs to know
+      // there is more to read, not just that a ticket exists.
+      await notifyMany(io, await answerers(req.user._id), {
+        sender: req.user._id,
+        type: 'support_raised',
+        message: `${req.user.name} added to: ${trim(ticket.subject)}`,
+        link: '/support'
+      })
+    }
+
     res.json(ticket)
   } catch (err) {
     console.error('Reply to ticket error:', err.message)
@@ -168,8 +218,22 @@ const setStatus = async (req, res) => {
     const ticket = await SupportTicket.findById(req.params.id)
     if (!ticket) return res.status(404).json({ message: 'Not found' })
 
+    const was = ticket.status
     ticket.status = req.body.status
     await ticket.save()
+
+    if (was !== ticket.status && String(ticket.user) !== String(req.user._id)) {
+      const settled = ticket.status === 'closed'
+      await notify(req.app.get('io'), {
+        recipient: ticket.user,
+        sender: req.user._id,
+        type: settled ? 'support_closed' : 'support_replied',
+        message: settled
+          ? `Closed: ${trim(ticket.subject)}`
+          : `Reopened: ${trim(ticket.subject)}`,
+        link: '/support'
+      })
+    }
 
     res.json(ticket)
   } catch (err) {
