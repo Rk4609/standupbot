@@ -6,6 +6,12 @@ vi.mock('../api/axios', () => ({ default: { get: vi.fn() } }))
 
 import API from '../api/axios'
 import Employees from '../pages/Employees'
+import { prettyDate } from '../lib/dates'
+
+// Dates are written in the reader's own locale. Asking the helper for the
+// expected text keeps these tests true on any machine — hard-coding
+// "12 Apr 1995" passed in an Indian locale and failed on GitHub's US one.
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 const row = {
   _id: 'u1',
@@ -89,7 +95,7 @@ describe('opening somebody on the roster', () => {
 
     expect(await screen.findByText('+91 98765 43210')).toBeInTheDocument()
     expect(screen.getByText(/12 Park Lane, Jaipur, RJ, 302001, India/)).toBeInTheDocument()
-    expect(screen.getByText('12 Apr 1995')).toBeInTheDocument()
+    expect(screen.getByText(prettyDate('1995-04-12T00:00:00.000Z'))).toBeInTheDocument()
   })
 
   it('shows what they do here, with the date their probation runs out', async () => {
@@ -101,8 +107,10 @@ describe('opening somebody on the roster', () => {
     expect(await screen.findByText('Frontend engineer')).toBeInTheDocument()
     expect(screen.getByText('EMP-014')).toBeInTheDocument()
     expect(screen.getByText(/On probation/)).toBeInTheDocument()
-    expect(screen.getByText(/until 23 Nov 2026/)).toBeInTheDocument()
-    expect(screen.getByText(/23 May 2026/)).toBeInTheDocument()
+    expect(screen.getByText(`until ${prettyDate('2026-11-23T00:00:00.000Z')}`)).toBeInTheDocument()
+    expect(
+      screen.getByText(new RegExp(escape(prettyDate('2026-05-23T00:00:00.000Z'))))
+    ).toBeInTheDocument()
     expect(screen.getByText('4.1 years')).toBeInTheDocument()
   })
 

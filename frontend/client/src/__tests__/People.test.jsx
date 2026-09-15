@@ -8,6 +8,7 @@ vi.mock('../api/axios', () => ({
 
 import API from '../api/axios'
 import People from '../pages/People'
+import { prettyDate } from '../lib/dates'
 
 const person = (over = {}) => ({
   _id: 'u1',
@@ -74,7 +75,8 @@ describe('the records list', () => {
 
     expect(await screen.findByText('Asha Rao')).toBeInTheDocument()
     expect(screen.getByText(/Frontend engineer · MERN · EMP-014/)).toBeInTheDocument()
-    expect(screen.getByText('3 Jun 2024')).toBeInTheDocument()
+    // In the reader's locale, the way the page writes it — not one country's
+    expect(screen.getByText(prettyDate('2024-06-03T00:00:00.000Z'))).toBeInTheDocument()
   })
 
   it('puts whoever is running out of time at the top', async () => {
