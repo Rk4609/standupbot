@@ -75,6 +75,14 @@ function AnimatedRoutes({ user, setUser }) {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
+        {/* The address people actually type, and the one the installed app
+            opens at. It used to be caught by a redirect-everything route;
+            when that became a real 404 page, the front door became one too. */}
+        <Route
+          path="/"
+          element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
+        />
+
         <Route
           path="/login"
           element={
