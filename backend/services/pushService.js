@@ -32,7 +32,8 @@ const TITLES = {
   report_ready: 'Weekly report',
   kudos_received: 'Kudos for you',
   celebration_day: 'Today is a special day',
-  celebration_wish: 'A wish for you'
+  celebration_wish: 'A wish for you',
+  announcement: 'Announcement'
 }
 
 let configuredWith = null

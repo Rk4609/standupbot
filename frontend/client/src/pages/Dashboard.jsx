@@ -9,6 +9,7 @@ import StreakHeatmap from '../components/StreakHeatmap'
 import EditStandupDialog from '../components/EditStandupDialog'
 import KudosCard from '../components/KudosCard'
 import CelebrationsCard from '../components/CelebrationsCard'
+import AnnouncementBanner from '../components/AnnouncementBanner'
 import KudosForm from '../components/KudosForm'
 import {
   DetailsAccordion,
@@ -297,6 +298,8 @@ export default function Dashboard({ user }) {
           ))}
         </div>
       </motion.section>
+
+      <AnnouncementBanner refresh={live} />
 
       {/* A new joiner's checklist, until it is done */}
       {onboarding?.status === 'active' && (

@@ -534,6 +534,15 @@ const sendWish = z.object({
   message: z.string().trim().max(120, 'is too long').optional()
 }).strict()
 
+/* announcements ----------------------------------------------------- */
+
+const postAnnouncement = z.object({
+  title: z.string().trim().min(3, 'is too short').max(120, 'is too long'),
+  body: z.string().trim().min(3, 'is too short').max(2000, 'is too long'),
+  important: z.boolean().optional(),
+  team: z.union([objectId, z.null()]).optional()
+}).strict()
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -648,6 +657,7 @@ module.exports = {
   giveKudos,
   listKudos,
   sendWish,
+  postAnnouncement,
   createRole,
   updateRole,
   roleId,

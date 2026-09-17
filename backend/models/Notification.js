@@ -39,7 +39,9 @@ const notificationSchema = new mongoose.Schema({
       'kudos_received',
       // Birthdays and work anniversaries: the day itself, and wishes
       'celebration_day',
-      'celebration_wish'
+      'celebration_wish',
+      // A notice to everybody or a team
+      'announcement'
     ],
     required: true
   },

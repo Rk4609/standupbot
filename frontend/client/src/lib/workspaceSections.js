@@ -1,5 +1,5 @@
 import {
-  IconBolt, IconBriefcase, IconCheck, IconList, IconPrinter, IconShield, IconShieldCheck,
+  IconBolt, IconBriefcase, IconCheck, IconInbox, IconList, IconPrinter, IconShield, IconShieldCheck,
   IconTarget, IconUser, IconUsers
 } from '../components/ui/icons'
 import { can } from './permissions'
@@ -19,6 +19,7 @@ export const WORKSPACE_SECTIONS = [
   { to: 'records', label: 'People records', icon: IconUser, module: 'records' },
   { to: 'hiring', label: 'Hiring', icon: IconUsers, module: 'hiring' },
   { to: 'onboarding', label: 'Onboarding', icon: IconCheck, module: 'onboarding' },
+  { to: 'announcements', label: 'Announcements', icon: IconInbox, module: 'announce' },
   { to: 'approvals', label: 'Approvals', icon: IconCheck, module: 'approvals' },
   { to: 'payroll', label: 'Payroll', icon: IconPrinter, module: 'pay' },
   // Called the admin panel by the people who use it, so that is its name

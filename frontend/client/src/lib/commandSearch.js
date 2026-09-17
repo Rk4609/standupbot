@@ -32,6 +32,7 @@ export const KEYWORDS = {
   '/workspace/records': ['people records', 'employee details'],
   '/workspace/hiring': ['candidate', 'new joiner', 'recruit'],
   '/workspace/onboarding': ['new joiner', 'checklist'],
+  '/workspace/announcements': ['notice', 'broadcast', 'news', 'suchna'],
   '/workspace/approvals': ['approve hire'],
   '/workspace/payroll': ['salary', 'run payroll', 'payslips'],
   '/workspace/admin': ['users', 'admin'],
