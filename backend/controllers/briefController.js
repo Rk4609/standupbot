@@ -47,7 +47,7 @@ const buildPrompt = ({ title, facts }) => `Team: ${title}
 Date: ${facts.date}${facts.workday ? '' : ' (a weekend)'}
 
 Facts, worked out from the team's standups, attendance and leave:
-${JSON.stringify(facts, null, 2)}
+${JSON.stringify(facts)}
 
 What the fields mean: "stuck" is a blocker carried for "days" standups in a row. "lowMood" is two or more bad or stressed moods in the last three standups. "missingOften" missed "missed" of their last "of" working-day standups. "lateOften" was late on "days" days in the last two weeks. "notIn" has not checked in. "noCheckout" never checked out on the last working day.
 

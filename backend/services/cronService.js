@@ -17,6 +17,7 @@ const { hourIn, todayIn, weekdayIn, zoneOf } = require('../utils/time')
 const slack = require('./slackService')
 const { notify } = require('./notifyService')
 const { writeBrief, resolveScope } = require('../controllers/briefController')
+const { writeReport, weekOf } = require('../controllers/weeklyReportController')
 
 /**
  * The hours, in each person's own zone, at which the two daily jobs fire.
@@ -30,6 +31,8 @@ const REMINDER_HOUR = 9
 const SUMMARY_HOUR = 18
 // Late enough that the morning's standups and check-ins are in
 const BRIEF_HOUR = 11
+// Friday afternoon, before the retro at half past six
+const REPORT_HOUR = 17
 
 /** Monday to Friday where this person is — nobody wants a Saturday nudge. */
 const isWorkday = (zone, at) => {
@@ -228,6 +231,40 @@ const startCronJobs = () => {
       }
     } catch (err) {
       console.error('Daily brief cron error:', err)
+    }
+  })
+
+  // 📑 Weekly project report — 5pm on the manager's Friday
+  cron.schedule('10 * * * *', async () => {
+    if (!process.env.GROQ_API_KEY) return
+    try {
+      const at = new Date()
+      const teams = await Team.find({ manager: { $ne: null } }).populate('manager', 'name role timezone')
+
+      for (const team of teams) {
+        const manager = team.manager
+        if (!manager) continue
+        const zone = zoneOf(manager)
+        if (hourIn(zone, at) !== REPORT_HOUR || weekdayIn(zone, at) !== 5) continue
+
+        try {
+          const scope = await resolveScope(manager, team._id)
+          if (scope.error || scope.people.length === 0) continue
+          const today = todayIn(zone, at)
+          await writeReport({ ...scope, week: weekOf(today), today })
+          await notify(null, {
+            recipient: manager._id,
+            type: 'report_ready',
+            message: `This week's project report for ${team.name} is ready to send`,
+            link: '/reports'
+          })
+          console.log(`📑 Weekly report written for ${team.name}`)
+        } catch (err) {
+          console.error(`Weekly report failed for ${team.name}:`, err.message)
+        }
+      }
+    } catch (err) {
+      console.error('Weekly report cron error:', err)
     }
   })
 

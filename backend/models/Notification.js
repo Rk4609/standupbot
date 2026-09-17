@@ -32,7 +32,9 @@ const notificationSchema = new mongoose.Schema({
       'onboarding_started',
       'onboarding_complete',
       // The morning brief is written
-      'brief_ready'
+      'brief_ready',
+      // The week's project report is written
+      'report_ready'
     ],
     required: true
   },

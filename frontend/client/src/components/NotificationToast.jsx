@@ -19,6 +19,7 @@ const LOOK = {
   onboarding_started: { icon: IconUsers, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
   onboarding_complete: { icon: IconCheck, plate: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
   brief_ready: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
+  report_ready: { icon: IconSparkles, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
   reminder: { icon: IconBell, plate: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' }
 }
 
@@ -36,6 +37,7 @@ const TITLE = {
   onboarding_started: 'Welcome aboard',
   onboarding_complete: 'Onboarding complete',
   brief_ready: 'Morning brief',
+  report_ready: 'Weekly report',
   reminder: 'Reminder'
 }
 

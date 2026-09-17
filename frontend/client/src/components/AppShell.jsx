@@ -79,6 +79,7 @@ const navGroups = (user) => {
         { to: '/team-attendance', label: 'Attendance', icon: IconCheck, module: 'team-attendance' },
         { to: '/leaves', label: 'Leave approvals', icon: IconCalendar, module: 'leaves' },
         { to: '/analytics', label: 'Analytics', icon: IconTrendUp, module: 'analytics' },
+        { to: '/reports', label: 'Weekly report', icon: IconPrinter, module: 'reports' },
         { to: '/retro', label: 'Weekly retro', icon: IconSparkles, module: 'retro' }
       ]
     },

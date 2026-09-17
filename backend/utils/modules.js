@@ -32,6 +32,7 @@ const MODULES = [
   { key: 'leaves', label: 'Leave approvals', group: 'Team', minBase: 'manager', rollOut: true },
   { key: 'team-attendance', label: 'Team attendance', group: 'Team', minBase: 'manager', rollOut: true },
   { key: 'brief', label: 'Daily AI brief', group: 'Team', minBase: 'manager', rollOut: true },
+  { key: 'reports', label: 'Weekly project report', group: 'Team', minBase: 'manager', rollOut: true },
 
   // What gets set up once
   { key: 'projects', label: 'Projects & assignments', group: 'Workspace', minBase: 'manager' },
@@ -76,7 +77,7 @@ const DEFAULTS = {
   employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support'],
   manager: [
     'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports',
     'projects', 'templates', 'integrations', 'activity', 'records', 'hiring', 'onboarding'
   ],
   admin: MODULE_KEYS

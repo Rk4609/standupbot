@@ -60,6 +60,7 @@ const PAGES = [
   ['leaves', () => import('../pages/LeaveApprovals')],
   ['team-attendance', () => import('../pages/TeamAttendance')],
   ['brief', () => import('../pages/Brief')],
+  ['reports', () => import('../pages/WeeklyReport')],
   ['analytics', () => import('../pages/Analytics')],
   ['retro', () => import('../pages/Retro')],
   ['projects', () => import('./WorkspaceLayout')],

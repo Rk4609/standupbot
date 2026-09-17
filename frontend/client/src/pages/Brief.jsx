@@ -150,15 +150,19 @@ export default function Brief() {
         actions={
           <div className="flex flex-wrap items-center gap-1">
             {(data.canSeeAll || data.teams.length > 1) && (
-              <Select
-                value={team || data.team?._id || ''}
-                onChange={e => setTeam(e.target.value)}
-                aria-label="Team"
-                className="mr-1 w-40 py-2 text-sm"
-              >
-                {data.canSeeAll && <option value="">Everybody</option>}
-                {data.teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-              </Select>
+              // Wrapped: the select's own full width would win over a width
+              // passed in, and push the arrows onto a second line
+              <div className="mr-1 w-40">
+                <Select
+                  value={team || data.team?._id || ''}
+                  onChange={e => setTeam(e.target.value)}
+                  aria-label="Team"
+                  className="py-2 text-sm"
+                >
+                  {data.canSeeAll && <option value="">Everybody</option>}
+                  {data.teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                </Select>
+              </div>
             )}
             <button
               type="button"

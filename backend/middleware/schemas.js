@@ -472,6 +472,20 @@ const writeBrief = z.object({
   team: objectId.optional()
 }).strict()
 
+/* weekly report ----------------------------------------------------- */
+
+const readWeeklyReport = {
+  query: z.object({
+    week: fields.isoDate.optional(),
+    team: objectId.optional()
+  }).strip()
+}
+
+const writeWeeklyReport = z.object({
+  week: fields.isoDate.optional(),
+  team: objectId.optional()
+}).strict()
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -578,6 +592,8 @@ module.exports = {
   addOnboardingTask,
   readBrief,
   writeBrief,
+  readWeeklyReport,
+  writeWeeklyReport,
   createRole,
   updateRole,
   roleId,
