@@ -45,6 +45,8 @@ const Leave = lazy(() => import("./pages/Leave"))
 const LeaveApprovals = lazy(() => import("./pages/LeaveApprovals"))
 const Attendance = lazy(() => import("./pages/Attendance"))
 const TeamAttendance = lazy(() => import("./pages/TeamAttendance"))
+const Payslips = lazy(() => import("./pages/Payslips"))
+const Payroll = lazy(() => import("./pages/Payroll"))
 const Roles = lazy(() => import("./pages/Roles"))
 const People = lazy(() => import("./pages/People"))
 const Hiring = lazy(() => import("./pages/Hiring"))
@@ -155,6 +157,13 @@ function AnimatedRoutes({ user, setUser }) {
         <Route element={<ProtectedRoute user={user} module="attendance" />}>
           <Route path="/attendance" element={<Attendance />} />
         </Route>
+        {/* One slip: its owner, or whoever runs payroll — the server decides */}
+        <Route element={<ProtectedRoute user={user} />}>
+          <Route path="/payslips/:id" element={<Payslips />} />
+        </Route>
+        <Route element={<ProtectedRoute user={user} module="payslips" />}>
+          <Route path="/payslips" element={<Payslips />} />
+        </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["manager", "admin"]} />}>
           <Route element={<ProtectedRoute user={user} module="team" />}>
@@ -224,6 +233,9 @@ function AnimatedRoutes({ user, setUser }) {
               </Route>
               <Route element={<ProtectedRoute user={user} module="approvals" />}>
                 <Route path="approvals" element={<Hiring decide />} />
+              </Route>
+              <Route element={<ProtectedRoute user={user} module="pay" />}>
+                <Route path="payroll" element={<Payroll />} />
               </Route>
             </Route>
           </Route>

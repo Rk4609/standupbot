@@ -17,6 +17,7 @@ const firstRequests = (user) => [
   ['timesheet', '/timesheets/me', { params: {} }],
   ['attendance', '/attendance/me', { params: {} }],
   ['team-attendance', '/attendance/team', { params: {} }],
+  ['payslips', '/payslips/mine'],
   ['leave', '/leave/mine'],
   ['leave', '/leave/calendar', { params: {} }],
   ['leaves', '/leave/team', { params: { page: 1, status: 'pending' } }],
@@ -48,6 +49,7 @@ const PAGES = [
   ['timesheet', () => import('../pages/Timesheet')],
   ['leave', () => import('../pages/Leave')],
   ['attendance', () => import('../pages/Attendance')],
+  ['payslips', () => import('../pages/Payslips')],
   ['support', () => import('../pages/Support')],
   ['dashboard', () => import('../pages/Profile')],
   ['team', () => import('../pages/TeamView')],
@@ -66,7 +68,8 @@ const PAGES = [
   ['records', () => import('../pages/People')],
   ['hiring', () => import('../pages/Hiring')],
   ['people', () => import('../pages/AdminPanel')],
-  ['roles', () => import('../pages/Roles')]
+  ['roles', () => import('../pages/Roles')],
+  ['pay', () => import('../pages/Payroll')]
 ]
 
 function PageFallback() {

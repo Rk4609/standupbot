@@ -412,6 +412,18 @@ const correctAttendance = z.object({
   reason: z.string().trim().min(3, 'needs a few words').max(300, 'is too long')
 }).strict()
 
+/* payslips ---------------------------------------------------------- */
+
+const payrollMonth = {
+  query: z.object({
+    month: z.string().regex(/^\d{4}-\d{2}$/, 'must be YYYY-MM').optional()
+  }).strip()
+}
+
+const runPayroll = z.object({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'must be YYYY-MM')
+}).strict()
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -509,6 +521,8 @@ module.exports = {
   attendanceNote,
   listAttendance,
   correctAttendance,
+  payrollMonth,
+  runPayroll,
   createRole,
   updateRole,
   roleId,

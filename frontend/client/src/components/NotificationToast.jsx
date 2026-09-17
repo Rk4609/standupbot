@@ -15,6 +15,7 @@ const LOOK = {
   hiring_decided: { icon: IconCheck, plate: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
   leave_requested: { icon: IconCalendar, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
   leave_decided: { icon: IconCalendar, plate: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
+  payslip_ready: { icon: IconCheck, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   reminder: { icon: IconBell, plate: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' }
 }
 
@@ -28,6 +29,7 @@ const TITLE = {
   hiring_decided: 'Hiring decision',
   leave_requested: 'Leave requested',
   leave_decided: 'Leave update',
+  payslip_ready: 'Payslip ready',
   reminder: 'Reminder'
 }
 

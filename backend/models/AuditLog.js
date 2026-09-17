@@ -24,6 +24,8 @@ const ACTIONS = [
   'leave.approved',
   'leave.rejected',
   'attendance.corrected',
+  'payroll.generated',
+  'payroll.published',
   'role.created',
   'role.updated',
   'role.deleted'

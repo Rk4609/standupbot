@@ -25,7 +25,9 @@ const notificationSchema = new mongoose.Schema({
       'hiring_decided',
       // Leave: somebody asked for time off, and the answer
       'leave_requested',
-      'leave_decided'
+      'leave_decided',
+      // Payroll: this month's slip is out
+      'payslip_ready'
     ],
     required: true
   },

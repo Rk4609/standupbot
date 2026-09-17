@@ -23,6 +23,7 @@ import {
   IconMenu,
   IconMoon,
   IconPlus,
+  IconPrinter,
   IconSparkles,
   IconTarget,
   IconTimer,
@@ -55,14 +56,15 @@ const navGroups = (user) => {
       ]
     },
     {
-      // Where a person's hours and days off live. One menu rather than three
-      // more pills: the bar ran out of room at laptop width.
+      // A person's own HR: hours, days off and pay. One menu rather than
+      // four more pills: the bar ran out of room at laptop width.
       id: 'time',
-      label: 'My time',
+      label: 'My HR',
       items: [
         { to: '/attendance', label: 'Attendance', icon: IconCheck, module: 'attendance' },
         { to: '/timesheet', label: 'Timesheet', icon: IconTimer, module: 'timesheet' },
-        { to: '/leave', label: 'Leave', icon: IconCalendar, module: 'leave' }
+        { to: '/leave', label: 'Leave', icon: IconCalendar, module: 'leave' },
+        { to: '/payslips', label: 'Payslips', icon: IconPrinter, module: 'payslips' }
       ]
     },
     {
@@ -599,7 +601,7 @@ export default function AppShell({ user, setUser, children }) {
 
             {time.length > 0 && (
               <TopMenu
-                label="My time"
+                label="My HR"
                 items={time}
                 open={menu === 'time'}
                 onToggle={() => toggle('time')}
