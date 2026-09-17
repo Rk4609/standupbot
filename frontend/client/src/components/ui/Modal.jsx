@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconClose } from './icons'
 import { DURATION, EASE } from '../../lib/motion'
@@ -11,6 +12,11 @@ import { DURATION, EASE } from '../../lib/motion'
  * keyboard behind on the page underneath is worse than no dialog. On a phone
  * it rises from the bottom edge and can fill the screen — a centred box with
  * a form in it is unusable at 400px.
+ *
+ * Rendered into document.body. Opened from inside a card, it was positioned
+ * against the card's animation transform instead of the screen: squeezed
+ * into the card, cut off below the fold, with page scrolling already locked
+ * — which looked like the whole page had frozen.
  */
 export default function Modal({ title, subtitle, onClose, children, labelledBy }) {
   const panel = useRef(null)
@@ -38,9 +44,10 @@ export default function Modal({ title, subtitle, onClose, children, labelledBy }
 
     // The first control, not the panel itself: somebody opening "edit" wants
     // to type, not to tab past a heading first
-    const first = panel.current?.querySelector(
-      'input:not([type="hidden"]), select, textarea, button'
-    )
+    // A field before any button: the close button comes first in the markup
+    const first =
+      panel.current?.querySelector('input:not([type="hidden"]), select, textarea') ||
+      panel.current?.querySelector('button')
     first?.focus()
 
     const onKey = (e) => {
@@ -58,7 +65,7 @@ export default function Modal({ title, subtitle, onClose, children, labelledBy }
     }
   }, [])
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -102,6 +109,7 @@ export default function Modal({ title, subtitle, onClose, children, labelledBy }
           <div className="px-5 py-5">{children}</div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
