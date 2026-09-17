@@ -1,7 +1,8 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { removeUser } from '../store/authStore'
+import { removeUser, updateUser } from '../store/authStore'
+import { workspaceSectionsFor } from '../lib/workspaceSections'
 import socket from '../socket'
 import API from '../api/axios'
 import { cn } from '../lib/cn'
@@ -64,11 +65,15 @@ const navGroups = (user) => {
       ]
     },
     {
+      // Every workspace section by name — the admin panel and roles used to
+      // hide behind a single "Workspace" link, and at a narrow width behind
+      // a scrolled-away tab as well
       id: 'manage',
-      label: 'Manage',
-      items: [
-        { to: '/workspace', label: 'Workspace', icon: IconTarget, module: 'projects' }
-      ]
+      label: 'Workspace',
+      items: workspaceSectionsFor(user).map(section => ({
+        ...section,
+        to: `/workspace/${section.to}`
+      }))
     }
   ]
 
@@ -275,6 +280,7 @@ export default function AppShell({ user, setUser, children }) {
   // One menu open at a time: 'team', 'bell', 'account' or null
   const [menu, setMenu] = useState(null)
   const teamRef = useRef(null)
+  const workspaceRef = useRef(null)
   const bellRef = useRef(null)
   const accountRef = useRef(null)
 
@@ -285,11 +291,59 @@ export default function AppShell({ user, setUser, children }) {
   const manage = groups.find(g => g.id === 'manage')?.items || []
 
   const inTeam = team.some(i => location.pathname.startsWith(i.to))
+  const inWorkspace = location.pathname.startsWith('/workspace')
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
     localStorage.setItem('theme', dark ? 'dark' : 'light')
   }, [dark])
+
+  /**
+   * Keep what this person may open in step with the server.
+   *
+   * The module list is saved at sign-in and was never read again, so a
+   * module added later — or granted by an admin after they signed in — stayed
+   * invisible until they signed out and back in. That is how Hiring,
+   * Approvals and People records went missing for anybody with an older
+   * session. It is asked for when the app opens and whenever the tab comes
+   * back into focus, which is when somebody expects things to be current.
+   */
+  const token = user?.token
+  useEffect(() => {
+    if (!token) return
+    let cancelled = false
+
+    const sync = () =>
+      API.get('/roles/me')
+        .then(({ data }) => {
+          if (cancelled || !data?.modules) return
+          const changes = {
+            modules: data.modules,
+            roleName: data.role?.name || null,
+            ...(data.role?.base ? { role: data.role.base } : {})
+          }
+          setUser(current => {
+            if (!current) return current
+            const unchanged =
+              JSON.stringify(current.modules) === JSON.stringify(changes.modules) &&
+              current.roleName === changes.roleName &&
+              current.role === (changes.role || current.role)
+            if (unchanged) return current
+            return updateUser(changes) || { ...current, ...changes }
+          })
+        })
+        .catch(() => {
+          // Offline or signed out elsewhere: the stored list stands, and the
+          // server still refuses anything it no longer allows
+        })
+
+    sync()
+    window.addEventListener('focus', sync)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', sync)
+    }
+  }, [token, setUser])
 
   // Close whatever is open when the page changes underneath it. Keyed on the
   // path, so the state update is a response to navigation, not a render.
@@ -304,7 +358,9 @@ export default function AppShell({ user, setUser, children }) {
     if (!menu) return
     // Read inside the effect: the element that counts as "inside" is the
     // wrapper of whichever menu is open
-    const wrapper = { team: teamRef, bell: bellRef, account: accountRef }[menu]
+    const wrapper = {
+      team: teamRef, workspace: workspaceRef, bell: bellRef, account: accountRef
+    }[menu]
     const onPointerDown = (e) => {
       if (wrapper.current && !wrapper.current.contains(e.target)) setMenu(null)
     }
@@ -480,23 +536,36 @@ export default function AppShell({ user, setUser, children }) {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-0">
-            {manage.map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    'hidden items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] transition-colors md:flex',
-                    isActive
+            {manage.length > 0 && (
+              <div className="relative hidden md:block" ref={workspaceRef}>
+                <button
+                  type="button"
+                  onClick={() => toggle('workspace')}
+                  aria-haspopup="menu"
+                  aria-expanded={menu === 'workspace'}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] transition-colors',
+                    inWorkspace
                       ? 'border-transparent bg-brand-600 font-medium text-white dark:bg-brand-400 dark:text-brand-700'
                       : 'border-line/80 bg-surface/80 text-content-muted hover:text-content'
-                  )
-                }
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </NavLink>
-            ))}
+                  )}
+                >
+                  <IconTarget className="h-4 w-4" />
+                  Workspace
+                  <Chevron open={menu === 'workspace'} />
+                </button>
+
+                <AnimatePresence>
+                  {menu === 'workspace' && (
+                    <Menu align="right" className="w-60">
+                      {manage.map(item => (
+                        <MenuLink key={item.to} {...item} onNavigate={() => setMenu(null)} />
+                      ))}
+                    </Menu>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
             <div className="relative" ref={bellRef}>
               <button

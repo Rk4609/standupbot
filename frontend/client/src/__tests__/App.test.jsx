@@ -3,7 +3,23 @@ import { render, waitFor } from '@testing-library/react'
 
 vi.mock('../api/axios', () => ({
   default: {
-    get: vi.fn(() => new Promise(() => {})),
+    // Everything a page asks for stays pending, except the permission check
+    // the shell makes on start, which answers the way the server now would
+    get: vi.fn((url) =>
+      url === '/roles/me'
+        ? Promise.resolve({
+            data: {
+              role: { key: 'admin', name: 'Admin', base: 'admin' },
+              modules: [
+                'dashboard', 'standup', 'history', 'timesheet', 'support',
+                'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro',
+                'projects', 'templates', 'integrations', 'activity',
+                'records', 'hiring', 'approvals', 'pay', 'people', 'roles'
+              ]
+            }
+          })
+        : new Promise(() => {})
+    ),
     put: vi.fn(),
     post: vi.fn(),
     patch: vi.fn(),
@@ -43,6 +59,23 @@ describe('the front door', () => {
     openAt('/')
 
     await waitFor(() => expect(window.location.pathname).toBe('/dashboard'))
+  })
+
+  it('brings an older session up to date with what the role can open now', async () => {
+    // Signed in before Hiring and Approvals existed: the stored list lacks them
+    localStorage.setItem('standupbot_user', JSON.stringify({
+      _id: 'u1', name: 'Rakesh', email: 'r@acme.test', role: 'admin', token: 't',
+      modules: ['dashboard', 'support', 'projects', 'people', 'roles']
+    }))
+
+    openAt('/dashboard')
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('standupbot_user'))
+      expect(stored.modules).toEqual(expect.arrayContaining(['hiring', 'approvals', 'records']))
+      expect(stored.roleName).toBe('Admin')
+      expect(stored.token).toBe('t')
+    })
   })
 
   it('still says "not found" for an address that really is not a page', async () => {

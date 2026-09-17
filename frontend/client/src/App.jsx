@@ -9,6 +9,7 @@ import {
 import { AnimatePresence, MotionConfig } from "framer-motion"
 import { Toaster } from "react-hot-toast"
 import { getUser } from "./store/authStore"
+import { workspaceSectionsFor } from "./lib/workspaceSections"
 
 import AppShell from "./components/AppShell"
 import ErrorBoundary from "./components/ErrorBoundary"
@@ -148,7 +149,14 @@ function AnimatedRoutes({ user, setUser }) {
 
           {/* Set-up lives together rather than as five more sidebar rows */}
           <Route path="/workspace" element={<WorkspaceLayout user={user} />}>
-            <Route index element={<Navigate to="projects" replace />} />
+            {/* The first section this person may open — landing everybody on
+                Projects showed "not part of your role" to a role without it */}
+            <Route
+              index
+              element={
+                <Navigate to={workspaceSectionsFor(user)[0]?.to || "projects"} replace />
+              }
+            />
             <Route element={<ProtectedRoute user={user} module="projects" />}>
               <Route path="projects" element={<Projects />} />
             </Route>
