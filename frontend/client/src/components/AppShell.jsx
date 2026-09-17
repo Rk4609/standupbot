@@ -383,19 +383,29 @@ export default function AppShell({ user, setUser, children }) {
 
   // Declared above the socket effect that reaches for it, and memoised so
   // that effect does not tear down and reconnect on every render
+  // The router hands out a new `navigate` whenever the URL changes. Reading
+  // it through a ref keeps openNotification — and the socket effect that
+  // depends on it — the same across pages. Depending on it directly
+  // disconnected and reconnected the socket, and refetched every
+  // notification, on each click between pages or Workspace tabs.
+  const navigateRef = useRef(navigate)
+  useEffect(() => {
+    navigateRef.current = navigate
+  }, [navigate])
+
   const openNotification = useCallback(async (id, link) => {
     try {
       await API.put(`/notifications/${id}/read`)
       setNotifications(prev => prev.map(n => (n._id === id ? { ...n, isRead: true } : n)))
       setMenu(null)
-      navigate(link)
+      navigateRef.current(link)
     } catch (err) {
       console.error(err)
     }
-  }, [navigate])
+  }, [])
 
   useEffect(() => {
-    if (!user) return
+    if (!token) return
     socket.connect()
 
     API.get('/notifications')
@@ -416,7 +426,7 @@ export default function AppShell({ user, setUser, children }) {
       socket.off('connect_error')
       socket.disconnect()
     }
-  }, [user, openNotification])
+  }, [token, openNotification])
 
   const markAllRead = async () => {
     try {

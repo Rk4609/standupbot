@@ -67,6 +67,18 @@ function RouteFallback() {
 }
 
 /**
+ * Which part of the app a path belongs to, for the page transition.
+ *
+ * Every Workspace tab is one place. Keyed by the full path, switching tabs
+ * tore down the whole Workspace — tabs included — ran the exit animation,
+ * waited on it, and built everything again, so a tab switch looked like a
+ * full page reload. Keyed by section, the frame stays and only the content
+ * under the tabs changes.
+ */
+const transitionKey = (pathname) =>
+  pathname.startsWith("/workspace") ? "/workspace" : pathname
+
+/**
  * Routes live in their own component so they can read the location — the key
  * AnimatePresence needs to run exit animations between pages.
  */
@@ -75,7 +87,7 @@ function AnimatedRoutes({ user, setUser }) {
 
   return (
     <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
+      <Routes location={location} key={transitionKey(location.pathname)}>
         {/* The address people actually type, and the one the installed app
             opens at. It used to be caught by a redirect-everything route;
             when that became a real 404 page, the front door became one too. */}
@@ -175,6 +187,22 @@ function AnimatedRoutes({ user, setUser }) {
             <Route element={<ProtectedRoute user={user} module="hiring" />}>
               <Route path="hiring" element={<Hiring />} />
             </Route>
+
+            {/* The admin-only tabs sit in the same Workspace as the rest. As a
+                second <Route path="/workspace"> of their own, moving between
+                one of them and any other tab swapped one layout for another
+                and rebuilt the tabs, which is the reload this is avoiding. */}
+            <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
+              <Route element={<ProtectedRoute user={user} module="people" />}>
+                <Route path="admin" element={<AdminPanel user={user} />} />
+              </Route>
+              <Route element={<ProtectedRoute user={user} module="roles" />}>
+                <Route path="roles" element={<Roles />} />
+              </Route>
+              <Route element={<ProtectedRoute user={user} module="approvals" />}>
+                <Route path="approvals" element={<Hiring decide />} />
+              </Route>
+            </Route>
           </Route>
         </Route>
 
@@ -188,17 +216,6 @@ function AnimatedRoutes({ user, setUser }) {
         <Route path="/activity" element={<Navigate to="/workspace/activity" replace />} />
 
         <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
-          <Route path="/workspace" element={<WorkspaceLayout user={user} />}>
-            <Route element={<ProtectedRoute user={user} module="people" />}>
-              <Route path="admin" element={<AdminPanel user={user} />} />
-            </Route>
-            <Route element={<ProtectedRoute user={user} module="roles" />}>
-              <Route path="roles" element={<Roles />} />
-            </Route>
-            <Route element={<ProtectedRoute user={user} module="approvals" />}>
-              <Route path="approvals" element={<Hiring decide />} />
-            </Route>
-          </Route>
           <Route path="/admin" element={<Navigate to="/workspace/admin" replace />} />
         </Route>
 

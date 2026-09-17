@@ -1,8 +1,41 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Activity, Suspense, useEffect, useState } from 'react'
+import { NavLink, useLocation, useOutlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import Skeleton from './ui/Skeleton'
 import { cn } from '../lib/cn'
 import { SPRING } from '../lib/motion'
 import { workspaceSectionsFor } from '../lib/workspaceSections'
+
+/**
+ * Every Workspace page's code, fetched as soon as Workspace opens.
+ *
+ * The same module paths App.jsx loads lazily, so they resolve to the same
+ * chunks: once these have landed, clicking a tab has nothing left to
+ * download and goes straight to the page.
+ */
+const PAGES = [
+  () => import('../pages/Projects'),
+  () => import('../pages/Templates'),
+  () => import('../pages/Integrations'),
+  () => import('../pages/Activity'),
+  () => import('../pages/People'),
+  () => import('../pages/Hiring'),
+  () => import('../pages/AdminPanel'),
+  () => import('../pages/Roles')
+]
+
+/** Stands in for the page under the tabs while its code is still arriving. */
+function ContentFallback() {
+  return (
+    <div className="px-4 py-6 md:px-6 md:py-8">
+      <div className="mx-auto max-w-6xl">
+        <Skeleton className="mb-2 h-8 w-56" />
+        <Skeleton className="mb-7 h-4 w-80" />
+        <Skeleton className="h-72 rounded-card" />
+      </div>
+    </div>
+  )
+}
 
 /**
  * The things a team sets up once and then rarely touches.
@@ -14,6 +47,31 @@ import { workspaceSectionsFor } from '../lib/workspaceSections'
  */
 export default function WorkspaceLayout({ user }) {
   const sections = workspaceSectionsFor(user)
+
+  /**
+   * Tabs already opened stay alive underneath, hidden.
+   *
+   * Each page fetched its data on mount, so coming back to a tab meant a
+   * skeleton and a wait for something that had been on screen seconds ago.
+   * Held in an <Activity>, a hidden page keeps what it loaded; when it is
+   * shown again its effects run again, so it refetches in the background
+   * while the last data stays in view — current, but never blank.
+   */
+  const path = useLocation().pathname
+  const outlet = useOutlet()
+  const isTab = path.replace(/\/+$/, '') !== '/workspace'
+  const [opened, setOpened] = useState([])
+
+  if (isTab && outlet && !opened.some(page => page.path === path)) {
+    setOpened([...opened, { path, element: outlet }])
+  }
+
+  useEffect(() => {
+    // After first paint, so fetching the other tabs never slows this one
+    const start = window.requestIdleCallback || ((fn) => setTimeout(fn, 200))
+    const handle = start(() => PAGES.forEach(load => load().catch(() => {})))
+    return () => (window.cancelIdleCallback || clearTimeout)(handle)
+  }, [])
 
   return (
     <>
@@ -61,7 +119,21 @@ export default function WorkspaceLayout({ user }) {
         </div>
       </div>
 
-      <Outlet />
+      {/* Its own loading boundary, below the tabs: a page whose code is still
+          on its way fills the content area, instead of the app-wide fallback
+          blanking the tabs as well */}
+      <Suspense fallback={<ContentFallback />}>
+        {/* /workspace itself only redirects, so it is never kept */}
+        {!isTab && outlet}
+
+        {opened.map(page => (
+          <Activity key={page.path} mode={page.path === path ? 'visible' : 'hidden'}>
+            {/* The visible one gets the router's current element, so it sees
+                any change in the user; hidden ones keep their last one */}
+            {page.path === path ? outlet : page.element}
+          </Activity>
+        ))}
+      </Suspense>
     </>
   )
 }
