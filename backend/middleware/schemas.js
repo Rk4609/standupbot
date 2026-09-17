@@ -424,6 +424,40 @@ const runPayroll = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'must be YYYY-MM')
 }).strict()
 
+/* onboarding -------------------------------------------------------- */
+
+const onboardingOwner = z.enum(['hr', 'manager', 'employee'])
+
+const listOnboarding = {
+  query: z.object({ status: z.enum(['active', 'complete']).optional() }).strip()
+}
+
+const startOnboarding = z.object({
+  user: objectId,
+  startsOn: fields.isoDate.optional()
+}).strict()
+
+const onboardingTask = {
+  params: z.object({ id: objectId, taskId: objectId })
+}
+
+const updateOnboardingTask = {
+  params: z.object({ id: objectId, taskId: objectId }),
+  body: z.object({
+    done: z.boolean().optional(),
+    note: z.string().trim().max(300, 'is too long').optional()
+  }).strict()
+}
+
+const addOnboardingTask = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    title: z.string().trim().min(3, 'is too short').max(120, 'is too long'),
+    owner: onboardingOwner,
+    dueOn: fields.isoDate
+  }).strict()
+}
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -523,6 +557,11 @@ module.exports = {
   correctAttendance,
   payrollMonth,
   runPayroll,
+  listOnboarding,
+  startOnboarding,
+  onboardingTask,
+  updateOnboardingTask,
+  addOnboardingTask,
   createRole,
   updateRole,
   roleId,

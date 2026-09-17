@@ -27,7 +27,10 @@ const notificationSchema = new mongoose.Schema({
       'leave_requested',
       'leave_decided',
       // Payroll: this month's slip is out
-      'payslip_ready'
+      'payslip_ready',
+      // Onboarding: a new joiner's checklist exists, and when it is finished
+      'onboarding_started',
+      'onboarding_complete'
     ],
     required: true
   },

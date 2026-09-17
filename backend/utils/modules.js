@@ -39,6 +39,7 @@ const MODULES = [
   { key: 'activity', label: 'Activity log', group: 'Workspace', minBase: 'manager' },
   { key: 'records', label: 'People records', group: 'Workspace', minBase: 'manager' },
   { key: 'hiring', label: 'Hiring — put people forward', group: 'Workspace', minBase: 'manager' },
+  { key: 'onboarding', label: 'Onboarding — checklists for new joiners', group: 'Workspace', minBase: 'manager', rollOut: true },
   { key: 'approvals', label: 'Approvals — decide on hires', group: 'Workspace', minBase: 'admin' },
   { key: 'pay', label: 'Pay details', group: 'Workspace', minBase: 'admin' },
   { key: 'people', label: 'People & teams', group: 'Workspace', minBase: 'admin' },
@@ -75,7 +76,7 @@ const DEFAULTS = {
   manager: [
     'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support',
     'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance',
-    'projects', 'templates', 'integrations', 'activity', 'records', 'hiring'
+    'projects', 'templates', 'integrations', 'activity', 'records', 'hiring', 'onboarding'
   ],
   admin: MODULE_KEYS
 }

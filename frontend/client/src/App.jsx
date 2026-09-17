@@ -47,6 +47,8 @@ const Attendance = lazy(() => import("./pages/Attendance"))
 const TeamAttendance = lazy(() => import("./pages/TeamAttendance"))
 const Payslips = lazy(() => import("./pages/Payslips"))
 const Payroll = lazy(() => import("./pages/Payroll"))
+const Onboarding = lazy(() => import("./pages/Onboarding"))
+const OnboardingDetail = lazy(() => import("./pages/OnboardingDetail"))
 const Roles = lazy(() => import("./pages/Roles"))
 const People = lazy(() => import("./pages/People"))
 const Hiring = lazy(() => import("./pages/Hiring"))
@@ -160,6 +162,9 @@ function AnimatedRoutes({ user, setUser }) {
         {/* One slip: its owner, or whoever runs payroll — the server decides */}
         <Route element={<ProtectedRoute user={user} />}>
           <Route path="/payslips/:id" element={<Payslips />} />
+          {/* A checklist: the joiner's own, or one the reader helps with —
+              the server says which, and hides the rest */}
+          <Route path="/onboarding/:id" element={<OnboardingDetail />} />
         </Route>
         <Route element={<ProtectedRoute user={user} module="payslips" />}>
           <Route path="/payslips" element={<Payslips />} />
@@ -218,6 +223,9 @@ function AnimatedRoutes({ user, setUser }) {
             </Route>
             <Route element={<ProtectedRoute user={user} module="hiring" />}>
               <Route path="hiring" element={<Hiring />} />
+            </Route>
+            <Route element={<ProtectedRoute user={user} module="onboarding" />}>
+              <Route path="onboarding" element={<Onboarding />} />
             </Route>
 
             {/* The admin-only tabs sit in the same Workspace as the rest. As a

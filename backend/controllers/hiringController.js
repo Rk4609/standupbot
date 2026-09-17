@@ -7,6 +7,7 @@ const { notify, notifyMany } = require('../services/notifyService')
 const { canUse } = require('../services/roleService')
 const { sendMail } = require('../services/emailService')
 const { ownTeam } = require('../utils/teams')
+const { startOnboarding } = require('../services/onboardingService')
 
 const PAGE_SIZES = [10, 20, 50]
 const DEFAULT_LIMIT = 20
@@ -243,6 +244,20 @@ const approveCandidate = async (req, res) => {
     candidate.reason = req.body.reason || ''
     candidate.createdUser = user._id
     await candidate.save()
+
+    // Their first-weeks checklist, from the day they join. Best effort: the
+    // account exists either way, and a checklist can be started by hand.
+    try {
+      await startOnboarding({
+        io: req.app.get('io'),
+        user,
+        startsOn: (candidate.joiningOn || new Date()).toISOString().slice(0, 10),
+        actor: req.user,
+        candidate: candidate._id
+      })
+    } catch (err) {
+      console.error('Could not start onboarding:', err.message)
+    }
 
     await audit.record({
       action: 'hiring.approved',

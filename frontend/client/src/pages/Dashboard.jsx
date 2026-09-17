@@ -80,6 +80,7 @@ export default function Dashboard({ user }) {
   const [profile, setProfile] = useState(null)
   const [week, setWeek] = useState(null)
   const [lead, setLead] = useState({})
+  const [onboarding, setOnboarding] = useState(null)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -94,8 +95,9 @@ export default function Dashboard({ user }) {
       can(user, 'timesheet') ? API.get('/timesheets/me') : Promise.resolve(null),
       can(user, 'employees') ? API.get('/employees/summary') : Promise.resolve(null),
       can(user, 'hiring') ? API.get('/hiring?status=pending&limit=10') : Promise.resolve(null),
-      can(user, 'projects') ? API.get('/projects/all') : Promise.resolve(null)
-    ]).then(([mine, me, sheet, roster, hiring, projects]) => {
+      can(user, 'projects') ? API.get('/projects/all') : Promise.resolve(null),
+      API.get('/onboarding/mine')
+    ]).then(([mine, me, sheet, roster, hiring, projects, firstWeeks]) => {
       if (cancelled) return
 
       const value = (r) => (r.status === 'fulfilled' ? r.value?.data : null)
@@ -103,6 +105,7 @@ export default function Dashboard({ user }) {
       setStandups(value(mine) || [])
       setProfile(value(me))
       setWeek(value(sheet))
+      setOnboarding(value(firstWeeks)?.onboarding || null)
       setLead({
         roster: value(roster)?.rosterTotal ?? null,
         pending: value(hiring)?.pendingCount ?? null,
@@ -287,6 +290,44 @@ export default function Dashboard({ user }) {
           ))}
         </div>
       </motion.section>
+
+      {/* A new joiner's checklist, until it is done */}
+      {onboarding?.status === 'active' && (
+        <motion.div variants={itemVariants} className="mb-4">
+          <Link
+            to={`/onboarding/${onboarding._id}`}
+            className="flex flex-col gap-4 rounded-card bg-brand-600 p-5 text-white shadow-card transition-shadow hover:shadow-lift dark:bg-surface-raised dark:text-content sm:flex-row sm:items-center"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-xs uppercase tracking-[0.14em] text-white/60 dark:text-content-subtle">
+                Your first weeks
+              </p>
+              <p className="mt-1 text-lg tracking-tight">
+                Onboarding · {onboarding.progress.done} of {onboarding.progress.total} done
+              </p>
+              {(() => {
+                const next = onboarding.tasks
+                  .filter(t => !t.done && t.canTick)
+                  .sort((a, b) => a.dueOn.localeCompare(b.dueOn))[0]
+                return next ? (
+                  <p className="mt-0.5 truncate text-sm text-white/75 dark:text-content-muted">
+                    Next for you: {next.title}
+                  </p>
+                ) : null
+              })()}
+            </div>
+            <div className="flex items-center gap-3 sm:w-64">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/15 dark:bg-surface-sunken">
+                <div
+                  className="h-full rounded-full bg-brand-400"
+                  style={{ width: `${onboarding.progress.percent}%` }}
+                />
+              </div>
+              <span className="tabular text-sm">{onboarding.progress.percent}%</span>
+            </div>
+          </Link>
+        </motion.div>
+      )}
 
       {/* The panels */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
