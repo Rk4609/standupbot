@@ -22,7 +22,10 @@ const notificationSchema = new mongoose.Schema({
       'support_closed',
       // Hiring: one waiting on a decision, and the decision itself
       'hiring_submitted',
-      'hiring_decided'
+      'hiring_decided',
+      // Leave: somebody asked for time off, and the answer
+      'leave_requested',
+      'leave_decided'
     ],
     required: true
   },

@@ -1,5 +1,5 @@
 const Role = require('../models/Role')
-const { ALWAYS, DEFAULTS, sanitise } = require('../utils/modules')
+const { ALWAYS, DEFAULTS, MODULE_KEYS, ROLLED_OUT, sanitise } = require('../utils/modules')
 
 /**
  * Resolving a role costs a query, and every gated route asks. The answer
@@ -63,9 +63,45 @@ const ensureBuiltIns = async () => {
    * and the roles screen refuses to edit the admin role for exactly the
    * reason that makes this safe: it is meant to hold everything.
    */
-  await Role.updateOne({ key: 'admin' }, { $set: { modules: DEFAULTS.admin } })
+  await Role.updateOne({ key: 'admin' }, { $set: { modules: DEFAULTS.admin, offered: MODULE_KEYS } })
+
+  await offerNewModules()
 
   invalidate()
+}
+
+/**
+ * Hand every stored role the modules that arrived after it was saved.
+ *
+ * Without this a new module is reachable only by admins: the manager and
+ * employee roles were written to the database with the list that existed
+ * then. Each role gets its base's default for a module once, and records
+ * that it was offered, so an admin who then takes it away is not overruled
+ * on the next start.
+ */
+const offerNewModules = async () => {
+  const roles = await Role.find({ key: { $ne: 'admin' } }).select('base modules offered').lean()
+
+  await Promise.all(roles.map(role => {
+    const offered = new Set(
+      Array.isArray(role.offered)
+        ? role.offered
+        : MODULE_KEYS.filter(key => !ROLLED_OUT.includes(key))
+    )
+    const fresh = MODULE_KEYS.filter(key => !offered.has(key))
+    if (fresh.length === 0 && Array.isArray(role.offered)) return null
+
+    const given = fresh.filter(key => (DEFAULTS[role.base] || []).includes(key))
+    return Role.updateOne(
+      { _id: role._id },
+      {
+        $set: {
+          modules: sanitise([...role.modules, ...given], role.base),
+          offered: MODULE_KEYS
+        }
+      }
+    )
+  }))
 }
 
 /**

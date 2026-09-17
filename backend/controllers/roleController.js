@@ -3,7 +3,7 @@ const Role = require('../models/Role')
 const User = require('../models/User')
 const audit = require('../services/auditService')
 const { ensureBuiltIns, invalidate, modulesFor, roleFor } = require('../services/roleService')
-const { MODULES, DEFAULTS, allowedFor, sanitise } = require('../utils/modules')
+const { MODULES, MODULE_KEYS, DEFAULTS, allowedFor, sanitise } = require('../utils/modules')
 
 /** A key from a name: "Delivery lead" → "delivery-lead". */
 const keyFrom = (name) =>
@@ -80,6 +80,8 @@ const createRole = async (req, res) => {
       description,
       base,
       modules: sanitise(modules || DEFAULTS[base], base),
+      // Created knowing every module there is: none of them is news to it
+      offered: MODULE_KEYS,
       builtIn: false,
       createdBy: req.user._id
     })

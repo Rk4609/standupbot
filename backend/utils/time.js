@@ -78,6 +78,31 @@ const todayIn = (tz, at = new Date()) => {
   return `${p.year}-${p.month}-${p.day}`
 }
 
+/** Minutes since midnight, as the clock reads in `tz` at that instant. */
+const minuteOfDayIn = (tz, at = new Date()) => {
+  const p = partsIn(tz, at)
+  return p.hour * 60 + p.minute
+}
+
+/**
+ * The instant a wall clock in `tz` shows `hhmm` on calendar day `iso`.
+ *
+ * Starts from the same numbers read as UTC and corrects by however far the
+ * zone's clock is off; a second pass settles the rare day an offset changes.
+ */
+const instantIn = (tz, iso, hhmm) => {
+  const [y, mo, d] = iso.split('-').map(Number)
+  const [h, mi] = hhmm.split(':').map(Number)
+  const wall = Date.UTC(y, mo - 1, d, h, mi)
+
+  let at = wall
+  for (let i = 0; i < 2; i++) {
+    const p = partsIn(tz, new Date(at))
+    at += wall - Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), p.hour, p.minute)
+  }
+  return new Date(at)
+}
+
 /** The hour, 0-23, as it reads in `tz`. */
 const hourIn = (tz, at = new Date()) => partsIn(tz, at).hour
 
@@ -129,6 +154,8 @@ module.exports = {
   isValidTimezone,
   todayIn,
   hourIn,
+  minuteOfDayIn,
+  instantIn,
   weekdayIn,
   addDays,
   daysBetween,

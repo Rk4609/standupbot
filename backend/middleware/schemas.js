@@ -360,6 +360,58 @@ const decideCandidate = {
   }).strict()
 }
 
+/* leave ------------------------------------------------------------- */
+
+const requestLeave = z.object({
+  type: z.enum(['casual', 'sick', 'earned', 'unpaid']),
+  from: fields.isoDate,
+  // Ignored for a half day, which is one day by definition
+  to: fields.isoDate.optional(),
+  halfDay: z.boolean().optional(),
+  reason: z.string().trim().min(3, 'needs a few words').max(500, 'is too long')
+}).strict().refine(v => v.halfDay || v.to, { message: 'is required', path: ['to'] })
+
+const listLeave = {
+  query: z.object({
+    page: z.coerce.number().int().positive().optional(),
+    limit: z.coerce.number().int().positive().optional(),
+    status: z.enum(['pending', 'approved', 'rejected', 'cancelled']).optional(),
+    year: z.coerce.number().int().optional(),
+    month: z.string().regex(/^\d{4}-\d{2}$/, 'must be YYYY-MM').optional()
+  }).strip()
+}
+
+const decideLeave = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    note: z.string().trim().max(500, 'is too long').optional()
+  }).strict()
+}
+
+/* attendance -------------------------------------------------------- */
+
+const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be HH:MM')
+
+const attendanceNote = z.object({
+  note: z.string().trim().max(200, 'is too long').optional()
+}).strict()
+
+const listAttendance = {
+  query: z.object({
+    month: z.string().regex(/^\d{4}-\d{2}$/, 'must be YYYY-MM').optional(),
+    date: fields.isoDate.optional(),
+    team: objectId.optional()
+  }).strip()
+}
+
+const correctAttendance = z.object({
+  user: objectId,
+  date: fields.isoDate,
+  checkIn: clock,
+  checkOut: z.union([clock, z.literal(''), z.null()]).optional(),
+  reason: z.string().trim().min(3, 'needs a few words').max(300, 'is too long')
+}).strict()
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -451,6 +503,12 @@ module.exports = {
   submitCandidate,
   listCandidates,
   decideCandidate,
+  requestLeave,
+  listLeave,
+  decideLeave,
+  attendanceNote,
+  listAttendance,
+  correctAttendance,
   createRole,
   updateRole,
   roleId,

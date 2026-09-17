@@ -40,6 +40,11 @@ const roleSchema = new mongoose.Schema({
     }
   },
 
+  // Every module this role has been offered, ticked or not. A module missing
+  // from here arrived after the role was saved; left unset on older roles
+  // on purpose, so they can be told apart from ones that already know
+  offered: { type: [String], default: undefined },
+
   // The three that shipped with the app. Editable, but never deleted.
   builtIn: { type: Boolean, default: false },
 

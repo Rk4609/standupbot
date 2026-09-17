@@ -14,6 +14,8 @@ import { requestRefresh } from '../lib/liveRefresh'
 import {
   IconAlert,
   IconBell,
+  IconCalendar,
+  IconCheck,
   IconChart,
   IconClock,
   IconHome,
@@ -49,8 +51,18 @@ const navGroups = (user) => {
         { to: '/dashboard', label: 'Dashboard', icon: IconHome, module: 'dashboard' },
         { to: '/standup/new', label: 'New standup', icon: IconPlus, module: 'standup' },
         { to: '/history', label: 'History', icon: IconClock, module: 'history' },
-        { to: '/timesheet', label: 'Timesheet', icon: IconTimer, module: 'timesheet' },
         { to: '/support', label: 'Support', icon: IconInbox, module: 'support' }
+      ]
+    },
+    {
+      // Where a person's hours and days off live. One menu rather than three
+      // more pills: the bar ran out of room at laptop width.
+      id: 'time',
+      label: 'My time',
+      items: [
+        { to: '/attendance', label: 'Attendance', icon: IconCheck, module: 'attendance' },
+        { to: '/timesheet', label: 'Timesheet', icon: IconTimer, module: 'timesheet' },
+        { to: '/leave', label: 'Leave', icon: IconCalendar, module: 'leave' }
       ]
     },
     {
@@ -61,6 +73,8 @@ const navGroups = (user) => {
         { to: '/employees', label: 'Employees', icon: IconUsers, module: 'employees' },
         { to: '/blockers', label: 'Blockers', icon: IconAlert, module: 'blockers' },
         { to: '/timesheets', label: 'Timesheets', icon: IconTimer, module: 'timesheets' },
+        { to: '/team-attendance', label: 'Attendance', icon: IconCheck, module: 'team-attendance' },
+        { to: '/leaves', label: 'Leave approvals', icon: IconCalendar, module: 'leaves' },
         { to: '/analytics', label: 'Analytics', icon: IconTrendUp, module: 'analytics' },
         { to: '/retro', label: 'Weekly retro', icon: IconSparkles, module: 'retro' }
       ]
@@ -171,6 +185,50 @@ function MenuLink({ to, label, icon: Icon, onNavigate }) {
   )
 }
 
+/** Is this path the item's page, or a page under it? '/leaves' is not '/leave'. */
+const isAt = (pathname, to) => pathname === to || pathname.startsWith(`${to}/`)
+
+/** A pill that opens a list of pages — My time and Team. */
+function TopMenu({ label, items, open, onToggle, onNavigate, wrapRef }) {
+  const location = useLocation()
+  const active = items.some(item => isAt(location.pathname, item.to))
+
+  return (
+    <div className="relative shrink-0" ref={wrapRef}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="relative block rounded-full"
+      >
+        {active && <ActivePill />}
+        <span
+          className={cn(
+            'relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] transition-colors',
+            active
+              ? 'font-medium text-white dark:text-brand-700'
+              : 'text-content-muted hover:text-content'
+          )}
+        >
+          {label}
+          <Chevron open={open} />
+        </span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <Menu className="w-56">
+            {items.map(item => (
+              <MenuLink key={item.to} {...item} onNavigate={onNavigate} />
+            ))}
+          </Menu>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 /** Round icon button used along the right of the bar. */
 const circle =
   'relative flex h-10 w-10 items-center justify-center rounded-full border border-line/80 bg-surface/80 text-content-muted backdrop-blur-sm transition-colors hover:text-content'
@@ -278,9 +336,10 @@ export default function AppShell({ user, setUser, children }) {
   const [notifications, setNotifications] = useState([])
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  // One menu open at a time: 'team', 'bell', 'account' or null
+  // One menu open at a time: 'time', 'team', 'workspace', 'bell', 'account' or null
   const [menu, setMenu] = useState(null)
   const teamRef = useRef(null)
+  const timeRef = useRef(null)
   const workspaceRef = useRef(null)
   const bellRef = useRef(null)
   const accountRef = useRef(null)
@@ -288,10 +347,10 @@ export default function AppShell({ user, setUser, children }) {
   const unreadCount = notifications.filter(n => !n.isRead).length
   const groups = navGroups(user)
   const mine = groups.find(g => g.id === 'mine')?.items || []
+  const time = groups.find(g => g.id === 'time')?.items || []
   const team = groups.find(g => g.id === 'team')?.items || []
   const manage = groups.find(g => g.id === 'manage')?.items || []
 
-  const inTeam = team.some(i => location.pathname.startsWith(i.to))
   const inWorkspace = location.pathname.startsWith('/workspace')
 
   useEffect(() => {
@@ -360,7 +419,7 @@ export default function AppShell({ user, setUser, children }) {
     // Read inside the effect: the element that counts as "inside" is the
     // wrapper of whichever menu is open
     const wrapper = {
-      team: teamRef, workspace: workspaceRef, bell: bellRef, account: accountRef
+      team: teamRef, time: timeRef, workspace: workspaceRef, bell: bellRef, account: accountRef
     }[menu]
     const onPointerDown = (e) => {
       if (wrapper.current && !wrapper.current.contains(e.target)) setMenu(null)
@@ -538,39 +597,26 @@ export default function AppShell({ user, setUser, children }) {
               <TopLink key={item.to} {...item} />
             ))}
 
-            {team.length > 0 && (
-              <div className="relative shrink-0" ref={teamRef}>
-                <button
-                  type="button"
-                  onClick={() => toggle('team')}
-                  aria-haspopup="menu"
-                  aria-expanded={menu === 'team'}
-                  className="relative block rounded-full"
-                >
-                  {inTeam && <ActivePill />}
-                  <span
-                    className={cn(
-                      'relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] transition-colors',
-                      inTeam
-                        ? 'font-medium text-white dark:text-brand-700'
-                        : 'text-content-muted hover:text-content'
-                    )}
-                  >
-                    Team
-                    <Chevron open={menu === 'team'} />
-                  </span>
-                </button>
+            {time.length > 0 && (
+              <TopMenu
+                label="My time"
+                items={time}
+                open={menu === 'time'}
+                onToggle={() => toggle('time')}
+                onNavigate={() => setMenu(null)}
+                wrapRef={timeRef}
+              />
+            )}
 
-                <AnimatePresence>
-                  {menu === 'team' && (
-                    <Menu className="w-56">
-                      {team.map(item => (
-                        <MenuLink key={item.to} {...item} onNavigate={() => setMenu(null)} />
-                      ))}
-                    </Menu>
-                  )}
-                </AnimatePresence>
-              </div>
+            {team.length > 0 && (
+              <TopMenu
+                label="Team"
+                items={team}
+                open={menu === 'team'}
+                onToggle={() => toggle('team')}
+                onNavigate={() => setMenu(null)}
+                wrapRef={teamRef}
+              />
             )}
           </nav>
 

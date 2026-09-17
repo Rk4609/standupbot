@@ -17,6 +17,8 @@ const MODULES = [
   { key: 'standup', label: 'Submit a standup', group: 'Personal', minBase: 'employee' },
   { key: 'history', label: 'Own history', group: 'Personal', minBase: 'employee' },
   { key: 'timesheet', label: 'Own timesheet', group: 'Personal', minBase: 'employee' },
+  { key: 'leave', label: 'Leave — ask for time off', group: 'Personal', minBase: 'employee', rollOut: true },
+  { key: 'attendance', label: 'Attendance — check in and out', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'support', label: 'Help & support', group: 'Personal', minBase: 'employee', always: true },
 
   // What a lead does with other people's days
@@ -26,6 +28,8 @@ const MODULES = [
   { key: 'timesheets', label: 'Timesheet approvals', group: 'Team', minBase: 'manager' },
   { key: 'analytics', label: 'Analytics & exports', group: 'Team', minBase: 'manager' },
   { key: 'retro', label: 'Weekly retro', group: 'Team', minBase: 'manager' },
+  { key: 'leaves', label: 'Leave approvals', group: 'Team', minBase: 'manager', rollOut: true },
+  { key: 'team-attendance', label: 'Team attendance', group: 'Team', minBase: 'manager', rollOut: true },
 
   // What gets set up once
   { key: 'projects', label: 'Projects & assignments', group: 'Workspace', minBase: 'manager' },
@@ -42,6 +46,16 @@ const MODULES = [
 
 const MODULE_KEYS = MODULES.map(m => m.key)
 
+/**
+ * Modules added after roles were already being saved.
+ *
+ * A role stored before one of these existed has never been asked about it,
+ * so it is handed its base's default once (see ensureBuiltIns). Everything
+ * else in the catalogue is what every stored role has already been offered,
+ * which is why removing one of those by hand stays removed.
+ */
+const ROLLED_OUT = MODULES.filter(m => m.rollOut).map(m => m.key)
+
 /** Nobody can be locked out of these — they are how you get anywhere at all. */
 const ALWAYS = MODULES.filter(m => m.always).map(m => m.key)
 
@@ -56,10 +70,10 @@ const allowedFor = (base) =>
 
 /** What each built-in role starts with, and what a new role is offered. */
 const DEFAULTS = {
-  employee: ['dashboard', 'standup', 'history', 'timesheet', 'support'],
+  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'support'],
   manager: [
-    'dashboard', 'standup', 'history', 'timesheet', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro',
+    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'support',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance',
     'projects', 'templates', 'integrations', 'activity', 'records', 'hiring'
   ],
   admin: MODULE_KEYS
@@ -72,4 +86,4 @@ const sanitise = (modules, base) => {
   return [...new Set([...kept, ...ALWAYS])]
 }
 
-module.exports = { MODULES, MODULE_KEYS, ALWAYS, BASES, DEFAULTS, allowedFor, sanitise, rank }
+module.exports = { MODULES, MODULE_KEYS, ROLLED_OUT, ALWAYS, BASES, DEFAULTS, allowedFor, sanitise, rank }

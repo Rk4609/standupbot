@@ -8,15 +8,15 @@
  * suddenly lose its sidebar.
  */
 const FALLBACK = {
-  employee: ['dashboard', 'standup', 'history', 'timesheet', 'support'],
+  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'support'],
   manager: [
-    'dashboard', 'standup', 'history', 'timesheet', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro',
+    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'support',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance',
     'projects', 'templates', 'integrations', 'activity'
   ],
   admin: [
-    'dashboard', 'standup', 'history', 'timesheet', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro',
+    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'support',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance',
     'projects', 'templates', 'integrations', 'activity', 'people', 'roles'
   ]
 }

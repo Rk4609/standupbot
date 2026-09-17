@@ -9,7 +9,13 @@ const connectDB = require('./config/db')
 const { createApp, allowedOrigins } = require('./app')
 const { startCronJobs } = require('./services/cronService')
 
-connectDB()
+const { ensureBuiltIns } = require('./services/roleService')
+
+// Roles are brought up to date once connected, so a module added in this
+// release reaches managers and employees without anybody opening Roles first
+connectDB().then(() =>
+  ensureBuiltIns().catch(err => console.error('Could not update roles:', err.message))
+)
 
 const app = createApp()
 const server = http.createServer(app)

@@ -41,6 +41,10 @@ const Integrations = lazy(() => import("./pages/Integrations"))
 const WorkspaceLayout = lazy(() => import("./components/WorkspaceLayout"))
 const Timesheet = lazy(() => import("./pages/Timesheet"))
 const Support = lazy(() => import("./pages/Support"))
+const Leave = lazy(() => import("./pages/Leave"))
+const LeaveApprovals = lazy(() => import("./pages/LeaveApprovals"))
+const Attendance = lazy(() => import("./pages/Attendance"))
+const TeamAttendance = lazy(() => import("./pages/TeamAttendance"))
 const Roles = lazy(() => import("./pages/Roles"))
 const People = lazy(() => import("./pages/People"))
 const Hiring = lazy(() => import("./pages/Hiring"))
@@ -145,6 +149,12 @@ function AnimatedRoutes({ user, setUser }) {
         <Route element={<ProtectedRoute user={user} module="timesheet" />}>
           <Route path="/timesheet" element={<Timesheet />} />
         </Route>
+        <Route element={<ProtectedRoute user={user} module="leave" />}>
+          <Route path="/leave" element={<Leave />} />
+        </Route>
+        <Route element={<ProtectedRoute user={user} module="attendance" />}>
+          <Route path="/attendance" element={<Attendance />} />
+        </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["manager", "admin"]} />}>
           <Route element={<ProtectedRoute user={user} module="team" />}>
@@ -164,6 +174,12 @@ function AnimatedRoutes({ user, setUser }) {
           </Route>
           <Route element={<ProtectedRoute user={user} module="timesheets" />}>
             <Route path="/timesheets" element={<TeamTimesheets />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="leaves" />}>
+            <Route path="/leaves" element={<LeaveApprovals />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="team-attendance" />}>
+            <Route path="/team-attendance" element={<TeamAttendance />} />
           </Route>
 
           {/* Set-up lives together rather than as five more sidebar rows */}

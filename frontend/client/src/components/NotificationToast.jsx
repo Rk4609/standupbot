@@ -2,7 +2,7 @@ import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/cn'
 import { DURATION, EASE } from '../lib/motion'
-import { IconAlert, IconBell, IconCheck, IconClose, IconInbox, IconUsers } from './ui/icons'
+import { IconAlert, IconBell, IconCalendar, IconCheck, IconClose, IconInbox, IconUsers } from './ui/icons'
 
 /** Icon and tint per kind, so a blocker does not look like a standup. */
 const LOOK = {
@@ -13,6 +13,8 @@ const LOOK = {
   standup_submitted: { icon: IconCheck, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   hiring_submitted: { icon: IconUsers, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   hiring_decided: { icon: IconCheck, plate: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
+  leave_requested: { icon: IconCalendar, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
+  leave_decided: { icon: IconCalendar, plate: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
   reminder: { icon: IconBell, plate: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' }
 }
 
@@ -24,6 +26,8 @@ const TITLE = {
   standup_submitted: 'Standup submitted',
   hiring_submitted: 'Somebody put forward',
   hiring_decided: 'Hiring decision',
+  leave_requested: 'Leave requested',
+  leave_decided: 'Leave update',
   reminder: 'Reminder'
 }
 

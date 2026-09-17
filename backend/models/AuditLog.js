@@ -21,6 +21,9 @@ const ACTIONS = [
   'hiring.submitted',
   'hiring.approved',
   'hiring.rejected',
+  'leave.approved',
+  'leave.rejected',
+  'attendance.corrected',
   'role.created',
   'role.updated',
   'role.deleted'
