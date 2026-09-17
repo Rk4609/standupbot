@@ -2,104 +2,24 @@ import { useCallback, useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { removeUser, updateUser } from '../store/authStore'
-import { workspaceSectionsFor } from '../lib/workspaceSections'
+import { navGroups } from '../lib/navigation'
 import socket from '../socket'
 import API, { clearWarm } from '../api/axios'
 import { cn } from '../lib/cn'
-import { can } from '../lib/permissions'
 import { SPRING, popVariants } from '../lib/motion'
 import NotificationList from './NotificationList'
+import CommandPalette from './CommandPalette'
 import { showNotificationToast } from '../lib/notificationToast'
 import { requestRefresh } from '../lib/liveRefresh'
 import {
-  IconAlert,
   IconBell,
-  IconCalendar,
-  IconCheck,
-  IconChart,
-  IconClock,
-  IconHome,
-  IconInbox,
   IconMenu,
   IconMoon,
-  IconPlus,
-  IconPrinter,
-  IconSparkles,
+  IconSearch,
   IconTarget,
-  IconTimer,
   IconSun,
-  IconTrendUp,
-  IconUser,
-  IconUsers
+  IconUser
 } from './ui/icons'
-
-/**
- * What people open on a given day, grouped the way they think about it.
- *
- * Everything a team configures once lives behind Workspace. The groups used
- * to be sidebar sections; they are now the top bar — the personal ones as
- * pills, the team ones behind a single "Team" pill, and Workspace on its own
- * at the end, where settings usually sit.
- */
-const navGroups = (user) => {
-  // Each row names the module it belongs to, so a role that had that module
-  // taken away loses the row rather than finding a page that refuses it
-  const groups = [
-    {
-      id: 'mine',
-      label: null,
-      items: [
-        { to: '/dashboard', label: 'Dashboard', icon: IconHome, module: 'dashboard' },
-        { to: '/standup/new', label: 'New standup', icon: IconPlus, module: 'standup' },
-        { to: '/history', label: 'History', icon: IconClock, module: 'history' },
-        { to: '/support', label: 'Support', icon: IconInbox, module: 'support' }
-      ]
-    },
-    {
-      // A person's own HR: hours, days off and pay. One menu rather than
-      // four more pills: the bar ran out of room at laptop width.
-      id: 'time',
-      label: 'My HR',
-      items: [
-        { to: '/attendance', label: 'Attendance', icon: IconCheck, module: 'attendance' },
-        { to: '/timesheet', label: 'Timesheet', icon: IconTimer, module: 'timesheet' },
-        { to: '/leave', label: 'Leave', icon: IconCalendar, module: 'leave' },
-        { to: '/payslips', label: 'Payslips', icon: IconPrinter, module: 'payslips' }
-      ]
-    },
-    {
-      id: 'team',
-      label: 'Team',
-      items: [
-        { to: '/brief', label: 'Daily brief', icon: IconSparkles, module: 'brief' },
-        { to: '/team', label: 'Overview', icon: IconChart, module: 'team' },
-        { to: '/employees', label: 'Employees', icon: IconUsers, module: 'employees' },
-        { to: '/blockers', label: 'Blockers', icon: IconAlert, module: 'blockers' },
-        { to: '/timesheets', label: 'Timesheets', icon: IconTimer, module: 'timesheets' },
-        { to: '/team-attendance', label: 'Attendance', icon: IconCheck, module: 'team-attendance' },
-        { to: '/leaves', label: 'Leave approvals', icon: IconCalendar, module: 'leaves' },
-        { to: '/analytics', label: 'Analytics', icon: IconTrendUp, module: 'analytics' },
-        { to: '/reports', label: 'Weekly report', icon: IconPrinter, module: 'reports' },
-        { to: '/retro', label: 'Weekly retro', icon: IconSparkles, module: 'retro' }
-      ]
-    },
-    {
-      // Every workspace section by name — the admin panel and roles used to
-      // hide behind a single "Workspace" link, and at a narrow width behind
-      // a scrolled-away tab as well
-      id: 'manage',
-      label: 'Workspace',
-      items: workspaceSectionsFor(user).map(section => ({
-        ...section,
-        to: `/workspace/${section.to}`
-      }))
-    }
-  ]
-
-  return groups
-    .map(group => ({ ...group, items: group.items.filter(i => can(user, i.module)) }))
-    .filter(group => group.items.length > 0)
-}
 
 /** Small downward chevron for the pills that open a menu. */
 function Chevron({ open }) {
@@ -339,6 +259,7 @@ export default function AppShell({ user, setUser, children }) {
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark')
   const [notifications, setNotifications] = useState([])
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
 
   // One menu open at a time: 'time', 'team', 'workspace', 'bell', 'account' or null
   const [menu, setMenu] = useState(null)
@@ -527,6 +448,22 @@ export default function AppShell({ user, setUser, children }) {
     }
   }
 
+  // Ctrl+K anywhere, ⌘K on a Mac. Not while typing into a field of the
+  // page: there the combination belongs to whatever that field does.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setMenu(null)
+        setPaletteOpen(open => !open)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const toggleTheme = useCallback(() => setDark(v => !v), [])
+
   const handleLogout = () => {
     removeUser()
     // Anything fetched ahead belonged to this session
@@ -573,6 +510,15 @@ export default function AppShell({ user, setUser, children }) {
       {/* Top bar — the design's navigation: a name, a row of pills, and
           round controls at the end. On anything narrower than a laptop the
           pills fold into the drawer. */}
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        user={user}
+        dark={dark}
+        onToggleTheme={toggleTheme}
+        onLogout={handleLogout}
+      />
+
       <header className="no-print sticky top-0 z-30 px-4 pt-4 md:px-6">
         <div className="mx-auto flex max-w-6xl items-center gap-3 rounded-full border border-line/70 bg-surface-muted/70 p-1.5 pl-2 shadow-card backdrop-blur-md">
           <button
@@ -655,6 +601,16 @@ export default function AppShell({ user, setUser, children }) {
                 </AnimatePresence>
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => { setMenu(null); setPaletteOpen(true) }}
+              aria-label="Search and go to (Ctrl K)"
+              title="Search and go to (Ctrl K)"
+              className={circle}
+            >
+              <IconSearch className="h-[18px] w-[18px]" />
+            </button>
 
             <div className="relative" ref={bellRef}>
               <button
