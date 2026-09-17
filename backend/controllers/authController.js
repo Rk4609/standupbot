@@ -1,4 +1,3 @@
-const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const User = require('../models/User')
 const { modulesFor, roleFor } = require('../services/roleService')
@@ -6,8 +5,7 @@ const { sendResetPasswordEmail } = require('../services/emailService')
 
 const { challengeFor, readChallenge, checkSecondFactor, withSecrets } = require('./twoFactorController')
 
-const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+const { startSession, revokeAllExcept } = require('../services/sessionService')
 
 /**
  * What the browser keeps about the signed-in person.
@@ -16,7 +14,7 @@ const generateToken = (id) =>
  * right on the first paint; the server checks them again on every request
  * that matters, because nothing sent to a browser is a permission.
  */
-const session = async (user) => {
+const session = async (user, req) => {
   const role = await roleFor(user)
 
   return {
@@ -28,7 +26,7 @@ const session = async (user) => {
     modules: await modulesFor(user),
     streak: user.streak || 0,
     timezone: user.timezone || '',
-    token: generateToken(user._id)
+    token: await startSession(user, req)
   }
 }
 
@@ -55,7 +53,7 @@ const register = async (req, res) => {
       timezone: timezone || ''
     })
 
-    res.status(201).json(await session(user))
+    res.status(201).json(await session(user, req))
   } catch (err) {
     console.error('Register error:', err)
     res.status(500).json({ message: err.message })
@@ -82,7 +80,7 @@ const login = async (req, res) => {
       return res.json({ twoFactorRequired: true, challenge: challengeFor(user) })
     }
 
-    res.json(await session(user))
+    res.json(await session(user, req))
   } catch (err) {
     console.error('Login error:', err)
     res.status(500).json({ message: err.message })
@@ -101,7 +99,7 @@ const loginSecondStep = async (req, res) => {
     const used = await checkSecondFactor(user, req.body.code)
     if (!used) return res.status(401).json({ message: 'That code is not right' })
 
-    const body = await session(user)
+    const body = await session(user, req)
     if (used === 'recovery') body.recoveryLeft = user.twoFactor.recovery.length
     res.json(body)
   } catch (err) {
@@ -190,6 +188,8 @@ const resetPassword = async (req, res) => {
     user.resetPasswordToken = null
     user.resetPasswordExpire = null
     await user.save()
+    // A reset is what somebody does when they fear the account is not theirs
+    await revokeAllExcept(user._id)
 
     res.json({ message: 'Password successfully reset ho gaya! Login karo.' })
   } catch (err) {

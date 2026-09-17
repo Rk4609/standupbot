@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken')
 const User = require('../models/User')
+const { sessionAllows } = require('../services/sessionService')
 
 const protect = async (req, res, next) => {
   let token = req.headers.authorization?.startsWith('Bearer')
@@ -11,7 +12,13 @@ const protect = async (req, res, next) => {
   let user
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    user = await User.findById(decoded.id).select('-password')
+    // A second-step challenge is not a session
+    if (decoded.purpose) throw new Error('not a session token')
+    user = await User.findById(decoded.id).select('-password +tokensValidAfter')
+    if (user && !(await sessionAllows(decoded, user))) {
+      return res.status(401).json({ message: 'This session was signed out' })
+    }
+    req.sessionId = decoded.sid || null
   } catch {
     return res.status(401).json({ message: 'Token invalid' })
   }

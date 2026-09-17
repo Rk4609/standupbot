@@ -97,6 +97,9 @@
       enabledAt: { type: Date, default: null }
     },
 
+    // Tokens issued before this were signed out ("sign out everywhere")
+    tokensValidAfter: { type: Date, default: null, select: false },
+
     // Forgot password fields
   resetPasswordToken: { type: String, default: null },
   resetPasswordExpire: { type: Date, default: null }

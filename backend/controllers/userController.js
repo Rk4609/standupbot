@@ -1,6 +1,7 @@
 const { Readable } = require('stream')
 const { cloudinary } = require('../config/cloudinary')
 const User = require('../models/User')
+const { revokeAllExcept } = require('../services/sessionService')
 const Standup = require('../models/Standup')
 const { isValidTimezone, lastNDates, zoneOf } = require('../utils/time')
 const audit = require('../services/auditService')
@@ -105,7 +106,10 @@ const changePassword = async (req, res) => {
     user.password = newPassword
     await user.save()
 
-    res.json({ message: 'Password changed successfully!' })
+    // Every other device has to sign in with the new password
+    const signedOut = await revokeAllExcept(user._id, req.sessionId)
+
+    res.json({ message: 'Password changed successfully!', signedOut })
   } catch (err) {
     console.error('Change password error:', err)
     res.status(500).json({ message: err.message })

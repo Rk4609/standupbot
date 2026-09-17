@@ -8,6 +8,8 @@ dotenv.config()
 const connectDB = require('./config/db')
 const { createApp, allowedOrigins } = require('./app')
 const { startCronJobs } = require('./services/cronService')
+const User = require('./models/User')
+const { sessionAllows } = require('./services/sessionService')
 
 const { ensureBuiltIns } = require('./services/roleService')
 
@@ -39,8 +41,16 @@ io.use((socket, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    socket.userId = decoded.id
-    next()
+    if (decoded.purpose) return next(new Error('Invalid token'))
+    // A signed-out session must not keep receiving live notifications
+    User.findById(decoded.id).select('+tokensValidAfter').lean()
+      .then(user => (user && sessionAllows(decoded, user)))
+      .then(ok => {
+        if (!ok) return next(new Error('Invalid token'))
+        socket.userId = decoded.id
+        next()
+      })
+      .catch(() => next(new Error('Invalid token')))
   } catch {
     next(new Error('Invalid token'))
   }

@@ -14,6 +14,7 @@ import { Field, Input, Select } from '../components/ui/Field'
 import Modal from '../components/ui/Modal'
 import PushSettings from '../components/PushSettings'
 import TwoFactorSettings from '../components/TwoFactorSettings'
+import SessionsCard from '../components/SessionsCard'
 import { cn } from '../lib/cn'
 import { SPRING, itemVariants, listVariants } from '../lib/motion'
 import {
@@ -481,6 +482,9 @@ export default function Profile({ user, setUser }) {
             </div>
             <div className="mt-4">
               <PushSettings />
+            </div>
+            <div className="mt-4">
+              <SessionsCard />
             </div>
           </motion.div>
         </div>
