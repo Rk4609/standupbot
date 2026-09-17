@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
@@ -237,6 +238,17 @@ export default function Employees() {
   // fire a request per keystroke.
   const [search, setSearch] = useState('')
   const [openId, setOpenId] = useState(null)
+
+  // A search result elsewhere links here with ?search=<name>. The page stays
+  // mounted between visits, so this follows the address rather than reading
+  // it once.
+  const [params] = useSearchParams()
+  const linked = params.get('search')
+  const [seenLinked, setSeenLinked] = useState(null)
+  if (linked !== null && linked !== seenLinked) {
+    setSeenLinked(linked)
+    setSearch(linked)
+  }
 
   // One object, so every filter change can reset the page in the same update
   // rather than through a follow-up effect.

@@ -486,6 +486,14 @@ const writeWeeklyReport = z.object({
   team: objectId.optional()
 }).strict()
 
+/* search ------------------------------------------------------------ */
+
+const searchQuery = {
+  query: z.object({
+    q: z.string().trim().max(100, 'is too long').optional()
+  }).strip()
+}
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -594,6 +602,7 @@ module.exports = {
   writeBrief,
   readWeeklyReport,
   writeWeeklyReport,
+  searchQuery,
   createRole,
   updateRole,
   roleId,

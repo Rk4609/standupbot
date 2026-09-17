@@ -1,11 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import API from '../api/axios'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '../lib/cn'
 import { DURATION, EASE } from '../lib/motion'
 import { navGroups } from '../lib/navigation'
 import { KEYWORDS, rank } from '../lib/commandSearch'
-import { IconMoon, IconSearch, IconSun, IconUser } from './ui/icons'
+import {
+  IconBriefcase, IconCalendar, IconClock, IconInbox, IconMoon, IconSearch, IconSun, IconUser, IconUsers
+} from './ui/icons'
+
+/** An icon for each kind of thing the search can find. */
+const RESULT_ICON = {
+  people: IconUser,
+  projects: IconBriefcase,
+  tickets: IconInbox,
+  leave: IconCalendar,
+  standups: IconClock,
+  candidates: IconUsers
+}
+
+/** Wait this long after the last key before asking the server. */
+const SEARCH_DELAY_MS = 200
 
 const RECENT_KEY = 'palette-recent'
 const RECENT_LIMIT = 5
@@ -48,6 +64,9 @@ export default function CommandPalette({ open, onClose, user, dark, onToggleThem
   const listRef = useRef(null)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
+  // What the server found, with the words it was found for, so an answer
+  // to an older query is never shown under a newer one
+  const [found, setFound] = useState({ q: '', groups: [] })
 
   const items = useMemo(() => {
     const pages = navGroups(user).flatMap(group =>
@@ -97,15 +116,46 @@ export default function CommandPalette({ open, onClose, user, dark, onToggleThem
     }
   }
 
+  const term = query.trim()
+  const searching = term.length >= 2 && found.q !== term
+
+  useEffect(() => {
+    if (!open || term.length < 2) return undefined
+    let current = true
+    const timer = setTimeout(() => {
+      API.get('/search', { params: { q: term } })
+        .then(res => current && setFound({ q: term, groups: res.data.groups || [] }))
+        .catch(() => current && setFound({ q: term, groups: [] }))
+    }, SEARCH_DELAY_MS)
+    return () => {
+      current = false
+      clearTimeout(timer)
+    }
+  }, [term, open])
+
   const results = useMemo(() => {
-    if (query.trim()) return rank(items, query, 9)
+    if (term) {
+      const pages = rank(items, term, found.q === term && found.groups.length ? 5 : 9)
+      const records = found.q === term
+        ? found.groups.flatMap(g => g.results.map(r => ({
+          id: `${g.key}:${r.id}`,
+          kind: 'result',
+          to: r.to,
+          label: r.title,
+          detail: r.detail,
+          group: g.label,
+          icon: RESULT_ICON[g.key]
+        })))
+        : []
+      return [...pages, ...records]
+    }
     const byId = new Map(items.map(i => [i.id, i]))
     const recent = readRecent().map(id => byId.get(id)).filter(Boolean)
     const rest = items.filter(i => i.kind === 'page' && !recent.includes(i)).slice(0, 8 - recent.length)
     return [...recent.map(i => ({ ...i, recent: true })), ...rest]
     // readRecent is read again each time the palette opens
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, query, openedAt])
+  }, [items, term, found, openedAt])
 
   useEffect(() => {
     if (open) requestAnimationFrame(() => inputRef.current?.focus())
@@ -121,6 +171,8 @@ export default function CommandPalette({ open, onClose, user, dark, onToggleThem
     onClose()
     if (item.kind === 'page') {
       remember(item.id)
+      navigate(item.to)
+    } else if (item.kind === 'result') {
       navigate(item.to)
     } else {
       item.run?.()
@@ -171,7 +223,7 @@ export default function CommandPalette({ open, onClose, user, dark, onToggleThem
                 value={query}
                 onChange={e => { setQuery(e.target.value); setActive(0) }}
                 onKeyDown={onKeyDown}
-                placeholder="Go to a page, or do something…"
+                placeholder="Search pages, people, projects…"
                 aria-label="Search pages and actions"
                 aria-controls="palette-results"
                 aria-activedescendant={results[active] ? `palette-${results[active].id}` : undefined}
@@ -188,7 +240,7 @@ export default function CommandPalette({ open, onClose, user, dark, onToggleThem
               role="listbox"
               className="scroll-slim max-h-[min(24rem,60vh)] overflow-y-auto p-1.5"
             >
-              {results.length === 0 && (
+              {results.length === 0 && !searching && (
                 <li className="px-3 py-8 text-center text-sm text-content-subtle">
                   Nothing called “{query}”.
                 </li>
@@ -210,13 +262,23 @@ export default function CommandPalette({ open, onClose, user, dark, onToggleThem
                     )}
                   >
                     {Icon && <Icon className="h-4 w-4 shrink-0 opacity-80" />}
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{item.label}</span>
+                      {item.detail && (
+                        <span className="block truncate text-xs text-content-subtle">{item.detail}</span>
+                      )}
+                    </span>
                     <span className="shrink-0 text-[11px] text-content-subtle">
                       {item.recent ? 'Recent' : item.group}
                     </span>
                   </li>
                 )
               })}
+              {searching && (
+                <li className="px-3 py-2.5 text-xs text-content-subtle" aria-live="polite">
+                  Searching people, projects and requests…
+                </li>
+              )}
             </ul>
 
             <div className="hidden items-center gap-4 border-t border-line px-4 py-2 text-[11px] text-content-subtle sm:flex">

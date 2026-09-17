@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+vi.mock('../api/axios', () => ({ default: { get: vi.fn() } }))
+
+import API from '../api/axios'
 import CommandPalette from '../components/CommandPalette'
 import { rank, score } from '../lib/commandSearch'
 
@@ -25,6 +28,8 @@ const open = (user = employee, props = {}) => {
 
 beforeEach(() => {
   localStorage.clear()
+  API.get.mockReset()
+  API.get.mockResolvedValue({ data: { groups: [] } })
 })
 
 describe('matching', () => {
@@ -112,9 +117,39 @@ describe('the palette', () => {
     const { onClose } = open()
 
     await userEvent.type(screen.getByLabelText('Search pages and actions'), 'zzzz')
-    expect(screen.getByText(/Nothing called/)).toBeInTheDocument()
+    // Said once the server has also found nothing
+    expect(await screen.findByText(/Nothing called/)).toBeInTheDocument()
 
     await userEvent.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalled()
+  })
+})
+
+describe('searching records', () => {
+  it('shows people and requests from the server under the pages, and opens one', async () => {
+    API.get.mockResolvedValue({
+      data: {
+        groups: [
+          { key: 'people', label: 'People', results: [{ id: 'u9', title: 'Riya Das', detail: 'QA engineer · MERN', to: '/employees?search=Riya%20Das' }] },
+          { key: 'leave', label: 'Leave', results: [{ id: 'l1', title: 'Riya Das · sick leave', detail: '2026-09-21 · pending', to: '/leaves' }] }
+        ]
+      }
+    })
+    open(manager)
+
+    await userEvent.type(screen.getByLabelText('Search pages and actions'), 'riya')
+
+    expect(await screen.findByRole('option', { name: /QA engineer · MERN/ })).toBeInTheDocument()
+    expect(API.get).toHaveBeenCalledWith('/search', { params: { q: 'riya' } })
+
+    await userEvent.click(screen.getByRole('option', { name: /Riya Das · sick leave/ }))
+    expect(screen.getByTestId('where')).toHaveTextContent('/leaves')
+  })
+
+  it('does not ask the server about a single letter', async () => {
+    open()
+    await userEvent.type(screen.getByLabelText('Search pages and actions'), 'r')
+    await new Promise(r => setTimeout(r, 300))
+    expect(API.get).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('../api/axios', () => ({ default: { get: vi.fn() } }))
 
@@ -90,7 +91,7 @@ describe('opening somebody on the roster', () => {
   it('shows who they are and how to reach them', async () => {
     answer()
 
-    render(<Employees />)
+    render(<MemoryRouter><Employees /></MemoryRouter>)
     await openRow()
 
     expect(await screen.findByText('+91 98765 43210')).toBeInTheDocument()
@@ -101,7 +102,7 @@ describe('opening somebody on the roster', () => {
   it('shows what they do here, with the date their probation runs out', async () => {
     answer()
 
-    render(<Employees />)
+    render(<MemoryRouter><Employees /></MemoryRouter>)
     await openRow()
 
     expect(await screen.findByText('Frontend engineer')).toBeInTheDocument()
@@ -117,7 +118,7 @@ describe('opening somebody on the roster', () => {
   it('no longer repeats the blockers board one person at a time', async () => {
     answer()
 
-    render(<Employees />)
+    render(<MemoryRouter><Employees /></MemoryRouter>)
     await openRow()
 
     await screen.findByText('Frontend engineer')
@@ -127,7 +128,7 @@ describe('opening somebody on the roster', () => {
   it('shows pay to a reader whose role includes it', async () => {
     answer()
 
-    render(<Employees />)
+    render(<MemoryRouter><Employees /></MemoryRouter>)
     await openRow()
 
     const formatted = (1270000).toLocaleString()
@@ -140,7 +141,7 @@ describe('opening somebody on the roster', () => {
     delete user.salary
     answer({ user, moodBreakdown: {}, maySeePay: false })
 
-    render(<Employees />)
+    render(<MemoryRouter><Employees /></MemoryRouter>)
     await openRow()
 
     await screen.findByText('Frontend engineer')
@@ -154,7 +155,7 @@ describe('opening somebody on the roster', () => {
     one.user.employment.department = ''
     answer(one)
 
-    render(<Employees />)
+    render(<MemoryRouter><Employees /></MemoryRouter>)
     await openRow()
 
     await screen.findByText('Frontend engineer')
@@ -183,7 +184,7 @@ describe('signs of strain', () => {
   it('marks somebody worth a check-in, and says why when they are opened', async () => {
     withWellbeing(strained)
 
-    render(<Employees />)
+    render(<MemoryRouter><Employees /></MemoryRouter>)
 
     expect(await screen.findByText('Check in')).toBeInTheDocument()
     await openRow()
@@ -195,9 +196,22 @@ describe('signs of strain', () => {
   it('does not mark a single sign on the list', async () => {
     withWellbeing({ level: 'watch', signals: [strained.signals[1]] })
 
-    render(<Employees />)
+    render(<MemoryRouter><Employees /></MemoryRouter>)
 
     await screen.findByRole('button', { name: /Asha Rao/ })
     expect(screen.queryByText('Check in')).not.toBeInTheDocument()
+  })
+})
+
+describe('arriving from a search result', () => {
+  it('searches for the name in the address', async () => {
+    answer()
+
+    render(<MemoryRouter initialEntries={['/employees?search=Asha%20Rao']}><Employees /></MemoryRouter>)
+
+    expect(await screen.findByDisplayValue('Asha Rao')).toBeInTheDocument()
+    await waitFor(() => expect(API.get).toHaveBeenCalledWith('/employees', expect.objectContaining({
+      params: expect.objectContaining({ search: 'Asha Rao' })
+    })))
   })
 })
