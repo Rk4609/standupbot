@@ -11,6 +11,9 @@ import { IconLock, IconMail } from "../components/ui/icons"
 
 export default function Login({ setUser }) {
   const [form, setForm] = useState({ email: "", password: "" })
+  // Set when the password was right and a code from the phone is still needed
+  const [challenge, setChallenge] = useState(null)
+  const [code, setCode] = useState("")
   const [remember, setRemember] = useState(true)
   const [reveal, setReveal] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -32,13 +35,26 @@ export default function Login({ setUser }) {
     e.preventDefault()
     setLoading(true)
     try {
-      const { data } = await API.post("/auth/login", form)
+      const { data } = challenge
+        ? await API.post("/auth/login/2fa", { challenge, code })
+        : await API.post("/auth/login", form)
+      if (data.twoFactorRequired) {
+        setChallenge(data.challenge)
+        setCode("")
+        return
+      }
       saveUser(data, { remember })
+      if (data.recoveryLeft !== undefined) {
+        toast(`Recovery code used — ${data.recoveryLeft} left`, { icon: "🔑" })
+      }
       setUser(data)
       toast.success(`Welcome back, ${data.name}`)
       navigate("/dashboard")
     } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed")
+      const message = err.response?.data?.message || "Login failed"
+      // A challenge that ran out means starting from the password again
+      if (challenge && err.response?.status === 401 && /took too long|Sign in again/.test(message)) setChallenge(null)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -60,6 +76,35 @@ export default function Login({ setUser }) {
         </>
       }
     >
+      {challenge ? (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <p className="text-sm text-content-muted">
+            Open your authenticator app and enter the six-digit code for StandupBot. Lost your phone? Use one of your recovery codes.
+          </p>
+          <Field label="Code">
+            <Input
+              autoFocus
+              required
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              icon={IconLock}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="123 456"
+            />
+          </Field>
+          <Button type="submit" size="lg" full loading={loading} className="!mt-6">
+            {loading ? "Checking…" : "Verify and sign in"}
+          </Button>
+          <button
+            type="button"
+            onClick={() => setChallenge(null)}
+            className="w-full text-center text-sm text-content-muted hover:text-content"
+          >
+            Use a different account
+          </button>
+        </form>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field label="Email address">
           <Input
@@ -106,6 +151,7 @@ export default function Login({ setUser }) {
           {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>
+      )}
     </AuthLayout>
   )
 }

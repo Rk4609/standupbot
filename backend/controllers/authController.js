@@ -4,6 +4,8 @@ const User = require('../models/User')
 const { modulesFor, roleFor } = require('../services/roleService')
 const { sendResetPasswordEmail } = require('../services/emailService')
 
+const { challengeFor, readChallenge, checkSecondFactor, withSecrets } = require('./twoFactorController')
+
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' })
 
@@ -74,9 +76,36 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email ya password' })
     }
 
+    // The password was right; a second step still stands between it and a
+    // session when the person turned one on
+    if (user.twoFactor?.enabled) {
+      return res.json({ twoFactorRequired: true, challenge: challengeFor(user) })
+    }
+
     res.json(await session(user))
   } catch (err) {
     console.error('Login error:', err)
+    res.status(500).json({ message: err.message })
+  }
+}
+
+// POST /api/auth/login/2fa — the code from the app, or a recovery code
+const loginSecondStep = async (req, res) => {
+  try {
+    const id = readChallenge(req.body.challenge)
+    if (!id) return res.status(401).json({ message: 'That sign-in took too long — enter your password again' })
+
+    const user = await withSecrets(id)
+    if (!user?.twoFactor?.enabled) return res.status(401).json({ message: 'Sign in again' })
+
+    const used = await checkSecondFactor(user, req.body.code)
+    if (!used) return res.status(401).json({ message: 'That code is not right' })
+
+    const body = await session(user)
+    if (used === 'recovery') body.recoveryLeft = user.twoFactor.recovery.length
+    res.json(body)
+  } catch (err) {
+    console.error('2FA login error:', err.message)
     res.status(500).json({ message: err.message })
   }
 }
@@ -199,5 +228,6 @@ module.exports = {
   login,
   forgotPassword,
   resetPassword,
-  verifyResetToken
+  verifyResetToken,
+  loginSecondStep
 }

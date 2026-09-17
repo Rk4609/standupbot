@@ -15,6 +15,8 @@ const ACTIONS = [
   'standup.updated',
   'standup.deleted',
   'user.role_changed',
+  'user.2fa_enabled',
+  'user.2fa_disabled',
   'timesheet.reviewed',
   'project.transfer',
   'user.record_updated',

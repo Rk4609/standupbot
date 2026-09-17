@@ -32,6 +32,18 @@ const login = z.object({ email, password: z.string().min(1, 'is required') }).st
 
 const forgotPassword = z.object({ email }).strict()
 
+const loginSecondStep = z.object({
+  challenge: z.string().min(20).max(1000),
+  code: z.string().trim().min(6, 'is required').max(20)
+}).strict()
+
+const twoFactorCode = z.object({ code: z.string().trim().min(6, 'is required').max(20) }).strict()
+
+const twoFactorDisable = z.object({
+  password: z.string().min(1, 'is required').max(200),
+  code: z.string().trim().min(6, 'is required').max(20)
+}).strict()
+
 const resetPassword = {
   params: z.object({ token: z.string().min(20, 'is not a valid reset token') }),
   body: z.object({ password }).strict()
@@ -619,6 +631,9 @@ module.exports = {
   register,
   login,
   forgotPassword,
+  loginSecondStep,
+  twoFactorCode,
+  twoFactorDisable,
   resetPassword,
   submitStandup,
   updateBlocker,

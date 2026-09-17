@@ -87,6 +87,16 @@
       reviewedOn: { type: Date, default: null }
     },
 
+    // Two-step sign-in. The secret is stored encrypted (utils/totp) and none
+    // of it is read unless asked for, so no profile or list can carry it.
+    twoFactor: {
+      enabled: { type: Boolean, default: false },
+      secret: { type: String, default: null, select: false },
+      pendingSecret: { type: String, default: null, select: false },
+      recovery: { type: [String], default: [], select: false },
+      enabledAt: { type: Date, default: null }
+    },
+
     // Forgot password fields
   resetPasswordToken: { type: String, default: null },
   resetPasswordExpire: { type: Date, default: null }

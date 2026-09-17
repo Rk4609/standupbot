@@ -86,6 +86,7 @@ export default function Dashboard({ user }) {
   const [lead, setLead] = useState({})
   const [onboarding, setOnboarding] = useState(null)
   const [kudos, setKudos] = useState(null)
+  const [twoFactor, setTwoFactor] = useState(null)
   const [givingKudos, setGivingKudos] = useState(false)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -103,8 +104,9 @@ export default function Dashboard({ user }) {
       can(user, 'hiring') ? API.get('/hiring?status=pending&limit=10') : Promise.resolve(null),
       can(user, 'projects') ? API.get('/projects/all') : Promise.resolve(null),
       API.get('/onboarding/mine'),
-      can(user, 'kudos') ? API.get('/kudos', { params: { page: 1 } }) : Promise.resolve(null)
-    ]).then(([mine, me, sheet, roster, hiring, projects, firstWeeks, thanks]) => {
+      can(user, 'kudos') ? API.get('/kudos', { params: { page: 1 } }) : Promise.resolve(null),
+      API.get('/auth/2fa')
+    ]).then(([mine, me, sheet, roster, hiring, projects, firstWeeks, thanks, security]) => {
       if (cancelled) return
 
       const value = (r) => (r.status === 'fulfilled' ? r.value?.data : null)
@@ -114,6 +116,7 @@ export default function Dashboard({ user }) {
       setWeek(value(sheet))
       setOnboarding(value(firstWeeks)?.onboarding || null)
       setKudos(value(thanks)?.kudos || null)
+      setTwoFactor(value(security))
       setLead({
         roster: value(roster)?.rosterTotal ?? null,
         pending: value(hiring)?.pendingCount ?? null,
@@ -298,6 +301,16 @@ export default function Dashboard({ user }) {
           ))}
         </div>
       </motion.section>
+
+      {twoFactor?.required && !twoFactor.enabled && (
+        <Link
+          to="/profile"
+          className="mb-4 flex items-center justify-between gap-3 rounded-card border border-amber-300/60 bg-amber-50 px-5 py-3 text-sm text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <span>🔐 Your role can see sensitive data. Turn on two-step sign-in to protect your account.</span>
+          <span className="shrink-0 font-medium underline underline-offset-2">Turn on</span>
+        </Link>
+      )}
 
       <AnnouncementBanner refresh={live} />
 
