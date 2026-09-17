@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import API from '../api/axios'
+import ExportButton from '../components/ExportButton'
 import PageShell from '../components/ui/PageShell'
 import PageHeader from '../components/ui/PageHeader'
 import Card, { CardTitle } from '../components/ui/Card'
@@ -117,6 +118,12 @@ export default function LeaveApprovals() {
           waiting > 0
             ? `${waiting} ${waiting === 1 ? 'request is' : 'requests are'} waiting on you.`
             : 'Nothing is waiting on you.'
+        }
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <ExportButton path="/exports/leave" params={{ year: data.today.slice(0, 4) }} label="Export requests" fallbackName="leave-requests.csv" />
+            <ExportButton path="/exports/leave" params={{ year: data.today.slice(0, 4), view: 'balances' }} label="Export balances" fallbackName="leave-balances.csv" />
+          </div>
         }
       />
 

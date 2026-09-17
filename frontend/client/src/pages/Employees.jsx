@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import API from '../api/axios'
+import ExportButton from '../components/ExportButton'
 import PageShell from '../components/ui/PageShell'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -346,6 +347,7 @@ export default function Employees() {
       <PageHeader
         title="Employees"
         subtitle="Everyone on the roster, with their standup activity. Open a row for detail."
+        actions={<ExportButton path="/exports/employees" fallbackName="employees.csv" />}
       />
 
       {error ? (

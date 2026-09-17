@@ -2,6 +2,7 @@ const User = require('../models/User')
 const Team = require('../models/Team')
 const Standup = require('../models/Standup')
 const { isWeekend, lastNDates, zoneOf } = require('../utils/time')
+const { sendCsv } = require('../utils/csv')
 
 /** Mood as a number so it can be averaged and trended. */
 const MOOD_SCORE = { great: 5, good: 4, okay: 3, bad: 2, stressed: 1 }
@@ -207,12 +208,6 @@ const getOverview = async (req, res) => {
   }
 }
 
-/** RFC 4180: quote every field and double any quote inside it. */
-const csvCell = (value) => {
-  const text = value === null || value === undefined ? '' : String(value)
-  return `"${text.replace(/"/g, '""')}"`
-}
-
 // GET /api/analytics/export?days=30
 const exportStandups = async (req, res) => {
   try {
@@ -271,18 +266,8 @@ const exportStandups = async (req, res) => {
       ...extraKeys.map(k => s.answers?.[k] || '')
     ])
 
-    // A BOM so Excel reads it as UTF-8, and CRLF line endings because that is
-    // what Excel expects from a .csv
-    const csv =
-      '﻿' +
-      [header, ...rows].map(row => row.map(csvCell).join(',')).join('\r\n')
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="standups-${from}-to-${to}.csv"`
-    )
-    res.send(csv)
+    // Quoted, BOM-prefixed and formula-safe, like every other export
+    sendCsv(res, `standups-${from}-to-${to}.csv`, header, rows)
   } catch (err) {
     console.error('Analytics export error:', err.message)
     res.status(500).json({ message: err.message })

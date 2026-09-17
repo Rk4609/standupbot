@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import API from '../api/axios'
+import ExportButton from '../components/ExportButton'
 import PageShell from '../components/ui/PageShell'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -159,7 +160,10 @@ export default function TeamAttendance() {
         title="Team attendance"
         subtitle={`${longDay(data.date)} · office starts ${data.policy.start}`}
         actions={
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="mr-1">
+              <ExportButton path="/exports/attendance" params={{ month: data.date.slice(0, 7) }} label="Export month" fallbackName="attendance.csv" />
+            </span>
             <button
               type="button"
               aria-label="Previous day"

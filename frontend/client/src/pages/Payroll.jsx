@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import API from '../api/axios'
+import ExportButton from '../components/ExportButton'
 import PageShell from '../components/ui/PageShell'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -109,7 +110,12 @@ export default function Payroll() {
         title="Payroll"
         subtitle={`${monthLabel(data.month)} · ${counts.published} published · ${counts.drafts} drafts · ${counts.notRun} not run`}
         actions={
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1">
+            {counts.people - counts.notRun > 0 && (
+              <span className="mr-1">
+                <ExportButton path="/exports/payroll" params={{ month: data.month }} fallbackName="payroll.csv" />
+              </span>
+            )}
             <button
               type="button"
               aria-label="Previous month"
