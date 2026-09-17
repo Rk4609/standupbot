@@ -271,8 +271,8 @@ export default function Analytics() {
               <AreaChart data={participation} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="participationFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#7c3aed" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="#e9b20c" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#e9b20c" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgb(var(--line))" vertical={false} />
@@ -301,7 +301,7 @@ export default function Analytics() {
                 <Area
                   type="monotone"
                   dataKey="rate"
-                  stroke="#7c3aed"
+                  stroke="#e9b20c"
                   strokeWidth={2}
                   fill="url(#participationFill)"
                 />

@@ -4,7 +4,7 @@ import { cn } from '../../lib/cn'
 import { DURATION, EASE } from '../../lib/motion'
 
 const base =
-  'w-full rounded-xl border bg-surface px-4 py-2.5 text-sm text-content transition-colors duration-200 placeholder:text-content-subtle disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-content-subtle'
+  'w-full rounded-2xl border bg-surface px-4 py-2.5 text-sm text-content transition-colors duration-200 placeholder:text-content-subtle disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-content-subtle'
 
 const tone = (invalid) =>
   invalid

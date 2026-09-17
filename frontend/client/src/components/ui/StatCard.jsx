@@ -38,11 +38,11 @@ export default function StatCard({ value, label, tone = 'brand', suffix, classNa
       whileHover={{ y: -2 }}
       transition={{ duration: DURATION.fast, ease: EASE }}
       className={cn(
-        'rounded-card border border-line bg-surface p-3 text-center shadow-card md:p-4',
+        'rounded-card border border-line/70 bg-surface/85 p-3 text-center shadow-card backdrop-blur-sm md:p-4',
         className
       )}
     >
-      <div className={cn('tabular text-xl font-bold md:text-2xl', TONES[tone])}>
+      <div className={cn('tabular text-2xl font-light tracking-tight md:text-3xl', TONES[tone])}>
         {isNumeric ? counted : value}
         {suffix && <span className="text-base font-semibold">{suffix}</span>}
       </div>

@@ -8,8 +8,8 @@
 // the package's `defineConfig` helper — that import cannot resolve when the
 // generator lives in the npx cache rather than in node_modules.
 
-// Brand purple — matches the tokens in src/index.css
-const BRAND = '#7c3aed'
+// Brand ink — the tile colour in public/favicon.svg and the app's buttons
+const BRAND = '#1c1c1a'
 
 export default {
   headLinkOptions: { preset: '2023' },

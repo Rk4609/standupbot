@@ -1,258 +1,320 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
 import Card from '../components/ui/Card'
-import Button from '../components/ui/Button'
-import Badge from '../components/ui/Badge'
-import Skeleton, { SkeletonText } from '../components/ui/Skeleton'
-import EmptyState from '../components/ui/EmptyState'
+import Skeleton from '../components/ui/Skeleton'
 import StreakHeatmap from '../components/StreakHeatmap'
-import { MOOD_EMOJI } from '../lib/moods'
+import EditStandupDialog from '../components/EditStandupDialog'
+import {
+  DetailsAccordion,
+  ProfileCard,
+  TodayRing,
+  WeekBars,
+  WeekCalendar,
+  WeekChecklist,
+  WindowCard
+} from '../components/dashboard/DashboardCards'
+import {
+  IconBriefcase, IconCheck, IconFlame, IconTarget, IconTimer, IconUsers
+} from '../components/ui/icons'
 import { itemVariants } from '../lib/motion'
 import { cn } from '../lib/cn'
-import { IconTarget } from '../components/ui/icons'
+import { can } from '../lib/permissions'
 import { todayForUser } from '../lib/timezone'
-import EditStandupDialog from '../components/EditStandupDialog'
+import { prettyDate } from '../lib/dates'
+import { hoursLabel, workWeek } from '../lib/week'
 
-const greeting = () => {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
-  return 'Good evening'
+const STATUS_LABEL = {
+  draft: 'Not submitted yet',
+  submitted: 'Submitted, waiting for review',
+  approved: 'Approved',
+  rejected: 'Sent back'
 }
 
-/** Compact figure used in the metric column. */
-function Metric({ label, value, hint, tone = 'default' }) {
+/** One labelled pill in the row under the greeting. */
+function StatPill({ label, children, className, style }) {
   return (
-    <motion.div variants={itemVariants} className="min-w-0">
-      <p className="eyebrow">{label}</p>
-      <p
-        className={cn(
-          'tabular mt-1.5 text-metric font-semibold',
-          tone === 'brand' ? 'text-brand-600 dark:text-brand-400' : 'text-content'
-        )}
+    <div className="min-w-0">
+      <p className="mb-1.5 truncate text-xs text-content-muted">{label}</p>
+      <div
+        style={style}
+        className={cn('flex h-10 items-center rounded-full px-4 text-xs', className)}
       >
-        {value}
-      </p>
-      {hint && <p className="mt-0.5 truncate text-xs text-content-subtle">{hint}</p>}
-    </motion.div>
+        {children}
+      </div>
+    </div>
   )
 }
 
+/** The big, thin numbers on the right of the greeting. */
+function Figure({ icon: Icon, value, label }) {
+  return (
+    <div className="min-w-0">
+      <p className="tabular text-hero font-extralight text-content">{value}</p>
+      <p className="mt-1 flex items-center gap-1.5 text-xs text-content-muted">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full border border-line">
+          <Icon className="h-3 w-3" />
+        </span>
+        {label}
+      </p>
+    </div>
+  )
+}
+
+/**
+ * Home: who you are, how the week is going, and what today still needs.
+ *
+ * Laid out after the HR dashboard this app's look follows — a greeting with
+ * the week's headline figures, then a grid of panels. Every panel is fed by
+ * something the app already records; where the design shows a thing this app
+ * does not track (a live timer, meeting times) the panel shows the nearest
+ * true thing instead of an invented number.
+ */
 export default function Dashboard({ user }) {
   const [standups, setStandups] = useState([])
+  const [profile, setProfile] = useState(null)
+  const [week, setWeek] = useState(null)
+  const [lead, setLead] = useState({})
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
 
-    API.get('/standups/my')
-      .then(({ data }) => {
-        if (!cancelled) setStandups(data)
+    // Settled rather than all: a role without timesheets or projects should
+    // still get its dashboard, just without that panel's numbers
+    Promise.allSettled([
+      API.get('/standups/my'),
+      API.get('/users/profile'),
+      can(user, 'timesheet') ? API.get('/timesheets/me') : Promise.resolve(null),
+      can(user, 'employees') ? API.get('/employees/summary') : Promise.resolve(null),
+      can(user, 'hiring') ? API.get('/hiring?status=pending&limit=10') : Promise.resolve(null),
+      can(user, 'projects') ? API.get('/projects/all') : Promise.resolve(null)
+    ]).then(([mine, me, sheet, roster, hiring, projects]) => {
+      if (cancelled) return
+
+      const value = (r) => (r.status === 'fulfilled' ? r.value?.data : null)
+
+      setStandups(value(mine) || [])
+      setProfile(value(me))
+      setWeek(value(sheet))
+      setLead({
+        roster: value(roster)?.rosterTotal ?? null,
+        pending: value(hiring)?.pendingCount ?? null,
+        projects: value(projects)?.projects
+          ? value(projects).projects.filter(p => p.active).length
+          : null
       })
-      .catch(err => console.error(err))
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+      setLoading(false)
+    })
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [user])
 
-  const today = standups.find(s => s.date === todayForUser()) || null
-  const recent = standups.slice(0, 6)
-  const blockerCount = standups.filter(s => s.hasBlocker).length
-  const submittedDates = standups.map(s => s.date)
+  const today = todayForUser()
+  const dates = week?.dates?.length ? week.dates : workWeek(today)
 
-  const dateLabel = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
-  })
+  const byDate = useMemo(() => new Map(standups.map(s => [s.date, s])), [standups])
+  const submitted = useMemo(() => new Set(standups.map(s => s.date)), [standups])
+
+  const todayStandup = byDate.get(today) || null
+  const perDay = week?.perDayTotals || {}
+  const hoursToday = perDay[today] ??
+    (todayStandup?.work || []).reduce((sum, w) => sum + (Number(w.hours) || 0), 0)
+  const weekHours = week?.totalHours ?? 0
+
+  const filedThisWeek = dates.filter(d => byDate.has(d)).length
+  const blockedThisWeek = dates.filter(d => byDate.get(d)?.hasBlocker).length
+  const daysLeft = dates.filter(d => d > today).length
+  const latestBlocker = standups.find(s => s.hasBlocker)
+
+  const firstName = (profile?.name || user?.name || '').split(' ')[0]
+  const job = profile?.employment || {}
+
+  // Up to three headline figures: the team's when you run one, your own
+  // otherwise, topped up from your own when the team has fewer to show
+  const figures = [
+    lead.roster !== null && lead.roster !== undefined &&
+      { icon: IconUsers, value: lead.roster, label: 'Employees' },
+    lead.pending !== null && lead.pending !== undefined &&
+      { icon: IconBriefcase, value: lead.pending, label: 'Pending hires' },
+    lead.projects !== null && lead.projects !== undefined &&
+      { icon: IconTarget, value: lead.projects, label: 'Projects' },
+    { icon: IconFlame, value: profile?.streak ?? user?.streak ?? 0, label: 'Day streak' },
+    { icon: IconCheck, value: standups.length, label: 'Standups' },
+    { icon: IconTimer, value: `${hoursLabel(weekHours)}h`, label: 'This week' }
+  ].filter(Boolean).slice(0, 3)
+
+  const accordion = [
+    {
+      id: 'plan',
+      title: "Today's plan",
+      body: todayStandup ? (
+        <>
+          <p className="text-content">{todayStandup.today}</p>
+          {todayStandup.hasBlocker && (
+            <p className="mt-1.5 text-red-600 dark:text-red-400">Blocked: {todayStandup.blockers}</p>
+          )}
+        </>
+      ) : (
+        <p>
+          Not filed yet.{' '}
+          <Link to="/standup/new" className="text-content underline underline-offset-2">
+            Write it now
+          </Link>
+        </p>
+      )
+    },
+    {
+      id: 'blockers',
+      title: 'Blockers',
+      body: latestBlocker ? (
+        <>
+          <p className="text-content">{latestBlocker.blockers}</p>
+          <p className="mt-1 text-xs text-content-subtle">
+            Last raised {prettyDate(`${latestBlocker.date}T00:00:00Z`)} ·{' '}
+            {standups.filter(s => s.hasBlocker).length} in total
+          </p>
+        </>
+      ) : (
+        <p>Nothing has blocked you yet.</p>
+      )
+    },
+    ...(week
+      ? [{
+          id: 'timesheet',
+          title: 'Timesheet',
+          body: (
+            <p>
+              <span className="text-content">{hoursLabel(weekHours)} hours</span> this week ·{' '}
+              {STATUS_LABEL[week.status] || week.status}.{' '}
+              <Link to="/timesheet" className="text-content underline underline-offset-2">
+                Open it
+              </Link>
+            </p>
+          )
+        }]
+      : []),
+    {
+      id: 'record',
+      title: 'My record',
+      body: (
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+          <dt className="text-content-subtle">Position</dt>
+          <dd className="text-right text-content">{job.position || '—'}</dd>
+          <dt className="text-content-subtle">Team</dt>
+          <dd className="text-right text-content">{profile?.team?.name || '—'}</dd>
+          <dt className="text-content-subtle">Joined</dt>
+          <dd className="text-right text-content">{prettyDate(job.joinedOn) || '—'}</dd>
+          <dt className="col-span-2 pt-1">
+            <Link to="/profile" className="text-content underline underline-offset-2">
+              Everything on your record
+            </Link>
+          </dt>
+        </dl>
+      )
+    }
+  ]
 
   if (loading) {
     return (
       <PageShell>
-        <Skeleton className="mb-2 h-9 w-72" />
-        <Skeleton className="mb-7 h-4 w-40" />
-        <Skeleton className="mb-6 h-40 rounded-card" />
-        <div className="mb-6 grid gap-4 lg:grid-cols-3">
-          <Skeleton className="h-44 rounded-card lg:col-span-2" />
-          <Skeleton className="h-44 rounded-card" />
+        <Skeleton className="mb-6 h-12 w-80 rounded-full" />
+        <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[0, 1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-10 rounded-full" />
+          ))}
         </div>
-        <Card>
-          <Skeleton className="mb-4 h-4 w-32" />
-          <SkeletonText lines={5} />
-        </Card>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-60 rounded-card" />
+          ))}
+        </div>
       </PageShell>
     )
   }
 
   return (
     <PageShell>
-      {/* Greeting */}
-      <motion.header variants={itemVariants} className="mb-7">
-        <h1 className="text-title font-semibold text-content">
-          {greeting()}, {user?.name?.split(' ')[0]}
-        </h1>
-        <p className="mt-1.5 text-sm text-content-muted">{dateLabel}</p>
-      </motion.header>
-
-      {/* Primary action — the one thing this page exists for */}
+      {/* Greeting and the week's headline figures */}
       <motion.section
         variants={itemVariants}
-        className={cn(
-          'relative mb-6 overflow-hidden rounded-card border p-6 md:p-7',
-          today
-            ? 'border-line bg-surface shadow-card'
-            : 'border-brand-700/40 bg-gradient-to-br from-brand-600 to-brand-800 text-white shadow-brand'
-        )}
+        className="mb-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between"
       >
-        {!today ? (
-          <>
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-full bg-white/10 blur-2xl"
-            />
-            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">
-                  Today
-                </p>
-                <h2 className="mt-2 text-heading font-semibold">Your standup is pending</h2>
-                <p className="mt-1.5 max-w-md text-sm text-white/80">
-                  Two minutes now saves your team a meeting later.
-                </p>
-              </div>
-              <Button
-                to="/standup/new"
-                size="lg"
-                className="shrink-0 !bg-white !text-brand-700 !shadow-none hover:!bg-white/90"
-              >
-                Submit standup →
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[11px] text-white">
-                  ✓
-                </span>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-600 dark:text-emerald-400">
-                  Submitted today
-                </p>
-              </div>
-              <h2 className="mt-2.5 text-heading font-semibold text-content">{today.today}</h2>
-              {today.hasBlocker && (
-                <p className="mt-2 text-sm text-red-600 dark:text-red-400">
-                  <span className="font-medium">Blocker:</span> {today.blockers}
-                </p>
-              )}
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setEditing(today)}
-                className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-content-muted transition-colors hover:bg-surface-sunken hover:text-content"
-              >
-                Edit
-              </button>
-              <span className="text-3xl" aria-hidden="true">
-                {MOOD_EMOJI[today.mood]}
-              </span>
-            </div>
-          </div>
-        )}
-      </motion.section>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-hero font-extralight text-content">
+            Welcome in, {firstName}
+          </h1>
 
-      {/* Activity + metrics.
-          Letting each card take its natural height left the metrics column
-          hanging below the heatmap, which reads as a mistake rather than a
-          layout. The row stretches now and whichever card is shorter fills
-          the difference — the metrics spread down their column, the heatmap
-          centres in its card. */}
-      <div className="mb-6 grid gap-4 lg:grid-cols-3">
-        <Card className="flex flex-col lg:col-span-2">
-          <div className="mb-5 flex items-baseline justify-between gap-3">
-            <h2 className="text-sm font-semibold text-content">Submission activity</h2>
-            <Link
-              to="/history"
-              className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+          <div className="mt-7 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_2.2fr_1fr]">
+            {/* Ink in light, paper in dark — so it never matches the yellow
+                pill beside it */}
+            <StatPill
+              label="Standups"
+              className="bg-brand-600 text-white dark:bg-content dark:text-surface"
             >
-              View history
-            </Link>
-          </div>
-          <div className="flex flex-1 flex-col justify-center">
-            <StreakHeatmap dates={submittedDates} />
-          </div>
-        </Card>
-
-        <Card className="grid grid-cols-3 gap-4 lg:grid-cols-1 lg:content-between lg:gap-6">
-          <Metric
-            label="Streak"
-            value={user?.streak || 0}
-            hint={user?.streak === 1 ? 'day' : 'days'}
-            tone="brand"
-          />
-          <Metric label="Total" value={standups.length} hint="standups" />
-          <Metric label="Blockers" value={blockerCount} hint="raised" />
-        </Card>
-      </div>
-
-      {/* Recent activity */}
-      <Card padded={false}>
-        <div className="flex items-baseline justify-between gap-3 px-4 py-4 md:px-6">
-          <h2 className="text-sm font-semibold text-content">Recent standups</h2>
-          {recent.length > 0 && (
-            <Link
-              to="/history"
-              className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+              {Math.round((filedThisWeek / dates.length) * 100)}%
+            </StatPill>
+            <StatPill label="Hours" className="bg-brand-400 text-brand-700">
+              {Math.min(100, Math.round((weekHours / 40) * 100))}%
+            </StatPill>
+            <StatPill
+              label="Week left"
+              className="border border-line text-content-muted"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(-45deg, rgb(var(--content) / 0.10) 0 1px, transparent 1px 7px)'
+              }}
             >
-              See all {standups.length}
-            </Link>
-          )}
+              {daysLeft} {daysLeft === 1 ? 'day' : 'days'}
+            </StatPill>
+            <StatPill label="Blocked" className="border border-content/25 text-content">
+              {blockedThisWeek}
+            </StatPill>
+          </div>
         </div>
 
-        {recent.length === 0 ? (
-          <EmptyState
-            icon={<IconTarget className="h-6 w-6" />}
-            title="No standups yet"
-            description="Submit your first one and start a streak."
-            action={
-              <Button to="/standup/new" size="sm">
-                Submit your first standup
-              </Button>
-            }
-            className="border-0 bg-transparent"
-          />
-        ) : (
-          <div className="divide-y divide-line border-t border-line">
-            {recent.map((s, i) => (
-              <motion.div
-                key={s._id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.08 + i * 0.045 }}
-                className="flex items-start gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-sunken/60 md:px-6"
-              >
-                <span aria-hidden="true" className="mt-0.5 shrink-0 text-lg">
-                  {MOOD_EMOJI[s.mood]}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-content">{s.today}</p>
-                  <p className="tabular mt-0.5 text-xs text-content-subtle">{s.date}</p>
-                </div>
-                {s.hasBlocker && <Badge tone="danger">Blocker</Badge>}
-              </motion.div>
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-3 gap-6 sm:gap-10">
+          {figures.map(f => (
+            <Figure key={f.label} {...f} />
+          ))}
+        </div>
+      </motion.section>
+
+      {/* The panels */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <ProfileCard profile={profile} user={user} />
+        <WeekBars dates={dates} perDay={perDay} total={weekHours} today={today} />
+        <TodayRing
+          hours={hoursToday}
+          standup={todayStandup}
+          onEdit={() => setEditing(todayStandup)}
+        />
+        <WindowCard employment={job} dates={dates} submitted={submitted} today={today} />
+
+        <DetailsAccordion items={accordion} />
+        <div className="md:col-span-2">
+          <WeekCalendar dates={dates} byDate={byDate} today={today} />
+        </div>
+        <WeekChecklist dates={dates} byDate={byDate} today={today} />
+      </div>
+
+      {/* The long view, kept from before: a streak is built across months */}
+      <Card className="mt-4">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="text-lg tracking-tight text-content">Submission activity</h2>
+          <Link
+            to="/history"
+            className="rounded-full border border-line bg-surface-raised px-3 py-1 text-xs text-content-muted transition-colors hover:text-content"
+          >
+            View history
+          </Link>
+        </div>
+        <StreakHeatmap dates={standups.map(s => s.date)} />
       </Card>
 
       {editing && (

@@ -34,7 +34,7 @@ function Chip({ active, onClick, children, className }) {
       className={cn(
         'inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
         active
-          ? 'border-brand-600 bg-brand-600 text-white'
+          ? 'border-brand-600 bg-brand-600 text-white dark:border-brand-400 dark:bg-brand-400 dark:text-brand-700'
           : 'border-line bg-surface-sunken text-content-muted hover:border-brand-300 hover:text-content',
         className
       )}

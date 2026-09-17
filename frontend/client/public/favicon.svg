@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="StandupBot">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8b5cf6"/>
-      <stop offset="1" stop-color="#6d28d9"/>
+      <stop offset="0" stop-color="#2d2c28"/>
+      <stop offset="1" stop-color="#141413"/>
     </linearGradient>
   </defs>
 
-  <!-- Brand tile -->
+  <!-- Brand tile: ink, like the app's primary buttons -->
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
 
-  <!-- Robot body: antenna, ears, head -->
-  <g fill="#ffffff">
+  <!-- Robot body in the yellow accent: antenna, ears, head -->
+  <g fill="#f5c93a">
     <circle cx="256" cy="125" r="20"/>
     <rect x="248" y="140" width="16" height="44" rx="8"/>
     <rect x="84" y="248" width="26" height="70" rx="13"/>
@@ -18,8 +18,8 @@
     <rect x="116" y="178" width="280" height="228" rx="54"/>
   </g>
 
-  <!-- Face: eyes + mouth, punched out in brand purple -->
-  <g fill="#7c3aed">
+  <!-- Face: eyes + mouth, punched out in ink -->
+  <g fill="#1c1c1a">
     <circle cx="202" cy="273" r="27"/>
     <circle cx="310" cy="273" r="27"/>
     <rect x="206" y="330" width="100" height="18" rx="9"/>

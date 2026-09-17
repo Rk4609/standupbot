@@ -14,31 +14,31 @@
 --------------------------------------------------------------------------- */
 @layer base {
   :root {
-    --surface-muted:  247 247 249;  /* page background */
-    --surface:        255 255 255;  /* cards */
-    --surface-raised: 255 255 255;  /* popovers, dropdowns */
-    --surface-sunken: 241 241 245;  /* inputs, hover states */
-    --line:           229 229 235;  /* borders, dividers */
-    --line-strong:    214 214 222;
+    --surface-muted:  243 241 235;  /* page background — warm paper */
+    --surface:        251 250 246;  /* cards */
+    --surface-raised: 255 255 253;  /* popovers, dropdowns */
+    --surface-sunken: 236 233 225;  /* inputs, hover states */
+    --line:           228 224 213;  /* borders, dividers */
+    --line-strong:    210 205 191;
 
-    --content:        17 17 24;     /* headings */
-    --content-muted:  90 95 112;    /* body copy */
-    --content-subtle: 139 145 163;  /* labels, timestamps */
+    --content:        28 28 26;     /* headings — ink, not blue-black */
+    --content-muted:  92 89 81;     /* body copy */
+    --content-subtle: 138 134 123;  /* labels, timestamps */
 
     color-scheme: light;
   }
 
   .dark {
-    --surface-muted:  10 10 14;
-    --surface:        22 22 29;
-    --surface-raised: 30 30 39;
-    --surface-sunken: 35 35 46;
-    --line:           40 40 52;
-    --line-strong:    56 56 70;
+    --surface-muted:  15 15 14;
+    --surface:        27 27 25;
+    --surface-raised: 36 36 33;
+    --surface-sunken: 42 41 38;
+    --line:           48 47 43;
+    --line-strong:    66 65 59;
 
-    --content:        237 238 244;
-    --content-muted:  158 163 180;
-    --content-subtle: 112 117 134;
+    --content:        242 240 233;
+    --content-muted:  172 168 157;
+    --content-subtle: 126 122 112;
 
     color-scheme: dark;
   }
@@ -55,16 +55,16 @@
    * shared because a CSS variable cannot be un-overridden by reference.
    */
   .theme-light {
-    --surface-muted:  247 247 249;
-    --surface:        255 255 255;
-    --surface-raised: 255 255 255;
-    --surface-sunken: 241 241 245;
-    --line:           229 229 235;
-    --line-strong:    214 214 222;
+    --surface-muted:  243 241 235;
+    --surface:        251 250 246;
+    --surface-raised: 255 255 253;
+    --surface-sunken: 236 233 225;
+    --line:           228 224 213;
+    --line-strong:    210 205 191;
 
-    --content:        17 17 24;
-    --content-muted:  90 95 112;
-    --content-subtle: 139 145 163;
+    --content:        28 28 26;
+    --content-muted:  92 89 81;
+    --content-subtle: 138 134 123;
 
     color-scheme: light;
   }
@@ -83,10 +83,24 @@
 
   body {
     @apply bg-surface-muted text-content antialiased;
+    /*
+     * The canvas the cards sit on: warm paper that turns to soft yellow
+     * towards one corner. Fixed so it stays put while long pages scroll,
+     * instead of being stretched over the whole document height.
+     */
+    background-image:
+      radial-gradient(60rem 40rem at 100% 100%, rgb(248 214 90 / 0.38), transparent 70%),
+      radial-gradient(40rem 30rem at 85% 0%, rgb(251 228 140 / 0.22), transparent 70%);
+    background-attachment: fixed;
     font-family: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont,
       'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     /* Inter's disambiguated forms — a straight-sided l, open 4, single-storey g */
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(60rem 40rem at 100% 100%, rgb(245 201 58 / 0.07), transparent 70%);
   }
 
   /* Headings get optical sizing and tighter tracking as they grow */

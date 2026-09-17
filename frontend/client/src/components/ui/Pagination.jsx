@@ -34,7 +34,7 @@ function PageButton({ active, disabled, onClick, children, label }) {
       className={cn(
         'flex h-8 min-w-8 items-center justify-center rounded-lg px-2.5 text-sm transition-colors',
         active
-          ? 'bg-brand-600 font-medium text-white'
+          ? 'bg-brand-600 font-medium text-white dark:bg-brand-400 dark:text-brand-700'
           : 'text-content-muted hover:bg-surface-sunken hover:text-content',
         disabled && 'cursor-not-allowed opacity-40 hover:bg-transparent hover:text-content-muted'
       )}

@@ -230,7 +230,7 @@ export default function App() {
             duration: 3500,
             className:
               "!bg-surface-raised !text-content !border !border-line !shadow-pop !text-sm",
-            success: { iconTheme: { primary: "#7c3aed", secondary: "#fff" } },
+            success: { iconTheme: { primary: "#e9b20c", secondary: "#1c1c1a" } },
             error: { iconTheme: { primary: "#dc2626", secondary: "#fff" } }
           }}
         />

@@ -32,8 +32,8 @@ export default defineConfig(({ mode }) => {
           description:
             'Submit daily standups, track blockers and keep your team aligned — without another meeting.',
 
-          theme_color: '#7c3aed',
-          background_color: '#ffffff',
+          theme_color: '#f3f1eb',
+          background_color: '#f3f1eb',
 
           display: 'standalone',
           start_url: '/',

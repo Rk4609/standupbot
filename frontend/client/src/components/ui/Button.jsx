@@ -4,8 +4,10 @@ import { cn } from '../../lib/cn'
 import { SPRING } from '../../lib/motion'
 
 const VARIANTS = {
+  // Ink pill on paper; in the dark theme an ink pill would vanish into the
+  // surface, so it turns into the yellow accent with ink text instead
   primary:
-    'bg-brand-600 text-white shadow-brand hover:bg-brand-700 disabled:shadow-none',
+    'bg-brand-600 text-white shadow-brand hover:bg-brand-700 disabled:shadow-none dark:bg-brand-400 dark:text-brand-700 dark:hover:bg-brand-300',
   secondary:
     'bg-surface-sunken text-content-muted hover:text-content hover:bg-line',
   outline:
@@ -23,11 +25,13 @@ const VARIANTS = {
     'text-content-muted hover:bg-surface-sunken hover:text-content'
 }
 
+// Pills, like the navigation — a rectangle among rounded panels reads as a
+// leftover from a different design
 const SIZES = {
-  xs: 'px-3 py-1.5 text-xs rounded-lg gap-1.5',
-  sm: 'px-4 py-2 text-xs rounded-lg gap-1.5',
-  md: 'px-5 py-2.5 text-sm rounded-xl gap-2',
-  lg: 'px-6 py-3 text-sm md:text-base rounded-xl gap-2'
+  xs: 'px-3 py-1.5 text-xs rounded-full gap-1.5',
+  sm: 'px-4 py-2 text-xs rounded-full gap-1.5',
+  md: 'px-5 py-2.5 text-sm rounded-full gap-2',
+  lg: 'px-6 py-3 text-sm md:text-base rounded-full gap-2'
 }
 
 // Created once at module scope — building these during render would remount

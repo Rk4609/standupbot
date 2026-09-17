@@ -41,7 +41,7 @@ const loadAdminData = async () => {
 
 const PAGE_SIZES = [10, 25, 50, 100]
 
-const ROLE_COLORS = ['#ef4444', '#10b981', '#7c3aed']
+const ROLE_COLORS = ['#e9b20c', '#a8a293', '#f8d65a']
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 
 const chartTooltip = {
@@ -260,7 +260,7 @@ export default function AdminPanel({ user }) {
                   tickLine={false}
                 />
                 <Tooltip cursor={{ fill: 'rgb(var(--surface-sunken))' }} contentStyle={chartTooltip} />
-                <Bar dataKey="members" fill="#7c3aed" radius={[6, 6, 0, 0]} animationDuration={700} />
+                <Bar dataKey="members" fill="#e9b20c" radius={[6, 6, 0, 0]} animationDuration={700} />
               </BarChart>
             </ResponsiveContainer>
           )}

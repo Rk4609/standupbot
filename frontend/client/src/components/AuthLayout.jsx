@@ -44,7 +44,7 @@ function PreviewCard() {
             <span
               key={initial}
               style={{ marginLeft: i === 0 ? 0 : -8, zIndex: 4 - i }}
-              className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#1b0e38] bg-brand-500 text-[10px] font-semibold text-white"
+              className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#1c1c1a] bg-brand-400 text-[10px] font-semibold text-brand-700"
             >
               {initial}
             </span>
@@ -74,12 +74,12 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
     >
       {/* Brand panel — hidden on small screens, where it would just push the
           form below the fold */}
-      <section className="relative hidden overflow-hidden bg-[#150a2e] p-10 lg:flex lg:flex-col xl:p-14">
+      <section className="relative hidden overflow-hidden bg-[#1c1c1a] p-10 lg:flex lg:flex-col xl:p-14">
         {/* Deep ground first, then a soft brand wash — a single saturated
             gradient reads flat and leaves no room for the texture to show */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-700/45 via-brand-900/25 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-400/[0.12] via-brand-900/40 to-transparent"
         />
         <div
           aria-hidden="true"
@@ -93,11 +93,11 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-32 -top-20 h-[26rem] w-[26rem] rounded-full bg-brand-500/25 blur-[100px]"
+          className="pointer-events-none absolute -right-32 -top-20 h-[26rem] w-[26rem] rounded-full bg-brand-400/25 blur-[100px]"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-indigo-500/15 blur-[100px]"
+          className="pointer-events-none absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-brand-400/10 blur-[100px]"
         />
 
         <motion.div

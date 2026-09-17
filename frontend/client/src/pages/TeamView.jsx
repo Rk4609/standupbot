@@ -206,7 +206,7 @@ export default function TeamView() {
                 {stats.map((entry, i) => (
                   <Cell
                     key={i}
-                    fill={entry.count === maxCount && maxCount > 0 ? '#7c3aed' : '#c4b5fd'}
+                    fill={entry.count === maxCount && maxCount > 0 ? '#e9b20c' : '#d8d2c2'}
                   />
                 ))}
               </Bar>

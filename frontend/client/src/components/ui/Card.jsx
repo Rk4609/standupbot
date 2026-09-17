@@ -26,7 +26,9 @@ export default function Card({
     <motion.div
       variants={itemVariants}
       className={cn(
-        'rounded-card border border-line bg-surface shadow-card',
+        // Slightly see-through, so the warm canvas behind reads through the
+        // panels the way it does in the design
+        'rounded-card border border-line/70 bg-surface/85 shadow-card backdrop-blur-sm',
         padded && 'p-4 md:p-6',
         interactive && 'transition-shadow duration-200 hover:shadow-lift',
         className

@@ -68,7 +68,7 @@ function Day({ date, submitted, today }) {
         className={cn(
           'flex h-9 w-full items-center justify-center rounded-lg border transition-colors',
           submitted
-            ? 'border-brand-500 bg-brand-500 text-white dark:border-brand-500 dark:bg-brand-600'
+            ? 'border-brand-400 bg-brand-400 text-brand-700 dark:border-brand-400 dark:bg-brand-400'
             : weekend
               ? 'border-transparent bg-surface-sunken/60'
               : 'border-line bg-surface-sunken',

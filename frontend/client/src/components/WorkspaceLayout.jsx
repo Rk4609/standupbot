@@ -35,13 +35,14 @@ export default function WorkspaceLayout({ user }) {
     <>
       {/* Matches the page frame below it, so the tabs sit on the same left
           edge as every page title in the app */}
-      <div className="border-b border-line bg-surface px-4 pt-5 md:px-6">
+      <div className="px-4 pt-6 md:px-6">
         <div className="mx-auto max-w-6xl">
           <p className="eyebrow mb-2.5">Workspace</p>
 
-          {/* Runs to the screen edge on a phone, so a tab that does not fit
-              reads as "there is more this way" rather than as a clipped row */}
-          <nav className="scroll-slim -mx-4 -mb-px flex gap-1 overflow-x-auto px-4 md:mx-0 md:px-0">
+          {/* The same pills as the main navigation, in their own tray. Runs
+              to the screen edge on a phone, so a tab that does not fit reads
+              as "there is more this way" rather than as a clipped row */}
+          <nav className="scroll-slim -mx-4 flex gap-1 overflow-x-auto px-4 md:mx-0 md:w-fit md:max-w-full md:rounded-full md:border md:border-line/70 md:bg-surface/70 md:p-1 md:backdrop-blur-sm">
             {sections.map(section => (
               <NavLink
                 key={section.to}
@@ -50,25 +51,25 @@ export default function WorkspaceLayout({ user }) {
               >
                 {({ isActive }) => (
                   <>
+                    {isActive && (
+                      <motion.span
+                        layoutId="workspace-tab"
+                        transition={SPRING}
+                        className="absolute inset-0 rounded-full bg-brand-600 dark:bg-brand-400"
+                      />
+                    )}
+
                     <span
                       className={cn(
-                        'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors',
+                        'relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] transition-colors',
                         isActive
-                          ? 'text-content'
+                          ? 'font-medium text-white dark:text-brand-700'
                           : 'text-content-muted hover:text-content'
                       )}
                     >
                       <section.icon className="h-4 w-4" />
                       {section.label}
                     </span>
-
-                    {isActive && (
-                      <motion.span
-                        layoutId="workspace-tab"
-                        transition={SPRING}
-                        className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-brand-600 dark:bg-brand-400"
-                      />
-                    )}
                   </>
                 )}
               </NavLink>
