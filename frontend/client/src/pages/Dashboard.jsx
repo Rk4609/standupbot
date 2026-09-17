@@ -8,6 +8,7 @@ import Skeleton from '../components/ui/Skeleton'
 import StreakHeatmap from '../components/StreakHeatmap'
 import EditStandupDialog from '../components/EditStandupDialog'
 import KudosCard from '../components/KudosCard'
+import CelebrationsCard from '../components/CelebrationsCard'
 import KudosForm from '../components/KudosForm'
 import {
   DetailsAccordion,
@@ -352,6 +353,8 @@ export default function Dashboard({ user }) {
         </div>
         <WeekChecklist dates={dates} byDate={byDate} today={today} />
       </div>
+
+      <CelebrationsCard refresh={live} />
 
       {kudos && (
         <Card className="mt-4">

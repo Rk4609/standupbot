@@ -20,6 +20,7 @@ const firstRequests = (user) => [
   ['brief', '/brief', { params: {} }],
   ['payslips', '/payslips/mine'],
   ['kudos', '/kudos', { params: { page: 1 } }],
+  ['dashboard', '/celebrations'],
   ['leave', '/leave/mine'],
   ['leave', '/leave/calendar', { params: {} }],
   ['leaves', '/leave/team', { params: { page: 1, status: 'pending' } }],

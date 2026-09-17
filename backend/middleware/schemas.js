@@ -526,6 +526,14 @@ const listKudos = {
   }).strip()
 }
 
+/* celebrations ------------------------------------------------------ */
+
+const sendWish = z.object({
+  to: objectId,
+  kind: z.enum(['birthday', 'anniversary']),
+  message: z.string().trim().max(120, 'is too long').optional()
+}).strict()
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -639,6 +647,7 @@ module.exports = {
   pushUnsubscribe,
   giveKudos,
   listKudos,
+  sendWish,
   createRole,
   updateRole,
   roleId,

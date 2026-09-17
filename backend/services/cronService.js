@@ -18,6 +18,7 @@ const slack = require('./slackService')
 const { notify } = require('./notifyService')
 const { writeBrief, resolveScope } = require('../controllers/briefController')
 const { writeReport, weekOf } = require('../controllers/weeklyReportController')
+const { upcomingCelebrations } = require('../utils/celebrations')
 
 /**
  * The hours, in each person's own zone, at which the two daily jobs fire.
@@ -231,6 +232,48 @@ const startCronJobs = () => {
       }
     } catch (err) {
       console.error('Daily brief cron error:', err)
+    }
+  })
+
+  // 🎂 Birthdays and work anniversaries — 9am in the person's own zone
+  cron.schedule('15 * * * *', async () => {
+    try {
+      const at = new Date()
+      const people = await User.find({ $or: [{ dob: { $ne: null } }, { 'employment.joinedOn': { $ne: null } }] })
+        .select('name timezone team dob employment.joinedOn')
+        .lean()
+
+      for (const person of people) {
+        const zone = zoneOf(person)
+        if (hourIn(zone, at) !== REMINDER_HOUR) continue
+
+        for (const day of upcomingCelebrations([person], todayIn(zone, at), 0)) {
+          const birthday = day.kind === 'birthday'
+          await notify(null, {
+            recipient: person._id,
+            type: 'celebration_day',
+            message: birthday
+              ? 'Happy birthday from everyone at StandupBot 🎂'
+              : `Happy ${day.years}-year work anniversary 🎉 Thank you for everything.`,
+            link: '/dashboard'
+          })
+
+          // Their lead hears too, so the day does not pass unnoticed
+          const team = person.team ? await Team.findById(person.team).select('manager').lean() : null
+          if (team?.manager && String(team.manager) !== String(person._id)) {
+            await notify(null, {
+              recipient: team.manager,
+              type: 'celebration_day',
+              message: birthday
+                ? `It's ${person.name}'s birthday today 🎂`
+                : `${person.name} completes ${day.years} ${day.years === 1 ? 'year' : 'years'} with the team today 🎉`,
+              link: '/dashboard'
+            })
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Celebrations cron error:', err)
     }
   })
 

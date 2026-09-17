@@ -30,7 +30,9 @@ const TITLES = {
   onboarding_complete: 'Onboarding complete',
   brief_ready: 'Morning brief',
   report_ready: 'Weekly report',
-  kudos_received: 'Kudos for you'
+  kudos_received: 'Kudos for you',
+  celebration_day: 'Today is a special day',
+  celebration_wish: 'A wish for you'
 }
 
 let configuredWith = null

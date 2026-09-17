@@ -36,7 +36,10 @@ const notificationSchema = new mongoose.Schema({
       // The week's project report is written
       'report_ready',
       // Somebody said thank you
-      'kudos_received'
+      'kudos_received',
+      // Birthdays and work anniversaries: the day itself, and wishes
+      'celebration_day',
+      'celebration_wish'
     ],
     required: true
   },

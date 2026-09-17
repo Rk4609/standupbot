@@ -21,6 +21,8 @@ const LOOK = {
   brief_ready: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   report_ready: { icon: IconSparkles, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
   kudos_received: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
+  celebration_day: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
+  celebration_wish: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   reminder: { icon: IconBell, plate: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' }
 }
 
@@ -40,6 +42,8 @@ const TITLE = {
   brief_ready: 'Morning brief',
   report_ready: 'Weekly report',
   kudos_received: 'Kudos for you',
+  celebration_day: 'A special day',
+  celebration_wish: 'A wish for you',
   reminder: 'Reminder'
 }
 
