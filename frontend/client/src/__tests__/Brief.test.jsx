@@ -22,8 +22,9 @@ const facts = (over = {}) => ({
   missingOften: [],
   attendance: { in: 4, late: [{ name: 'Dev', lateBy: 25, inAt: '10:40' }], notIn: [], lateOften: [{ name: 'Dev', days: 4 }], noCheckout: [] },
   leave: { today: [{ name: 'Esha', type: 'sick', until: '2026-09-18' }], upcoming: [], pending: 2 },
+  wellbeing: [{ name: 'Gita', signs: ['Worked 3 weekend days this month', 'No leave in 140 days'] }],
   goodNews: ['Farhan is no longer blocked'],
-  attention: 3,
+  attention: 4,
   ...over
 })
 
@@ -53,7 +54,8 @@ describe('the daily brief', () => {
 
     show()
 
-    expect(await screen.findByText('3 things need your attention')).toBeInTheDocument()
+    expect(await screen.findByText('4 things need your attention')).toBeInTheDocument()
+    expect(screen.getByText('Worth a check-in: Worked 3 weekend days this month, No leave in 140 days')).toBeInTheDocument()
     expect(screen.getByText(/Blocked 3 standups: Waiting on staging credentials/)).toBeInTheDocument()
     expect(screen.getByText('Bela')).toBeInTheDocument()
     expect(screen.getByText('in 10:40 · 25m late')).toBeInTheDocument()

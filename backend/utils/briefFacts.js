@@ -4,6 +4,7 @@ const Standup = require('../models/Standup')
 const { readDay } = require('./attendancePolicy')
 const { clip } = require('./promptBudget')
 const { addDays, isWeekend } = require('./time')
+const { collectWellbeing } = require('./wellbeing')
 
 /**
  * What a lead should know about their team this morning, worked out from
@@ -39,7 +40,7 @@ const previousWorkday = (date) => {
  * Pure: turn the raw rows into the brief's facts. Kept apart from the
  * queries so the rules can be tested without a database.
  */
-const analyse = ({ people, date, today, standups, attendance, leaves, pendingLeave }) => {
+const analyse = ({ people, date, today, standups, attendance, leaves, pendingLeave, wellbeing = new Map() }) => {
   const from = addDays(date, -LOOKBACK_DAYS)
   const window = workdaysBetween(from, date)
   const workday = !isWeekend(date)
@@ -71,6 +72,11 @@ const analyse = ({ people, date, today, standups, attendance, leaves, pendingLea
     missingOften: [],
     attendance: { in: 0, late: [], notIn: [], lateOften: [], noCheckout: [] },
     leave: { today: [], upcoming: [], pending: pendingLeave },
+    // Only people showing two or more signs of strain: one on its own is
+    // ordinary, and a lead's morning should not fill up with ordinary
+    wellbeing: people
+      .filter(p => wellbeing.get(String(p._id))?.level === 'check-in')
+      .map(p => ({ name: p.name, signs: wellbeing.get(String(p._id)).signals.map(s => s.detail) })),
     goodNews: []
   }
 
@@ -148,7 +154,7 @@ const analyse = ({ people, date, today, standups, attendance, leaves, pendingLea
   facts.stuck.sort((a, b) => b.days - a.days)
   facts.attendance.late.sort((a, b) => b.lateBy - a.lateBy)
   facts.attention = facts.stuck.length + facts.lowMood.length + facts.missingOften.length +
-    facts.attendance.lateOften.length
+    facts.attendance.lateOften.length + facts.wellbeing.length
 
   return facts
 }
@@ -158,17 +164,18 @@ const collectFacts = async ({ people, date, today }) => {
   const ids = people.map(p => p._id)
   const from = addDays(date, -LOOKBACK_DAYS)
 
-  const [standups, attendance, leaves, pendingLeave] = await Promise.all([
+  const [standups, attendance, leaves, pendingLeave, wellbeing] = await Promise.all([
     Standup.find({ user: { $in: ids }, date: { $gte: from, $lte: date } })
       .select('user date hasBlocker blockers mood').lean(),
     Attendance.find({ user: { $in: ids }, date: { $gte: from, $lte: date } })
       .select('user date checkIn checkOut timezone').lean(),
     Leave.find({ user: { $in: ids }, status: 'approved', from: { $lte: addDays(date, 7) }, to: { $gte: from } })
       .select('user type from to halfDay').lean(),
-    Leave.countDocuments({ user: { $in: ids }, status: 'pending' })
+    Leave.countDocuments({ user: { $in: ids }, status: 'pending' }),
+    collectWellbeing({ people, today: date })
   ])
 
-  return analyse({ people, date, today, standups, attendance, leaves, pendingLeave })
+  return analyse({ people, date, today, standups, attendance, leaves, pendingLeave, wellbeing })
 }
 
 module.exports = { analyse, collectFacts, LOOKBACK_DAYS, STUCK_AFTER, LATE_OFTEN }

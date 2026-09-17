@@ -133,7 +133,9 @@ export default function Brief() {
     ...facts.stuck.map(s => ({ key: `s${s.name}`, name: s.name, detail: `Blocked ${s.days} standups: ${s.blocker}` })),
     ...facts.lowMood.map(p => ({ key: `m${p.name}`, name: p.name, detail: `Mood: ${p.moods.join(', ')}` })),
     ...facts.missingOften.map(p => ({ key: `o${p.name}`, name: p.name, detail: `Missed ${p.missed} of ${p.of} standups` })),
-    ...facts.attendance.lateOften.map(p => ({ key: `l${p.name}`, name: p.name, detail: `Late ${p.days} days in two weeks` }))
+    ...facts.attendance.lateOften.map(p => ({ key: `l${p.name}`, name: p.name, detail: `Late ${p.days} days in two weeks` })),
+    // Older briefs were saved before this field existed
+    ...(facts.wellbeing || []).map(p => ({ key: `w${p.name}`, name: p.name, detail: `Worth a check-in: ${p.signs.join(', ')}` }))
   ]
 
   const copy = () => {

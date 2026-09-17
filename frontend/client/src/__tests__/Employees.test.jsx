@@ -162,3 +162,42 @@ describe('opening somebody on the roster', () => {
     expect(screen.queryByText('Phone')).not.toBeInTheDocument()
   })
 })
+
+describe('signs of strain', () => {
+  const strained = {
+    level: 'check-in',
+    signals: [
+      { kind: 'long-days', detail: '5 days over 9½ hours in two weeks' },
+      { kind: 'no-break', detail: 'No leave in 140 days' }
+    ]
+  }
+
+  const withWellbeing = (wellbeing) => {
+    API.get.mockImplementation(url => {
+      if (url.startsWith('/employees/summary')) return Promise.resolve({ data: summary })
+      if (url.startsWith('/employees/')) return Promise.resolve({ data: detail() })
+      return Promise.resolve({ data: { ...list, employees: [{ ...row, wellbeing }] } })
+    })
+  }
+
+  it('marks somebody worth a check-in, and says why when they are opened', async () => {
+    withWellbeing(strained)
+
+    render(<Employees />)
+
+    expect(await screen.findByText('Check in')).toBeInTheDocument()
+    await openRow()
+    expect(screen.getByText('Worth a friendly check-in')).toBeInTheDocument()
+    expect(screen.getByText(/5 days over 9½ hours in two weeks/)).toBeInTheDocument()
+    expect(screen.getByText(/not a verdict/)).toBeInTheDocument()
+  })
+
+  it('does not mark a single sign on the list', async () => {
+    withWellbeing({ level: 'watch', signals: [strained.signals[1]] })
+
+    render(<Employees />)
+
+    await screen.findByRole('button', { name: /Asha Rao/ })
+    expect(screen.queryByText('Check in')).not.toBeInTheDocument()
+  })
+})

@@ -67,7 +67,7 @@ Bullets from "openBlockers", each with the person and what they are waiting on. 
 **Next week**
 Up to five bullets drawn from "nextWeek", grouped by project where the plan names one.
 
-${facts.hours.total === 0 ? 'No hours were logged against projects this week: say so plainly in the summary and base the rest on the standups.\n' : ''}Do not mention moods, lateness or attendance. Use only these facts.`
+${facts.hours.total === 0 ? 'No hours were logged against projects this week: say so plainly in the summary and base the rest on the standups.\n' : ''}Do not mention moods, lateness or attendance. Use only these facts, in plain words: never quote field names such as "openBlockers".`
 
 const writeReport = async ({ scope, title, people, week, today, actor = null }) => {
   const facts = await collectWeekFacts({ people, week, today })

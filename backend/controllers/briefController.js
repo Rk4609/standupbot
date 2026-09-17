@@ -30,8 +30,8 @@ const resolveScope = async (user, teamId) => {
   if (!isAdmin(user) && !team) return { error: 'You do not lead a team yet', teams: [] }
 
   const people = team
-    ? await User.find({ _id: { $in: team.members || [] } }).select('name').sort({ name: 1 }).lean()
-    : await User.find({ role: { $in: ['employee', 'manager'] } }).select('name').sort({ name: 1 }).lean()
+    ? await User.find({ _id: { $in: team.members || [] } }).select('name employment.joinedOn createdAt').sort({ name: 1 }).lean()
+    : await User.find({ role: { $in: ['employee', 'manager'] } }).select('name employment.joinedOn createdAt').sort({ name: 1 }).lean()
 
   return {
     scope: team ? `team:${team._id}` : 'all',
@@ -49,7 +49,7 @@ Date: ${facts.date}${facts.workday ? '' : ' (a weekend)'}
 Facts, worked out from the team's standups, attendance and leave:
 ${JSON.stringify(facts)}
 
-What the fields mean: "stuck" is a blocker carried for "days" standups in a row. "lowMood" is two or more bad or stressed moods in the last three standups. "missingOften" missed "missed" of their last "of" working-day standups. "lateOften" was late on "days" days in the last two weeks. "notIn" has not checked in. "noCheckout" never checked out on the last working day.
+What the fields mean: "stuck" is a blocker carried for "days" standups in a row. "lowMood" is two or more bad or stressed moods in the last three standups. "missingOften" missed "missed" of their last "of" working-day standups. "lateOften" was late on "days" days in the last two weeks. "notIn" has not checked in. "noCheckout" never checked out on the last working day. "wellbeing" lists people showing two or more signs of strain, with what the signs are.
 
 Write the brief in this shape, in lightweight markdown, under 220 words:
 
@@ -57,7 +57,7 @@ Write the brief in this shape, in lightweight markdown, under 220 words:
 One sentence on how the team is doing today.
 
 **Needs your attention**
-Up to five bullets, most urgent first. Each names the person, says what the fact is, and suggests one concrete thing the lead could do. Write "Nothing needs you today." if there is nothing.
+Up to five bullets, most urgent first. Each names the person, says what the fact is, and suggests one concrete thing the lead could do. For anybody in "wellbeing", say what the signs are and suggest a friendly one-to-one to ask how they are doing, or easing their load; never call anybody burnt out, stressed or unwell, and never guess at a cause. Write "Nothing needs you today." if there is nothing.
 
 **Today at a glance**
 Three short bullets: standups, attendance, leave.
@@ -66,7 +66,7 @@ ${facts.goodNews?.length ? `
 **Good news**
 One or two bullets from "goodNews".
 ` : ''}
-Use only these facts. Do not add names that are not in them. Refer to people by name and never guess whether somebody is he or she.`
+Use only these facts. Do not add names that are not in them. Refer to people by name and never guess whether somebody is he or she. Write in plain words a manager would use: never quote the field names above, such as "missingOften" or "wellbeing".`
 
 /** Work the brief out and keep it. Used by the page and the morning job. */
 const writeBrief = async ({ scope, title, people, date, today, actor = null }) => {

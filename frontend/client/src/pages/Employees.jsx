@@ -467,6 +467,16 @@ export default function Employees() {
                                   {e.role}
                                 </Badge>
                               )}
+                              {/* Several signs of strain at once — a nudge to ask, never a label */}
+                              {e.wellbeing?.level === 'check-in' && (
+                                <Badge
+                                  tone="warning"
+                                  title={e.wellbeing.signals.map(s => s.detail).join(' · ')}
+                                  aria-label={`Worth a check-in: ${e.wellbeing.signals.map(s => s.detail).join(', ')}`}
+                                >
+                                  Check in
+                                </Badge>
+                              )}
                             </span>
                             <span className="block truncate text-xs text-content-subtle">
                               {e.email}
@@ -518,6 +528,21 @@ export default function Employees() {
                             }}
                             className="overflow-hidden border-t border-line bg-surface-sunken/30"
                           >
+                            {e.wellbeing && (
+                              <div className="mx-4 mt-4 rounded-2xl border border-amber-300/50 bg-amber-50/70 px-4 py-3 dark:border-amber-500/20 dark:bg-amber-500/10 md:mx-6">
+                                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                                  {e.wellbeing.level === 'check-in'
+                                    ? 'Worth a friendly check-in'
+                                    : 'One thing to keep an eye on'}
+                                </p>
+                                <ul className="mt-1 space-y-0.5 text-xs text-amber-800/80 dark:text-amber-300/80">
+                                  {e.wellbeing.signals.map(s => <li key={s.kind}>· {s.detail}</li>)}
+                                </ul>
+                                <p className="mt-1.5 text-[11px] text-amber-800/60 dark:text-amber-300/60">
+                                  Only leads see this. It is a reason to ask how they are doing, not a verdict.
+                                </p>
+                              </div>
+                            )}
                             <EmployeeDetail id={e._id} />
                           </motion.div>
                         )}

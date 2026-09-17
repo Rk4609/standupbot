@@ -3,6 +3,7 @@ const Team = require('../models/Team')
 const Standup = require('../models/Standup')
 const { canUse } = require('../services/roleService')
 const { lastNDates, todayIn, zoneOf } = require('../utils/time')
+const { collectWellbeing } = require('../utils/wellbeing')
 
 const PAGE_SIZES = [10, 20, 50, 100]
 const DEFAULT_LIMIT = 20
@@ -81,7 +82,7 @@ const listEmployees = async (req, res) => {
 
     // Stats are aggregated for this page only — two queries regardless of how
     // large the roster grows.
-    const [totals, recent] = await Promise.all([
+    const [totals, recent, wellbeing] = await Promise.all([
       Standup.aggregate([
         { $match: { user: { $in: ids } } },
         {
@@ -96,7 +97,10 @@ const listEmployees = async (req, res) => {
       Standup.aggregate([
         { $match: { user: { $in: ids }, date: { $in: week } } },
         { $group: { _id: '$user', dates: { $addToSet: '$date' } } }
-      ])
+      ]),
+      // Signs of strain, for the lead reading this list and nobody else —
+      // the list is only open to leads
+      collectWellbeing({ people: users, today: week[week.length - 1] })
     ])
 
     const totalsBy = new Map(totals.map(t => [String(t._id), t]))
@@ -114,7 +118,8 @@ const listEmployees = async (req, res) => {
         lastDate: t.lastDate || null,
         weekDates: dates,
         weekCount: dates.length,
-        submittedToday: dates.includes(today)
+        submittedToday: dates.includes(today),
+        wellbeing: wellbeing.get(String(u._id)) || null
       }
     })
 
