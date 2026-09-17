@@ -30,7 +30,9 @@ const notificationSchema = new mongoose.Schema({
       'payslip_ready',
       // Onboarding: a new joiner's checklist exists, and when it is finished
       'onboarding_started',
-      'onboarding_complete'
+      'onboarding_complete',
+      // The morning brief is written
+      'brief_ready'
     ],
     required: true
   },

@@ -11,12 +11,12 @@ const FALLBACK = {
   employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support'],
   manager: [
     'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief',
     'projects', 'templates', 'integrations', 'activity', 'onboarding'
   ],
   admin: [
     'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief',
     'projects', 'templates', 'integrations', 'activity', 'onboarding', 'people', 'roles'
   ]
 }

@@ -78,6 +78,7 @@ const createApp = ({ globalRateLimit = true } = {}) => {
   app.use('/api/attendance', require('./routes/attendanceRoutes'))
   app.use('/api/payslips', require('./routes/payslipRoutes'))
   app.use('/api/onboarding', require('./routes/onboardingRoutes'))
+  app.use('/api/brief', require('./routes/briefRoutes'))
 
   // Health check — also keeps Render from sleeping
   app.get('/', (req, res) => res.send('StandupBot API ✅'))

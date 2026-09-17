@@ -2,7 +2,7 @@ import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/cn'
 import { DURATION, EASE } from '../lib/motion'
-import { IconAlert, IconBell, IconCalendar, IconCheck, IconClose, IconInbox, IconUsers } from './ui/icons'
+import { IconAlert, IconBell, IconCalendar, IconCheck, IconClose, IconInbox, IconSparkles, IconUsers } from './ui/icons'
 
 /** Icon and tint per kind, so a blocker does not look like a standup. */
 const LOOK = {
@@ -18,6 +18,7 @@ const LOOK = {
   payslip_ready: { icon: IconCheck, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   onboarding_started: { icon: IconUsers, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
   onboarding_complete: { icon: IconCheck, plate: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
+  brief_ready: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   reminder: { icon: IconBell, plate: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' }
 }
 
@@ -34,6 +35,7 @@ const TITLE = {
   payslip_ready: 'Payslip ready',
   onboarding_started: 'Welcome aboard',
   onboarding_complete: 'Onboarding complete',
+  brief_ready: 'Morning brief',
   reminder: 'Reminder'
 }
 

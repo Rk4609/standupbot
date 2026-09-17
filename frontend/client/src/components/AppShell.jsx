@@ -71,6 +71,7 @@ const navGroups = (user) => {
       id: 'team',
       label: 'Team',
       items: [
+        { to: '/brief', label: 'Daily brief', icon: IconSparkles, module: 'brief' },
         { to: '/team', label: 'Overview', icon: IconChart, module: 'team' },
         { to: '/employees', label: 'Employees', icon: IconUsers, module: 'employees' },
         { to: '/blockers', label: 'Blockers', icon: IconAlert, module: 'blockers' },

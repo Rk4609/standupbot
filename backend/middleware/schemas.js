@@ -458,6 +458,20 @@ const addOnboardingTask = {
   }).strict()
 }
 
+/* daily brief ------------------------------------------------------- */
+
+const readBrief = {
+  query: z.object({
+    date: fields.isoDate.optional(),
+    team: objectId.optional()
+  }).strip()
+}
+
+const writeBrief = z.object({
+  date: fields.isoDate.optional(),
+  team: objectId.optional()
+}).strict()
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -562,6 +576,8 @@ module.exports = {
   onboardingTask,
   updateOnboardingTask,
   addOnboardingTask,
+  readBrief,
+  writeBrief,
   createRole,
   updateRole,
   roleId,

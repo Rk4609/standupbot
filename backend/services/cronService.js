@@ -15,6 +15,8 @@ const {
 const { resolveWeek, previousWeek } = require('../utils/week')
 const { hourIn, todayIn, weekdayIn, zoneOf } = require('../utils/time')
 const slack = require('./slackService')
+const { notify } = require('./notifyService')
+const { writeBrief, resolveScope } = require('../controllers/briefController')
 
 /**
  * The hours, in each person's own zone, at which the two daily jobs fire.
@@ -26,6 +28,8 @@ const slack = require('./slackService')
  */
 const REMINDER_HOUR = 9
 const SUMMARY_HOUR = 18
+// Late enough that the morning's standups and check-ins are in
+const BRIEF_HOUR = 11
 
 /** Monday to Friday where this person is — nobody wants a Saturday nudge. */
 const isWorkday = (zone, at) => {
@@ -190,6 +194,40 @@ const startCronJobs = () => {
       }
     } catch (err) {
       console.error('EOD summary cron error:', err)
+    }
+  })
+
+  // ☀️ Daily brief — 11am on a weekday in each manager's zone
+  cron.schedule('5 * * * *', async () => {
+    if (!process.env.GROQ_API_KEY) return
+    try {
+      const at = new Date()
+      const teams = await Team.find({ manager: { $ne: null } }).populate('manager', 'name role timezone')
+
+      for (const team of teams) {
+        const manager = team.manager
+        if (!manager) continue
+        const zone = zoneOf(manager)
+        if (hourIn(zone, at) !== BRIEF_HOUR || !isWorkday(zone, at)) continue
+
+        try {
+          const scope = await resolveScope(manager, team._id)
+          if (scope.error || scope.people.length === 0) continue
+          const today = todayIn(zone, at)
+          await writeBrief({ ...scope, date: today, today })
+          await notify(null, {
+            recipient: manager._id,
+            type: 'brief_ready',
+            message: `Your morning brief for ${team.name} is ready`,
+            link: '/brief'
+          })
+          console.log(`☀️ Brief written for ${team.name}`)
+        } catch (err) {
+          console.error(`Brief failed for ${team.name}:`, err.message)
+        }
+      }
+    } catch (err) {
+      console.error('Daily brief cron error:', err)
     }
   })
 
