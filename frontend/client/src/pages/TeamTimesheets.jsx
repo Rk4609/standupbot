@@ -17,8 +17,11 @@ import { collapseVariants, itemVariants, listVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 import { STATUS_LABEL, STATUS_TONE, shiftWeek } from '../lib/timesheet'
 import WeekGrid from '../components/WeekGrid'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 export default function TeamTimesheets() {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [weekStart, setWeekStart] = useState(null)
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
@@ -38,7 +41,7 @@ export default function TeamTimesheets() {
 
   useEffect(() => {
     load(weekStart)
-  }, [weekStart])
+  }, [weekStart, live])
 
   const open = async (person) => {
     if (openId === person._id) {

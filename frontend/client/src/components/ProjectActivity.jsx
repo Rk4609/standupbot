@@ -10,6 +10,7 @@ import { IconAlert, IconBriefcase, IconCheck } from './ui/icons'
 import { cn } from '../lib/cn'
 import { itemVariants, listVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 /**
  * What each person is on today, and whether they report it every day.
@@ -19,6 +20,8 @@ import { apiErrorMessage } from '../lib/apiError'
  * somebody is stuck, not how many hours a project accumulated.
  */
 export default function ProjectActivity() {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
 
@@ -36,7 +39,7 @@ export default function ProjectActivity() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [live])
 
   if (error) {
     return <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />

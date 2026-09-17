@@ -16,6 +16,7 @@ import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, itemVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 import { prettyDate } from '../lib/dates'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 const WEEKDAY = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -224,6 +225,8 @@ function EmployeeDetail({ id }) {
 }
 
 export default function Employees() {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   // Data is stored with the query that produced it, so "a newer query is in
   // flight" is derived rather than tracked in its own state.
   const [loaded, setLoaded] = useState(null)
@@ -260,7 +263,7 @@ export default function Employees() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [live])
 
   useEffect(() => {
     // setState from a timeout is async, so it does not cascade the render
@@ -299,7 +302,7 @@ export default function Employees() {
     return () => {
       cancelled = true
     }
-  }, [query])
+  }, [query, live])
 
   const data = loaded?.data
   const loading = loaded === null

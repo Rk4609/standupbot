@@ -27,6 +27,7 @@ import { Field, Input, Select } from '../components/ui/Field'
 import { apiErrorMessage } from '../lib/apiError'
 import { cn } from '../lib/cn'
 import { IconSearch, IconUser, IconUsers } from '../components/ui/icons'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const loadAdminData = async () => {
   const [t, u, r] = await Promise.all([
@@ -54,6 +55,8 @@ const chartTooltip = {
 }
 
 export default function AdminPanel({ user }) {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const currentUserId = user?._id
   const [teams, setTeams] = useState([])
   const [users, setUsers] = useState([])
@@ -107,7 +110,7 @@ export default function AdminPanel({ user }) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [live])
 
   const refresh = async () => {
     try {

@@ -13,6 +13,7 @@ import { Textarea } from '../components/ui/Field'
 import { IconAlert, IconCheck, IconHourglass, IconPencil, IconTrash } from '../components/ui/icons'
 import { DURATION, EASE, collapseVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const loadBlockers = () => API.get('/standups/blockers').then(res => res.data)
 
@@ -27,6 +28,8 @@ const ageInDays = (dateStr) => {
 }
 
 export default function Blockers({ user }) {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [blockers, setBlockers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -53,7 +56,7 @@ export default function Blockers({ user }) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [live])
 
   /** Silent refetch after an edit — no skeleton, the list is already on screen. */
   const refresh = async () => {

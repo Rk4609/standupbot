@@ -13,6 +13,7 @@ import { IconAlert, IconPlus, IconUsers } from '../components/ui/icons'
 import CandidateForm from '../components/CandidateForm'
 import CandidateList from '../components/CandidateList'
 import { apiErrorMessage } from '../lib/apiError'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const STATUS_LABEL = { pending: 'Waiting', approved: 'Approved', rejected: 'Rejected' }
 
@@ -24,6 +25,8 @@ const STATUS_LABEL = { pending: 'Waiting', approved: 'Approved', rejected: 'Reje
  * by mistake — a candidate who never joins simply stays a rejected row.
  */
 export default function Hiring({ decide = false }) {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [status, setStatus] = useState(decide ? 'pending' : '')
@@ -41,7 +44,7 @@ export default function Hiring({ decide = false }) {
 
   useEffect(() => {
     load()
-  }, [load])
+  }, [load, live])
 
   const title = decide ? 'Approvals' : 'Hiring'
 

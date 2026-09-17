@@ -16,6 +16,7 @@ import TicketThread from '../components/TicketThread'
 import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, itemVariants, listVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const blank = {
   subject: '',
@@ -44,6 +45,8 @@ const STATUS_LABEL = { open: 'Waiting', answered: 'Answered', closed: 'Closed' }
  * mean nobody reads it.
  */
 export default function Support({ user }) {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const isAdmin = user?.role === 'admin'
 
   const [tab, setTab] = useState(isAdmin ? 'queue' : 'mine')
@@ -75,11 +78,11 @@ export default function Support({ user }) {
 
   useEffect(() => {
     loadMine()
-  }, [loadMine])
+  }, [loadMine, live])
 
   useEffect(() => {
     loadQueue()
-  }, [loadQueue])
+  }, [loadQueue, live])
 
   const raise = async (e) => {
     e.preventDefault()

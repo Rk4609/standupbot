@@ -4,12 +4,13 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { removeUser, updateUser } from '../store/authStore'
 import { workspaceSectionsFor } from '../lib/workspaceSections'
 import socket from '../socket'
-import API from '../api/axios'
+import API, { clearWarm } from '../api/axios'
 import { cn } from '../lib/cn'
 import { can } from '../lib/permissions'
 import { SPRING, popVariants } from '../lib/motion'
 import NotificationList from './NotificationList'
 import { showNotificationToast } from '../lib/notificationToast'
+import { requestRefresh } from '../lib/liveRefresh'
 import {
   IconAlert,
   IconBell,
@@ -418,6 +419,9 @@ export default function AppShell({ user, setUser, children }) {
       // The badge only counts. Something arriving while somebody is on
       // another page should say so, and take them there in one click.
       showNotificationToast(notif, n => openNotification(n._id, n.link))
+
+      // Whatever is on screen may now be out of date — reload it in place
+      requestRefresh()
     })
     socket.on('connect_error', err => console.error('Socket connection failed:', err.message))
 
@@ -427,6 +431,29 @@ export default function AppShell({ user, setUser, children }) {
       socket.disconnect()
     }
   }, [token, openNotification])
+
+  /**
+   * The other reasons the page on screen reloads its data in place: the
+   * phone comes back to the app, the tab regains focus, and every half
+   * minute while it is visible. Not while hidden — a phone in a pocket
+   * should not keep asking.
+   */
+  useEffect(() => {
+    if (!token) return
+
+    const whenVisible = () => {
+      if (document.visibilityState === 'visible') requestRefresh()
+    }
+    const timer = setInterval(whenVisible, 30_000)
+
+    document.addEventListener('visibilitychange', whenVisible)
+    window.addEventListener('focus', whenVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', whenVisible)
+      window.removeEventListener('focus', whenVisible)
+    }
+  }, [token])
 
   const markAllRead = async () => {
     try {
@@ -439,6 +466,8 @@ export default function AppShell({ user, setUser, children }) {
 
   const handleLogout = () => {
     removeUser()
+    // Anything fetched ahead belonged to this session
+    clearWarm()
     setUser(null)
     socket.disconnect()
     navigate('/login')

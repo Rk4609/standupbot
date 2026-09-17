@@ -40,6 +40,15 @@ const when = (iso) => {
  */
 export default function TicketThread({ ticket: initial, isAdmin, showWho, defaultOpen, onChanged }) {
   const [ticket, setTicket] = useState(initial)
+
+  // The list refreshes on its own now. A newer copy of this ticket — a reply
+  // from somebody else, a status change — replaces the one on screen, and a
+  // reply being typed below is left alone.
+  const [seenVersion, setSeenVersion] = useState(initial.updatedAt)
+  if (initial.updatedAt !== seenVersion) {
+    setSeenVersion(initial.updatedAt)
+    setTicket(initial)
+  }
   const [open, setOpen] = useState(Boolean(defaultOpen))
   const [reply, setReply] = useState('')
   const [busy, setBusy] = useState(false)

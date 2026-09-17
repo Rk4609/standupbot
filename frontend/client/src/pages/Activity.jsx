@@ -13,6 +13,7 @@ import { IconAlert, IconList, IconPencil, IconShield, IconTrash } from '../compo
 import { cn } from '../lib/cn'
 import { itemVariants, listVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const ACTION_META = {
   'standup.updated': { label: 'Standup edited', icon: IconPencil, tone: 'neutral' },
@@ -102,6 +103,8 @@ function Entry({ entry }) {
 }
 
 export default function Activity() {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [query, setQuery] = useState({ page: 1, limit: 20, action: '' })
   const [loaded, setLoaded] = useState(null)
   const [error, setError] = useState('')
@@ -124,7 +127,7 @@ export default function Activity() {
     return () => {
       cancelled = true
     }
-  }, [query])
+  }, [query, live])
 
   const data = loaded?.data
   const loading = loaded === null || loaded.query !== query

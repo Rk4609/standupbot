@@ -1,28 +1,10 @@
-import { Activity, Suspense, useEffect, useState } from 'react'
+import { Activity, Suspense, useState } from 'react'
 import { NavLink, useLocation, useOutlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Skeleton from './ui/Skeleton'
 import { cn } from '../lib/cn'
 import { SPRING } from '../lib/motion'
 import { workspaceSectionsFor } from '../lib/workspaceSections'
-
-/**
- * Every Workspace page's code, fetched as soon as Workspace opens.
- *
- * The same module paths App.jsx loads lazily, so they resolve to the same
- * chunks: once these have landed, clicking a tab has nothing left to
- * download and goes straight to the page.
- */
-const PAGES = [
-  () => import('../pages/Projects'),
-  () => import('../pages/Templates'),
-  () => import('../pages/Integrations'),
-  () => import('../pages/Activity'),
-  () => import('../pages/People'),
-  () => import('../pages/Hiring'),
-  () => import('../pages/AdminPanel'),
-  () => import('../pages/Roles')
-]
 
 /** Stands in for the page under the tabs while its code is still arriving. */
 function ContentFallback() {
@@ -66,12 +48,7 @@ export default function WorkspaceLayout({ user }) {
     setOpened([...opened, { path, element: outlet }])
   }
 
-  useEffect(() => {
-    // After first paint, so fetching the other tabs never slows this one
-    const start = window.requestIdleCallback || ((fn) => setTimeout(fn, 200))
-    const handle = start(() => PAGES.forEach(load => load().catch(() => {})))
-    return () => (window.cancelIdleCallback || clearTimeout)(handle)
-  }, [])
+  // Every page's code is fetched ahead by KeptPages, the app-wide keeper
 
   return (
     <>

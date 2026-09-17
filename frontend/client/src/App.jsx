@@ -14,6 +14,7 @@ import { workspaceSectionsFor } from "./lib/workspaceSections"
 import AppShell from "./components/AppShell"
 import ErrorBoundary from "./components/ErrorBoundary"
 import ProtectedRoute from "./components/ProtectedRoute"
+import KeptPages from "./components/KeptPages"
 import OfflineIndicator from "./components/OfflineIndicator"
 import Skeleton from "./components/ui/Skeleton"
 
@@ -75,8 +76,12 @@ function RouteFallback() {
  * full page reload. Keyed by section, the frame stays and only the content
  * under the tabs changes.
  */
+const PUBLIC = ["/login", "/register", "/forgot-password", "/reset-password"]
+
+// Inside the app the pages keep themselves (KeptPages); the screen-to-screen
+// animation is only for the sign-in pages, which have nothing to keep
 const transitionKey = (pathname) =>
-  pathname.startsWith("/workspace") ? "/workspace" : pathname
+  PUBLIC.some(p => pathname === p || pathname.startsWith(`${p}/`)) ? pathname : "app"
 
 /**
  * Routes live in their own component so they can read the location — the key
@@ -120,6 +125,8 @@ function AnimatedRoutes({ user, setUser }) {
           element={!user ? <ResetPassword /> : <Navigate to="/dashboard" replace />}
         />
 
+        {/* Every page inside the app, kept alive once opened */}
+        <Route element={<KeptPages user={user} />}>
         <Route element={<ProtectedRoute user={user} />}>
           <Route path="/dashboard" element={<Dashboard user={user} />} />
           <Route path="/profile" element={<Profile user={user} setUser={setUser} />} />
@@ -204,6 +211,7 @@ function AnimatedRoutes({ user, setUser }) {
               </Route>
             </Route>
           </Route>
+        </Route>
         </Route>
 
         {/* The paths these pages used to live at, so a bookmark still lands */}

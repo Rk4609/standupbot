@@ -15,6 +15,7 @@ import { cn } from '../lib/cn'
 import { collapseVariants } from '../lib/motion'
 import { asDateInput, prettyDate } from '../lib/dates'
 import { apiErrorMessage } from '../lib/apiError'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const TYPE_LABEL = {
   intern: 'Intern',
@@ -64,6 +65,8 @@ const daysUntil = (value) => {
  * longest, which positions a team actually has.
  */
 export default function People({ user }) {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [openId, setOpenId] = useState(null)
@@ -97,7 +100,7 @@ export default function People({ user }) {
 
   useEffect(() => {
     load()
-  }, [load])
+  }, [load, live])
 
   if (error) {
     return (

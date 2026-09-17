@@ -29,6 +29,7 @@ import { MOOD_EMOJI } from '../lib/moods'
 import { cn } from '../lib/cn'
 import { itemVariants, listVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const RANGES = [
   { value: 7, label: 'Last 7 days' },
@@ -83,6 +84,8 @@ function ChartCard({ title, subtitle, action, children, empty }) {
 }
 
 export default function Analytics() {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [days, setDays] = useState(30)
   const [error, setError] = useState('')
   const [exporting, setExporting] = useState(false)
@@ -109,7 +112,7 @@ export default function Analytics() {
     return () => {
       cancelled = true
     }
-  }, [days])
+  }, [days, live])
 
   const data = loaded?.data
   const loading = loaded === null || loaded.days !== days

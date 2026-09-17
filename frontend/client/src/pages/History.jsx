@@ -14,6 +14,7 @@ import { Input } from '../components/ui/Field'
 import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, collapseVariants, itemVariants } from '../lib/motion'
 import { IconFilter, IconInbox, IconSearch } from '../components/ui/icons'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const MOODS = ['all', 'great', 'good', 'okay', 'bad', 'stressed']
 const MOOD_ICON = MOOD_EMOJI
@@ -74,6 +75,8 @@ function FilterTag({ tone = 'brand', onClear, children }) {
 }
 
 export default function History() {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [standups, setStandups] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -118,7 +121,7 @@ export default function History() {
       }
     }
     fetchHistory()
-  }, [])
+  }, [live])
 
   const filtered = useMemo(() => {
     return standups.filter(s => {

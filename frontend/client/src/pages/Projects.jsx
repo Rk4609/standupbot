@@ -16,6 +16,7 @@ import ProjectActivity from '../components/ProjectActivity'
 import { cn } from '../lib/cn'
 import { collapseVariants, DURATION, EASE, SPRING } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const blank = { name: '', code: '', client: '', billable: true }
 
@@ -28,6 +29,8 @@ const TABS = [
 ]
 
 export default function Projects() {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [form, setForm] = useState(blank)
@@ -49,7 +52,7 @@ export default function Projects() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [live])
 
   const create = async (e) => {
     e.preventDefault()

@@ -26,8 +26,11 @@ import { AI_MODEL_LABEL } from '../lib/ai'
 import { apiErrorMessage } from '../lib/apiError'
 import { IconAlert, IconCalendar, IconSparkles, IconTrendDown } from '../components/ui/icons'
 import { todayForUser } from '../lib/timezone'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 export default function TeamView() {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [standups, setStandups] = useState([])
   const [stats, setStats] = useState([])
   const [date, setDate] = useState(todayForUser())
@@ -39,12 +42,15 @@ export default function TeamView() {
   const [aiError, setAiError] = useState('')
   const [showAi, setShowAi] = useState(false)
   const abortRef = useRef(null)
+  const shownDate = useRef(null)
 
   useEffect(() => {
     let cancelled = false
 
     const fetchAll = async () => {
-      setLoading(true)
+      // A skeleton only for a day not on screen yet. A background refresh of
+      // the same day swaps the numbers in place instead of blanking them.
+      if (shownDate.current !== date) setLoading(true)
       setLoadError('')
       try {
         const [s, st] = await Promise.all([
@@ -54,6 +60,7 @@ export default function TeamView() {
         if (cancelled) return
         setStandups(s.data)
         setStats(st.data)
+        shownDate.current = date
       } catch (err) {
         if (cancelled) return
         console.error(err)
@@ -67,7 +74,7 @@ export default function TeamView() {
     return () => {
       cancelled = true
     }
-  }, [date])
+  }, [date, live])
 
   // Cancel an in-flight stream if the page unmounts
   useEffect(() => () => abortRef.current?.abort(), [])

@@ -25,6 +25,7 @@ import { can } from '../lib/permissions'
 import { todayForUser } from '../lib/timezone'
 import { prettyDate } from '../lib/dates'
 import { hoursLabel, workWeek } from '../lib/week'
+import { useLiveRefresh } from '../lib/liveRefresh'
 
 const STATUS_LABEL = {
   draft: 'Not submitted yet',
@@ -73,6 +74,8 @@ function Figure({ icon: Icon, value, label }) {
  * true thing instead of an invented number.
  */
 export default function Dashboard({ user }) {
+  // Reload in place when something new may have happened — see liveRefresh
+  const live = useLiveRefresh()
   const [standups, setStandups] = useState([])
   const [profile, setProfile] = useState(null)
   const [week, setWeek] = useState(null)
@@ -113,7 +116,7 @@ export default function Dashboard({ user }) {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, live])
 
   const today = todayForUser()
   const dates = week?.dates?.length ? week.dates : workWeek(today)
