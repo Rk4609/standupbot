@@ -12,6 +12,7 @@ import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import { Field, Input, Select } from '../components/ui/Field'
 import Modal from '../components/ui/Modal'
+import PushSettings from '../components/PushSettings'
 import { cn } from '../lib/cn'
 import { SPRING, itemVariants, listVariants } from '../lib/motion'
 import {
@@ -474,6 +475,9 @@ export default function Profile({ user, setUser }) {
                 Your email and role are set by an admin.
               </p>
             </Card>
+            <div className="mt-4">
+              <PushSettings />
+            </div>
           </motion.div>
         </div>
       </motion.div>

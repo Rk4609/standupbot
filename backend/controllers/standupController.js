@@ -1,10 +1,10 @@
 const Standup = require('../models/Standup')
 const User = require('../models/User')
 const Team = require('../models/Team')
-const Notification = require('../models/Notification')
 const AuditLog = require('../models/AuditLog')
 const { addDays, lastNDates, todayIn, zoneOf } = require('../utils/time')
 const audit = require('../services/auditService')
+const { notify } = require('../services/notifyService')
 const { resolveTemplate, teamForUser } = require('./templateController')
 const { CORE_KEYS } = require('../models/StandupTemplate')
 const slack = require('../services/slackService')
@@ -200,7 +200,9 @@ const submitStandup = async (req, res) => {
         // A missing realtime hub must not fail the submission itself.
         const io = req.app.get('io')
 
-        const notification = await Notification.create({
+        // Through the one notification service, so a blocker also reaches
+        // the manager's phone like every other notification does
+        await notify(io, {
           recipient: team.manager._id,
           sender: req.user._id,
           type: 'standup_submitted',
@@ -208,31 +210,13 @@ const submitStandup = async (req, res) => {
           link: '/team'
         })
 
-        io?.to(team.manager._id.toString()).emit('new-notification', {
-          _id: notification._id,
-          message: notification.message,
-          type: notification.type,
-          isRead: false,
-          createdAt: notification.createdAt,
-          link: notification.link
-        })
-
         if (hasBlocker) {
-          const blockerNotif = await Notification.create({
+          await notify(io, {
             recipient: team.manager._id,
             sender: req.user._id,
             type: 'blocker_added',
             message: `🚨 ${req.user.name} has a blocker: ${blockers}`,
             link: '/blockers'
-          })
-
-          io?.to(team.manager._id.toString()).emit('new-notification', {
-            _id: blockerNotif._id,
-            message: blockerNotif.message,
-            type: blockerNotif.type,
-            isRead: false,
-            createdAt: blockerNotif.createdAt,
-            link: blockerNotif.link
           })
         }
       }

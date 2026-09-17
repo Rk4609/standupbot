@@ -1,4 +1,5 @@
 const Notification = require('../models/Notification')
+const { pushNotification } = require('./pushService')
 
 /**
  * Write a notification and push it to whoever it is for.
@@ -27,6 +28,10 @@ const notify = async (io, { recipient, sender, type, message, link }) => {
       createdAt: doc.createdAt,
       link: doc.link
     })
+
+    // And to their phone, if they turned that on. Not awaited: the person
+    // whose action caused this should not wait on a push service abroad.
+    pushNotification(doc).catch(err => console.error('Push failed:', err.message))
 
     return doc
   } catch (err) {

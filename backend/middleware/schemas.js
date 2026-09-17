@@ -494,6 +494,23 @@ const searchQuery = {
   }).strip()
 }
 
+/* push notifications ------------------------------------------------ */
+
+const pushEndpoint = z.string().url('is not a push address').max(1000)
+
+const pushSubscribe = z.object({
+  endpoint: pushEndpoint,
+  keys: z.object({
+    p256dh: z.string().min(10).max(200),
+    auth: z.string().min(8).max(100)
+  }).strip(),
+  // Browsers add expirationTime; it is not used
+  expirationTime: z.union([z.number(), z.null()]).optional(),
+  device: z.string().trim().max(120).optional()
+}).strip()
+
+const pushUnsubscribe = z.object({ endpoint: pushEndpoint }).strip()
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -603,6 +620,8 @@ module.exports = {
   readWeeklyReport,
   writeWeeklyReport,
   searchQuery,
+  pushSubscribe,
+  pushUnsubscribe,
   createRole,
   updateRole,
   roleId,

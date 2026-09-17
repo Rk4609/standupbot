@@ -88,6 +88,10 @@ export default defineConfig(({ mode }) => {
         },
 
         workbox: {
+          // Push notifications: shown when they arrive, opened on a tap.
+          // public/push-sw.js, loaded into the generated worker.
+          importScripts: ['push-sw.js'],
+
           runtimeCaching: [
             {
               // Auth endpoints (login/register/reset) — kabhi cache mat karo
