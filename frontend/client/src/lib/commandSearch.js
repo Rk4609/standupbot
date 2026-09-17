@@ -11,6 +11,7 @@ export const KEYWORDS = {
   '/dashboard': ['home', 'start'],
   '/standup/new': ['write', 'update', 'today', 'daily'],
   '/history': ['past', 'previous standups'],
+  '/kudos': ['thanks', 'thank you', 'appreciate', 'shabash', 'shabashi'],
   '/support': ['help', 'ticket', 'issue', 'problem', 'complaint'],
   '/attendance': ['check in', 'check out', 'punch', 'hazri', 'present'],
   '/timesheet': ['hours', 'time'],

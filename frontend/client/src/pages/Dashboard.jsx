@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
 import Card from '../components/ui/Card'
 import Skeleton from '../components/ui/Skeleton'
 import StreakHeatmap from '../components/StreakHeatmap'
 import EditStandupDialog from '../components/EditStandupDialog'
+import KudosCard from '../components/KudosCard'
+import KudosForm from '../components/KudosForm'
 import {
   DetailsAccordion,
   ProfileCard,
@@ -81,6 +83,8 @@ export default function Dashboard({ user }) {
   const [week, setWeek] = useState(null)
   const [lead, setLead] = useState({})
   const [onboarding, setOnboarding] = useState(null)
+  const [kudos, setKudos] = useState(null)
+  const [givingKudos, setGivingKudos] = useState(false)
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -96,8 +100,9 @@ export default function Dashboard({ user }) {
       can(user, 'employees') ? API.get('/employees/summary') : Promise.resolve(null),
       can(user, 'hiring') ? API.get('/hiring?status=pending&limit=10') : Promise.resolve(null),
       can(user, 'projects') ? API.get('/projects/all') : Promise.resolve(null),
-      API.get('/onboarding/mine')
-    ]).then(([mine, me, sheet, roster, hiring, projects, firstWeeks]) => {
+      API.get('/onboarding/mine'),
+      can(user, 'kudos') ? API.get('/kudos', { params: { page: 1 } }) : Promise.resolve(null)
+    ]).then(([mine, me, sheet, roster, hiring, projects, firstWeeks, thanks]) => {
       if (cancelled) return
 
       const value = (r) => (r.status === 'fulfilled' ? r.value?.data : null)
@@ -106,6 +111,7 @@ export default function Dashboard({ user }) {
       setProfile(value(me))
       setWeek(value(sheet))
       setOnboarding(value(firstWeeks)?.onboarding || null)
+      setKudos(value(thanks)?.kudos || null)
       setLead({
         roster: value(roster)?.rosterTotal ?? null,
         pending: value(hiring)?.pendingCount ?? null,
@@ -347,6 +353,38 @@ export default function Dashboard({ user }) {
         <WeekChecklist dates={dates} byDate={byDate} today={today} />
       </div>
 
+      {kudos && (
+        <Card className="mt-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg tracking-tight text-content">Kudos</h2>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/kudos"
+                className="rounded-full border border-line bg-surface-raised px-3 py-1 text-xs text-content-muted transition-colors hover:text-content"
+              >
+                See all
+              </Link>
+              <button
+                type="button"
+                onClick={() => setGivingKudos(true)}
+                className="rounded-full bg-brand-600 px-3 py-1 text-xs font-medium text-white dark:bg-brand-400 dark:text-brand-700"
+              >
+                Give kudos
+              </button>
+            </div>
+          </div>
+          {kudos.length === 0 ? (
+            <p className="text-sm text-content-subtle">
+              No kudos on your team yet. Somebody helped you this week, so say so.
+            </p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-3">
+              {kudos.slice(0, 3).map(k => <KudosCard key={k._id} kudos={k} compact />)}
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* The long view, kept from before: a streak is built across months */}
       <Card className="mt-4">
         <div className="mb-5 flex items-center justify-between gap-3">
@@ -360,6 +398,15 @@ export default function Dashboard({ user }) {
         </div>
         <StreakHeatmap dates={standups.map(s => s.date)} />
       </Card>
+
+      <AnimatePresence>
+        {givingKudos && (
+          <KudosForm
+            onClose={() => setGivingKudos(false)}
+            onSent={sent => setKudos(list => [sent, ...(list || [])])}
+          />
+        )}
+      </AnimatePresence>
 
       {editing && (
         <EditStandupDialog

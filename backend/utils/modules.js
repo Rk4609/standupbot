@@ -20,6 +20,7 @@ const MODULES = [
   { key: 'leave', label: 'Leave — ask for time off', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'attendance', label: 'Attendance — check in and out', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'payslips', label: 'Payslips — own salary slips', group: 'Personal', minBase: 'employee', rollOut: true },
+  { key: 'kudos', label: 'Kudos — thank teammates', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'support', label: 'Help & support', group: 'Personal', minBase: 'employee', always: true },
 
   // What a lead does with other people's days
@@ -74,9 +75,9 @@ const allowedFor = (base) =>
 
 /** What each built-in role starts with, and what a new role is offered. */
 const DEFAULTS = {
-  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support'],
+  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'support'],
   manager: [
-    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support',
+    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'support',
     'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports',
     'projects', 'templates', 'integrations', 'activity', 'records', 'hiring', 'onboarding'
   ],

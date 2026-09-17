@@ -1,5 +1,5 @@
 import {
-  IconAlert, IconCalendar, IconChart, IconCheck, IconClock, IconHome, IconInbox,
+  IconAlert, IconCalendar, IconChart, IconCheck, IconClock, IconFlame, IconHome, IconInbox,
   IconPlus, IconPrinter, IconSparkles, IconTimer, IconTrendUp, IconUsers
 } from '../components/ui/icons'
 import { can } from './permissions'
@@ -24,6 +24,7 @@ export const navGroups = (user) => {
         { to: '/dashboard', label: 'Dashboard', icon: IconHome, module: 'dashboard' },
         { to: '/standup/new', label: 'New standup', icon: IconPlus, module: 'standup' },
         { to: '/history', label: 'History', icon: IconClock, module: 'history' },
+        { to: '/kudos', label: 'Kudos', icon: IconFlame, module: 'kudos' },
         { to: '/support', label: 'Support', icon: IconInbox, module: 'support' }
       ]
     },

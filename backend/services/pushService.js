@@ -29,7 +29,8 @@ const TITLES = {
   onboarding_started: 'Welcome aboard',
   onboarding_complete: 'Onboarding complete',
   brief_ready: 'Morning brief',
-  report_ready: 'Weekly report'
+  report_ready: 'Weekly report',
+  kudos_received: 'Kudos for you'
 }
 
 let configuredWith = null

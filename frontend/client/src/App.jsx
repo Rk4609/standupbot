@@ -51,6 +51,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"))
 const OnboardingDetail = lazy(() => import("./pages/OnboardingDetail"))
 const Brief = lazy(() => import("./pages/Brief"))
 const WeeklyReport = lazy(() => import("./pages/WeeklyReport"))
+const Kudos = lazy(() => import("./pages/Kudos"))
 const Roles = lazy(() => import("./pages/Roles"))
 const People = lazy(() => import("./pages/People"))
 const Hiring = lazy(() => import("./pages/Hiring"))
@@ -157,6 +158,9 @@ function AnimatedRoutes({ user, setUser }) {
         </Route>
         <Route element={<ProtectedRoute user={user} module="leave" />}>
           <Route path="/leave" element={<Leave />} />
+        </Route>
+        <Route element={<ProtectedRoute user={user} module="kudos" />}>
+          <Route path="/kudos" element={<Kudos />} />
         </Route>
         <Route element={<ProtectedRoute user={user} module="attendance" />}>
           <Route path="/attendance" element={<Attendance />} />

@@ -34,7 +34,9 @@ const notificationSchema = new mongoose.Schema({
       // The morning brief is written
       'brief_ready',
       // The week's project report is written
-      'report_ready'
+      'report_ready',
+      // Somebody said thank you
+      'kudos_received'
     ],
     required: true
   },

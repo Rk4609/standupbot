@@ -511,6 +511,21 @@ const pushSubscribe = z.object({
 
 const pushUnsubscribe = z.object({ endpoint: pushEndpoint }).strip()
 
+/* kudos ------------------------------------------------------------- */
+
+const giveKudos = z.object({
+  to: objectId,
+  value: z.enum(['teamwork', 'ownership', 'helpful', 'quality', 'extra-mile']).optional(),
+  message: z.string().trim().min(3, 'needs a few words').max(280, 'is too long')
+}).strict()
+
+const listKudos = {
+  query: z.object({
+    page: z.coerce.number().int().positive().optional(),
+    q: z.string().trim().max(60).optional()
+  }).strip()
+}
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -622,6 +637,8 @@ module.exports = {
   searchQuery,
   pushSubscribe,
   pushUnsubscribe,
+  giveKudos,
+  listKudos,
   createRole,
   updateRole,
   roleId,

@@ -487,14 +487,14 @@ export default function AppShell({ user, setUser, children }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeDrawer}
-              className="no-print fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+              className="no-print fixed inset-0 z-40 bg-black/40 backdrop-blur-sm xl:hidden"
             />
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', stiffness: 380, damping: 38 }}
-              className="no-print fixed inset-y-0 left-0 z-50 flex w-[17rem] flex-col rounded-r-card border-r border-line bg-surface px-3 py-5 lg:hidden"
+              className="no-print fixed inset-y-0 left-0 z-50 flex w-[17rem] flex-col rounded-r-card border-r border-line bg-surface px-3 py-5 xl:hidden"
             >
               <DrawerBody
                 user={user}
@@ -524,7 +524,7 @@ export default function AppShell({ user, setUser, children }) {
           <button
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"
-            className={cn(circle, 'lg:hidden')}
+            className={cn(circle, 'xl:hidden')}
           >
             <IconMenu className="h-[18px] w-[18px]" />
           </button>
@@ -539,9 +539,10 @@ export default function AppShell({ user, setUser, children }) {
           <nav
             aria-label="Main"
             // No overflow here: a scrolling container clips anything that
-            // hangs below it, and the Team menu does. The pills fit from the
-            // laptop width they appear at; below it they live in the drawer.
-            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 lg:flex"
+            // hangs below it, and the Team menu does. The pills fit from 1280px;
+            // at 1024 an admin's bar ran over the logo, so below 1280 they
+            // live in the drawer.
+            className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 xl:flex"
           >
             {mine.map(item => (
               <TopLink key={item.to} {...item} />
@@ -570,7 +571,7 @@ export default function AppShell({ user, setUser, children }) {
             )}
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 xl:ml-0">
             {manage.length > 0 && (
               <div className="relative hidden md:block" ref={workspaceRef}>
                 <button
