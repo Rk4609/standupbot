@@ -2,7 +2,7 @@ import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/cn'
 import { DURATION, EASE } from '../lib/motion'
-import { IconAlert, IconBell, IconCalendar, IconCheck, IconClose, IconInbox, IconSparkles, IconUsers } from './ui/icons'
+import { IconAlert, IconBell, IconCalendar, IconCheck, IconClose, IconInbox, IconSparkles, IconUsers, IconBriefcase } from './ui/icons'
 
 /** Icon and tint per kind, so a blocker does not look like a standup. */
 const LOOK = {
@@ -23,6 +23,8 @@ const LOOK = {
   kudos_received: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   celebration_day: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   celebration_wish: { icon: IconSparkles, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
+  expense_submitted: { icon: IconBriefcase, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
+  expense_decided: { icon: IconBriefcase, plate: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
   announcement: { icon: IconInbox, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   reminder: { icon: IconBell, plate: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' }
 }
@@ -45,6 +47,8 @@ const TITLE = {
   kudos_received: 'Kudos for you',
   celebration_day: 'A special day',
   celebration_wish: 'A wish for you',
+  expense_submitted: 'Expense claim',
+  expense_decided: 'Expense update',
   announcement: 'Announcement',
   reminder: 'Reminder'
 }

@@ -1,4 +1,5 @@
 const Attendance = require('../models/Attendance')
+const Expense = require('../models/Expense')
 const Leave = require('../models/Leave')
 const Payslip = require('../models/Payslip')
 const User = require('../models/User')
@@ -102,6 +103,32 @@ const slipFor = (person, month, days) => ({
   ...computeSlip({ salary: person.salary, month, ...days })
 })
 
+/** Approved claims not yet paid, spent up to the end of the month, per person. */
+const claimsFor = async (people, month) => {
+  const { last } = monthBounds(month)
+  const rows = await Expense.find({
+    user: { $in: people.map(p => p._id) }, status: 'approved', spentOn: { $lte: last }
+  }).select('user amount').lean()
+  const by = new Map()
+  for (const r of rows) {
+    const key = String(r.user)
+    const entry = by.get(key) || { amount: 0, ids: [] }
+    entry.amount += r.amount
+    entry.ids.push(r._id)
+    by.set(key, entry)
+  }
+  return by
+}
+
+/** A slip, with any approved claims added on top of net pay. */
+const slipWithClaims = (person, month, days, claims) => {
+  const slip = slipFor(person, month, days)
+  const claim = claims.get(String(person._id))
+  return claim
+    ? { ...slip, reimbursement: claim.amount, expenses: claim.ids, net: slip.net + claim.amount }
+    : { ...slip, reimbursement: 0, expenses: [] }
+}
+
 // GET /api/payslips/mine — my published slips, newest first
 const myPayslips = async (req, res) => {
   try {
@@ -145,7 +172,7 @@ const payrollMonth = async (req, res) => {
       User.countDocuments({ $or: [{ 'salary.amount': null }, { 'salary.amount': { $lte: 0 } }] })
     ])
 
-    const days = await unpaidDays(people, month, today)
+    const [days, claims] = await Promise.all([unpaidDays(people, month, today), claimsFor(people, month)])
     const slipOf = new Map(slips.map(s => [String(s.user), s]))
 
     const rows = people.map(person => {
@@ -163,7 +190,11 @@ const payrollMonth = async (req, res) => {
         slip: slip
           ? { _id: slip._id, status: slip.status, gross: slip.gross, net: slip.net, lossOfPayDays: slip.lossOfPayDays }
           : null,
-        preview: { gross: preview.gross, net: preview.net, lossOfPayDays: preview.lossOfPayDays }
+        preview: {
+          gross: preview.gross,
+          net: preview.net + (claims.get(String(person._id))?.amount || 0),
+          lossOfPayDays: preview.lossOfPayDays
+        }
       }
     })
 
@@ -204,7 +235,7 @@ const generatePayroll = async (req, res) => {
     }
 
     const people = await payablePeople()
-    const days = await unpaidDays(people, month, today)
+    const [days, claims] = await Promise.all([unpaidDays(people, month, today), claimsFor(people, month)])
 
     const published = new Set(
       (await Payslip.find({ month, status: 'published' }).select('user').lean()).map(s => String(s.user))
@@ -218,7 +249,7 @@ const generatePayroll = async (req, res) => {
         { user: person._id, month },
         {
           $set: {
-            ...slipFor(person, month, days.get(String(person._id))),
+            ...slipWithClaims(person, month, days.get(String(person._id)), claims),
             status: 'draft',
             generatedBy: req.user._id,
             generatedByName: req.user.name
@@ -259,6 +290,15 @@ const publishPayroll = async (req, res) => {
       { _id: { $in: drafts.map(d => d._id) } },
       { $set: { status: 'published', publishedAt: new Date() } }
     )
+
+    // The claims these slips carry are now paid, and cannot be paid again
+    const carrying = await Payslip.find({ _id: { $in: drafts.map(d => d._id) } }).select('expenses').lean()
+    await Promise.all(carrying.filter(s => s.expenses?.length).map(s =>
+      Expense.updateMany(
+        { _id: { $in: s.expenses }, status: 'approved' },
+        { $set: { status: 'paid', paidIn: s._id, paidMonth: month } }
+      )
+    ))
 
     await notifyMany(req.app.get('io'), drafts.map(d => d.user), {
       sender: req.user._id,

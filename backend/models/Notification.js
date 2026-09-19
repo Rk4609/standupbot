@@ -41,7 +41,10 @@ const notificationSchema = new mongoose.Schema({
       'celebration_day',
       'celebration_wish',
       // A notice to everybody or a team
-      'announcement'
+      'announcement',
+      // Expense claims: one waiting, and the answer
+      'expense_submitted',
+      'expense_decided'
     ],
     required: true
   },

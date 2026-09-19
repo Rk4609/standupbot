@@ -33,7 +33,9 @@ const TITLES = {
   kudos_received: 'Kudos for you',
   celebration_day: 'Today is a special day',
   celebration_wish: 'A wish for you',
-  announcement: 'Announcement'
+  announcement: 'Announcement',
+  expense_submitted: 'Expense claim',
+  expense_decided: 'Expense update'
 }
 
 let configuredWith = null

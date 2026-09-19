@@ -1,7 +1,6 @@
 import {
   IconAlert, IconCalendar, IconChart, IconCheck, IconClock, IconFlame, IconHome, IconInbox,
-  IconPlus, IconPrinter, IconSparkles, IconTimer, IconTrendUp, IconUsers
-} from '../components/ui/icons'
+  IconPlus, IconPrinter, IconSparkles, IconTimer, IconTrendUp, IconUsers, IconBriefcase } from '../components/ui/icons'
 import { can } from './permissions'
 import { workspaceSectionsFor } from './workspaceSections'
 
@@ -37,7 +36,8 @@ export const navGroups = (user) => {
         { to: '/attendance', label: 'Attendance', icon: IconCheck, module: 'attendance' },
         { to: '/timesheet', label: 'Timesheet', icon: IconTimer, module: 'timesheet' },
         { to: '/leave', label: 'Leave', icon: IconCalendar, module: 'leave' },
-        { to: '/payslips', label: 'Payslips', icon: IconPrinter, module: 'payslips' }
+        { to: '/payslips', label: 'Payslips', icon: IconPrinter, module: 'payslips' },
+        { to: '/expenses', label: 'Expenses', icon: IconBriefcase, module: 'expenses' }
       ]
     },
     {
@@ -51,6 +51,7 @@ export const navGroups = (user) => {
         { to: '/timesheets', label: 'Timesheets', icon: IconTimer, module: 'timesheets' },
         { to: '/team-attendance', label: 'Attendance', icon: IconCheck, module: 'team-attendance' },
         { to: '/leaves', label: 'Leave approvals', icon: IconCalendar, module: 'leaves' },
+        { to: '/expense-approvals', label: 'Expense approvals', icon: IconBriefcase, module: 'expense-approvals' },
         { to: '/analytics', label: 'Analytics', icon: IconTrendUp, module: 'analytics' },
         { to: '/reports', label: 'Weekly report', icon: IconPrinter, module: 'reports' },
         { to: '/retro', label: 'Weekly retro', icon: IconSparkles, module: 'retro' }

@@ -44,6 +44,11 @@ const payslipSchema = new mongoose.Schema({
   totalDeductions: { type: Number, required: true, min: 0 },
   net: { type: Number, required: true, min: 0 },
 
+  // Approved expense claims paid back with this slip; on top of net pay,
+  // outside gross, so no deduction or tax threshold counts them
+  reimbursement: { type: Number, default: 0, min: 0 },
+  expenses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Expense' }],
+
   // A draft is only ever seen by whoever runs payroll; publishing is what
   // puts it in front of the person
   status: { type: String, enum: ['draft', 'published'], default: 'draft' },

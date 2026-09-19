@@ -555,6 +555,28 @@ const postAnnouncement = z.object({
   team: z.union([objectId, z.null()]).optional()
 }).strict()
 
+/* expenses ---------------------------------------------------------- */
+
+const claimExpense = z.object({
+  category: z.enum(['travel', 'food', 'stay', 'equipment', 'internet', 'other']),
+  amount: z.coerce.number().min(1, 'is too small').max(1000000, 'is too large'),
+  spentOn: fields.isoDate,
+  description: z.string().trim().min(3, 'needs a few words').max(300, 'is too long'),
+  receipt: z.object({
+    // Only a receipt this app uploaded: no outside links on a claim
+    url: z.union([
+      z.string().url().max(500).refine(u => u.startsWith('https://res.cloudinary.com/'), 'is not an uploaded receipt'),
+      z.literal('')
+    ]),
+    name: z.string().max(200).optional()
+  }).strict().optional()
+}).strict()
+
+const decideExpense = {
+  params: z.object({ id: objectId }),
+  body: z.object({ note: z.string().trim().max(300, 'is too long').optional() }).strict()
+}
+
 /* company settings -------------------------------------------------- */
 
 const hours = z.coerce.number().min(1).max(16)
@@ -695,6 +717,8 @@ module.exports = {
   writeWeeklyReport,
   searchQuery,
   updateSettings,
+  claimExpense,
+  decideExpense,
   pushSubscribe,
   pushUnsubscribe,
   giveKudos,

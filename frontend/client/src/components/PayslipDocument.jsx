@@ -81,6 +81,13 @@ export default function PayslipDocument({ slip }) {
         <Lines title="Deductions" lines={slip.deductions} total={slip.totalDeductions} totalLabel="Total deductions" currency={currency} />
       </div>
 
+      {slip.reimbursement > 0 && (
+        <div className="mb-3 flex items-center justify-between border-t border-line pt-3 text-sm">
+          <span className="text-content-muted">Expense reimbursements <span className="text-content-subtle">(not taxed, added to net pay)</span></span>
+          <span className="tabular text-content">+ {money(slip.reimbursement, currency)}</span>
+        </div>
+      )}
+
       <div className="flex flex-col gap-1 rounded-2xl bg-brand-600 px-5 py-4 text-white dark:bg-brand-400 dark:text-brand-700 print:border print:border-line print:bg-white print:text-black md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide opacity-70">Net pay</p>

@@ -19,4 +19,14 @@ const upload = multer({
   }
 })
 
-module.exports = { cloudinary, upload }
+/** Receipts may be a photo or a PDF of the bill. */
+const receiptUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') cb(null, true)
+    else cb(new Error('A receipt has to be a photo or a PDF'), false)
+  }
+})
+
+module.exports = { cloudinary, upload, receiptUpload }

@@ -52,6 +52,8 @@ const OnboardingDetail = lazy(() => import("./pages/OnboardingDetail"))
 const Brief = lazy(() => import("./pages/Brief"))
 const WeeklyReport = lazy(() => import("./pages/WeeklyReport"))
 const Kudos = lazy(() => import("./pages/Kudos"))
+const Expenses = lazy(() => import("./pages/Expenses"))
+const ExpenseApprovals = lazy(() => import("./pages/ExpenseApprovals"))
 const Announcements = lazy(() => import("./pages/Announcements"))
 const CompanySettings = lazy(() => import("./pages/CompanySettings"))
 const Roles = lazy(() => import("./pages/Roles"))
@@ -177,6 +179,9 @@ function AnimatedRoutes({ user, setUser }) {
         <Route element={<ProtectedRoute user={user} module="payslips" />}>
           <Route path="/payslips" element={<Payslips />} />
         </Route>
+        <Route element={<ProtectedRoute user={user} module="expenses" />}>
+          <Route path="/expenses" element={<Expenses />} />
+        </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["manager", "admin"]} />}>
           <Route element={<ProtectedRoute user={user} module="team" />}>
@@ -199,6 +204,9 @@ function AnimatedRoutes({ user, setUser }) {
           </Route>
           <Route element={<ProtectedRoute user={user} module="leaves" />}>
             <Route path="/leaves" element={<LeaveApprovals />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="expense-approvals" />}>
+            <Route path="/expense-approvals" element={<ExpenseApprovals />} />
           </Route>
           <Route element={<ProtectedRoute user={user} module="brief" />}>
             <Route path="/brief" element={<Brief />} />

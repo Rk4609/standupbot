@@ -18,6 +18,8 @@ const ACTIONS = [
   'user.2fa_enabled',
   'user.2fa_disabled',
   'settings.updated',
+  'expense.approved',
+  'expense.rejected',
   'timesheet.reviewed',
   'project.transfer',
   'user.record_updated',
