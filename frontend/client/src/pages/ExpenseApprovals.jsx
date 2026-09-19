@@ -11,6 +11,7 @@ import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import { Field, Select, Textarea } from '../components/ui/Field'
 import { IconAlert, IconCheck, IconClose, IconInbox } from '../components/ui/icons'
 import { apiErrorMessage } from '../lib/apiError'
@@ -18,12 +19,14 @@ import { useLiveRefresh } from '../lib/liveRefresh'
 import { money } from '../lib/money'
 import { shortDay } from '../lib/leave'
 import { CATEGORY_LABEL, EXPENSE_STATUS } from '../lib/expenses'
+import { usePageSize } from '../lib/paging'
 
 /** Claims from my team, waiting first. */
 export default function ExpenseApprovals() {
   const live = useLiveRefresh()
   const [status, setStatus] = useState('pending')
   const [page, setPage] = useState(1)
+  const [size, setSize] = usePageSize('expense-approvals')
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(null)
@@ -31,11 +34,11 @@ export default function ExpenseApprovals() {
   const [note, setNote] = useState('')
 
   const load = useCallback(() => {
-    const params = { page, ...(status ? { status } : {}) }
+    const params = { page, limit: size, ...(status ? { status } : {}) }
     return API.get('/expenses/team', { params })
       .then(res => { setData(res.data); setError('') })
       .catch(err => setError(apiErrorMessage(err, 'Could not load claims')))
-  }, [page, status])
+  }, [page, size, status])
 
   useEffect(() => { load() }, [load, live])
 
@@ -67,11 +70,14 @@ export default function ExpenseApprovals() {
         title="Expense approvals"
         subtitle={data.pending.count ? `${data.pending.count} waiting · ${money(data.pending.amount)}` : 'Nothing is waiting on you.'}
         actions={
-          <div className="w-40">
-            <Select value={status} onChange={e => { setStatus(e.target.value); setPage(1) }} aria-label="Filter by status" className="py-2 text-sm">
-              <option value="">All of them</option>
-              {data.statuses.map(s => <option key={s} value={s}>{EXPENSE_STATUS[s].label}</option>)}
-            </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            {data.total > 10 && <PageSizeSelect value={size} onChange={n => { setSize(n); setPage(1) }} />}
+            <div className="w-40">
+              <Select value={status} onChange={e => { setStatus(e.target.value); setPage(1) }} aria-label="Filter by status" className="py-2 text-sm">
+                <option value="">All of them</option>
+                {data.statuses.map(s => <option key={s} value={s}>{EXPENSE_STATUS[s].label}</option>)}
+              </Select>
+            </div>
           </div>
         }
       />
@@ -112,7 +118,7 @@ export default function ExpenseApprovals() {
         )}
         {data.totalPages > 1 && (
           <div className="border-t border-line px-4 py-3 md:px-6">
-            <Pagination page={data.page} totalPages={data.totalPages} total={data.total} limit={20} onPage={setPage} />
+            <Pagination page={data.page} totalPages={data.totalPages} total={data.total} limit={data.limit || size} onPage={setPage} />
           </div>
         )}
       </Card>

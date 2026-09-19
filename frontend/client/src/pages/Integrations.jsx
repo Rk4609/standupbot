@@ -139,7 +139,7 @@ export default function Integrations() {
 
   if (loadError) {
     return (
-      <PageShell className="max-w-3xl">
+      <PageShell>
         <PageHeader title="Integrations" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={loadError} />
       </PageShell>
@@ -148,7 +148,7 @@ export default function Integrations() {
 
   if (!state) {
     return (
-      <PageShell className="max-w-3xl">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-48" />
         <Skeleton className="mb-7 h-4 w-80" />
         <Skeleton className="h-80 rounded-card" />
@@ -157,7 +157,7 @@ export default function Integrations() {
   }
 
   return (
-    <PageShell className="max-w-3xl">
+    <PageShell>
       <PageHeader
         title="Integrations"
         subtitle="Send standups, blockers and the weekly retro to a Slack channel."
@@ -184,6 +184,8 @@ export default function Integrations() {
         }
       />
 
+      {/* The connection on the left; how it works, or where it posts, beside it */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
       <Card>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -222,23 +224,6 @@ export default function Integrations() {
 
         {state.connected ? (
           <>
-            <dl className="mb-5 grid gap-3 text-sm sm:grid-cols-3">
-              <div>
-                <dt className="text-xs text-content-subtle">Channel</dt>
-                <dd className="mt-0.5 text-content">{state.channel || 'not named'}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-content-subtle">Webhook</dt>
-                <dd className="mt-0.5 truncate text-content-muted" title={state.webhook}>
-                  {state.webhook}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-content-subtle">Last delivery</dt>
-                <dd className="mt-0.5 text-content-muted">{when(state.lastDeliveryAt)}</dd>
-              </div>
-            </dl>
-
             <AnimatePresence initial={false}>
               {state.lastError && (
                 <motion.div
@@ -279,18 +264,6 @@ export default function Integrations() {
           </>
         ) : (
           <>
-            <div className="mb-5 rounded-xl border border-line bg-surface-sunken px-4 py-3.5">
-              <p className="text-sm font-medium text-content">How to get a webhook</p>
-              <ol className="mt-2 space-y-1 text-xs text-content-muted">
-                <li>
-                  1. In Slack, open <span className="text-content">Apps → Incoming Webhooks</span>{' '}
-                  and add it to your workspace.
-                </li>
-                <li>2. Choose the channel these updates should land in.</li>
-                <li>3. Copy the webhook URL Slack gives you and paste it below.</li>
-              </ol>
-            </div>
-
             <form onSubmit={connect} className="space-y-4">
               <Field
                 label="Webhook URL"
@@ -332,6 +305,56 @@ export default function Integrations() {
           </>
         )}
       </Card>
+
+      <div className="space-y-5">
+        {state.connected ? (
+          <Card>
+            <CardTitle>Where it posts</CardTitle>
+              <dl className="space-y-3 text-sm">
+                <div>
+                  <dt className="text-xs text-content-subtle">Channel</dt>
+                  <dd className="mt-0.5 text-content">{state.channel || 'not named'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-content-subtle">Webhook</dt>
+                  <dd className="mt-0.5 truncate text-content-muted" title={state.webhook}>
+                    {state.webhook}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-content-subtle">Last delivery</dt>
+                  <dd className="mt-0.5 text-content-muted">{when(state.lastDeliveryAt)}</dd>
+                </div>
+              </dl>
+          </Card>
+        ) : (
+          <>
+            <Card>
+              <CardTitle>How to get a webhook</CardTitle>
+              <ol className="space-y-1.5 text-sm text-content-muted">
+                <li>
+                  1. In Slack, open <span className="text-content">Apps → Incoming Webhooks</span>{' '}
+                  and add it to your workspace.
+                </li>
+                <li>2. Choose the channel these updates should land in.</li>
+                <li>3. Copy the webhook URL Slack gives you and paste it into the form.</li>
+              </ol>
+            </Card>
+            <Card>
+              <CardTitle>What it posts</CardTitle>
+              <ul className="space-y-3">
+                {EVENTS.map(e => (
+                  <li key={e.key}>
+                    <p className="text-sm text-content">{e.label}</p>
+                    <p className="mt-0.5 text-xs text-content-subtle">{e.hint}</p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </>
+        )}
+      </div>
+      </div>
     </PageShell>
   )
 }

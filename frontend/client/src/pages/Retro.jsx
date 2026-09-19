@@ -131,7 +131,7 @@ export default function Retro() {
 
   if (loading) {
     return (
-      <PageShell className="max-w-4xl">
+      <PageShell>
         <Skeleton className="mb-6 h-8 w-64" />
         <div className="mb-5 grid grid-cols-3 gap-3">
           {[0, 1, 2].map(i => (
@@ -145,7 +145,7 @@ export default function Retro() {
 
   if (loadError) {
     return (
-      <PageShell className="max-w-4xl">
+      <PageShell>
         <PageHeader title="Weekly retro" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={loadError} />
       </PageShell>
@@ -153,7 +153,7 @@ export default function Retro() {
   }
 
   return (
-    <PageShell className="max-w-4xl">
+    <PageShell>
       <PageHeader
         title="Weekly retro"
         subtitle={
@@ -215,114 +215,119 @@ export default function Retro() {
         </div>
       )}
 
-      {/* Viewing a past week */}
-      <AnimatePresence>
-        {viewing && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="no-print mb-4 flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-900 dark:bg-brand-950/50"
-          >
-            <p className="text-sm text-brand-800 dark:text-brand-300">
-              Viewing an archived retro from <strong>{viewing.weekLabel}</strong>
-            </p>
-            <Button size="xs" variant="subtle" onClick={() => setViewing(null)}>
-              Back to this week
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* The report takes the width; past weeks, when there are any, sit beside it */}
+      <div className={cn('grid gap-5 xl:items-start', history.length > 0 && 'xl:grid-cols-[minmax(0,1fr)_22rem]')}>
+        <div className="min-w-0">
+          {/* Viewing a past week */}
+          <AnimatePresence>
+            {viewing && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="no-print mb-4 flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-900 dark:bg-brand-950/50"
+              >
+                <p className="text-sm text-brand-800 dark:text-brand-300">
+                  Viewing an archived retro from <strong>{viewing.weekLabel}</strong>
+                </p>
+                <Button size="xs" variant="subtle" onClick={() => setViewing(null)}>
+                  Back to this week
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {/* Report */}
-      {shownText || streaming || error ? (
-        <motion.div variants={itemVariants} className="mb-5">
-          <AiReport
-            title={viewing ? viewing.weekLabel : week?.weekLabel || 'This week'}
-            text={shownText}
-            loading={streaming}
-            error={error}
-            scroll={false}
-            className="print-plain"
-            footnote={
-              active?.createdAt
-                ? `Generated ${new Date(active.createdAt).toLocaleString('en-US', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short'
-                  })} · ${AI_MODEL_LABEL}`
-                : AI_MODEL_LABEL
-            }
-            onCopy={copy}
-            onRegenerate={viewing ? undefined : generate}
-          />
-        </motion.div>
-      ) : (
-        <EmptyState
-          icon={<IconCalendar className="h-6 w-6" />}
-          title="No retro for this week yet"
-          description="It generates automatically on Friday evening — or create it now from the standups submitted so far."
-          action={
-            <Button onClick={generate} loading={streaming}>
-              <IconSparkles className="h-4 w-4" />
-              Generate retro
-            </Button>
-          }
-          className="mb-5"
-        />
-      )}
+          {/* Report */}
+          {shownText || streaming || error ? (
+            <motion.div variants={itemVariants} className="mb-5">
+              <AiReport
+                title={viewing ? viewing.weekLabel : week?.weekLabel || 'This week'}
+                text={shownText}
+                loading={streaming}
+                error={error}
+                scroll={false}
+                className="print-plain"
+                footnote={
+                  active?.createdAt
+                    ? `Generated ${new Date(active.createdAt).toLocaleString('en-US', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short'
+                      })} · ${AI_MODEL_LABEL}`
+                    : AI_MODEL_LABEL
+                }
+                onCopy={copy}
+                onRegenerate={viewing ? undefined : generate}
+              />
+            </motion.div>
+          ) : (
+            <EmptyState
+              icon={<IconCalendar className="h-6 w-6" />}
+              title="No retro for this week yet"
+              description="It generates automatically on Friday evening — or create it now from the standups submitted so far."
+              action={
+                <Button onClick={generate} loading={streaming}>
+                  <IconSparkles className="h-4 w-4" />
+                  Generate retro
+                </Button>
+              }
+              className="mb-5"
+            />
+          )}
+        </div>
 
-      {/* Archive */}
-      {history.length > 0 && (
-        <Card className="no-print">
-          <CardTitle>Past weeks</CardTitle>
-          <div className="space-y-2">
-            {history.map((r, i) => {
-              const isActive = active?._id === r._id
-              return (
-                <motion.button
-                  key={r._id}
-                  onClick={() => {
-                    setViewing(r.weekStart === week?.weekStart ? null : r)
-                    setError('')
-                  }}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.05 + i * 0.04, duration: DURATION.base, ease: EASE }}
-                  whileTap={{ scale: 0.99 }}
-                  className={cn(
-                    'flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
-                    isActive
-                      ? 'border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-950/50'
-                      : 'border-line bg-surface-sunken hover:border-brand-200 dark:hover:border-brand-900'
-                  )}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-content">{r.weekLabel}</p>
-                    <p className="mt-0.5 text-xs text-content-subtle">
-                      {r.stats?.submissions ?? 0} submissions · {r.stats?.participationRate ?? 0}%
-                      participation
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {r.stats?.blockerCount > 0 && (
-                      <Badge tone="danger">{r.stats.blockerCount} blockers</Badge>
+        {/* Archive */}
+        {history.length > 0 && (
+          <Card className="no-print xl:sticky xl:top-24">
+            <CardTitle>Past weeks</CardTitle>
+            <div className="space-y-2">
+              {history.map((r, i) => {
+                const isActive = active?._id === r._id
+                return (
+                  <motion.button
+                    key={r._id}
+                    onClick={() => {
+                      setViewing(r.weekStart === week?.weekStart ? null : r)
+                      setError('')
+                    }}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.05 + i * 0.04, duration: DURATION.base, ease: EASE }}
+                    whileTap={{ scale: 0.99 }}
+                    className={cn(
+                      'flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors',
+                      isActive
+                        ? 'border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-950/50'
+                        : 'border-line bg-surface-sunken hover:border-brand-200 dark:hover:border-brand-900'
                     )}
-                    {r.weekStart === week?.weekStart && <Badge tone="brand">This week</Badge>}
-                    <motion.span
-                      aria-hidden="true"
-                      className="text-content-subtle"
-                      animate={{ x: isActive ? 2 : 0 }}
-                      transition={SPRING}
-                    >
-                      →
-                    </motion.span>
-                  </div>
-                </motion.button>
-              )
-            })}
-          </div>
-        </Card>
-      )}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-content">{r.weekLabel}</p>
+                      <p className="mt-0.5 text-xs text-content-subtle">
+                        {r.stats?.submissions ?? 0} submissions · {r.stats?.participationRate ?? 0}%
+                        participation
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {r.stats?.blockerCount > 0 && (
+                        <Badge tone="danger">{r.stats.blockerCount} blockers</Badge>
+                      )}
+                      {r.weekStart === week?.weekStart && <Badge tone="brand">This week</Badge>}
+                      <motion.span
+                        aria-hidden="true"
+                        className="text-content-subtle"
+                        animate={{ x: isActive ? 2 : 0 }}
+                        transition={SPRING}
+                      >
+                        →
+                      </motion.span>
+                    </div>
+                  </motion.button>
+                )
+              })}
+            </div>
+          </Card>
+        )}
+      </div>
     </PageShell>
   )
 }

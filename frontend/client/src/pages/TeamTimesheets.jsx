@@ -10,6 +10,8 @@ import Badge from '../components/ui/Badge'
 import StatCard from '../components/ui/StatCard'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Textarea } from '../components/ui/Field'
 import { IconAlert, IconTimer } from '../components/ui/icons'
 import { cn } from '../lib/cn'
@@ -18,6 +20,7 @@ import { apiErrorMessage } from '../lib/apiError'
 import { STATUS_LABEL, STATUS_TONE, shiftWeek } from '../lib/timesheet'
 import WeekGrid from '../components/WeekGrid'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 
 export default function TeamTimesheets() {
   // Reload in place when something new may have happened — see liveRefresh
@@ -29,6 +32,7 @@ export default function TeamTimesheets() {
   const [detail, setDetail] = useState(null)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState('')
+  const paged = usePaged(data?.people, 'team-timesheets')
 
   const load = (week) =>
     API.get('/timesheets', { params: week ? { weekStart: week } : {} })
@@ -110,11 +114,12 @@ export default function TeamTimesheets() {
         title="Team timesheets"
         subtitle={data.week.weekLabel}
         actions={
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" onClick={() => setWeekStart(shiftWeek(weekStart, -1))}>
+          <div className="flex flex-wrap items-center gap-1">
+            {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} className="mr-1 w-36" />}
+            <Button variant="ghost" onClick={() => { setWeekStart(shiftWeek(weekStart, -1)); paged.setPage(1) }}>
               ← Previous
             </Button>
-            <Button variant="ghost" onClick={() => setWeekStart(shiftWeek(weekStart, 1))}>
+            <Button variant="ghost" onClick={() => { setWeekStart(shiftWeek(weekStart, 1)); paged.setPage(1) }}>
               Next →
             </Button>
           </div>
@@ -141,7 +146,7 @@ export default function TeamTimesheets() {
             animate="animate"
             className="divide-y divide-line"
           >
-            {data.people.map(person => (
+            {paged.rows.map(person => (
               <motion.li key={person._id} variants={itemVariants}>
                 <button
                   type="button"
@@ -260,6 +265,7 @@ export default function TeamTimesheets() {
               </motion.li>
             ))}
           </motion.ul>
+          <ListPager paged={paged} />
         </Card>
       )}
     </PageShell>

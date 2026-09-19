@@ -3,7 +3,7 @@ const audit = require('../services/auditService')
 const { canUse } = require('../services/roleService')
 const { ownTeam } = require('../utils/teams')
 
-const PAGE_SIZES = [10, 25, 50, 100]
+const { ACCEPTED, PAGE_SIZES } = require('../utils/paging')
 const DEFAULT_LIMIT = 25
 
 /** Everything but the parts nobody outside the account should ever read. */
@@ -48,7 +48,7 @@ const listPeople = async (req, res) => {
 
     const maySeePay = await canUse(req.user, 'pay')
 
-    const limit = PAGE_SIZES.includes(Number(req.query.limit))
+    const limit = ACCEPTED.includes(Number(req.query.limit))
       ? Number(req.query.limit)
       : DEFAULT_LIMIT
     const page = Math.max(1, Number(req.query.page) || 1)

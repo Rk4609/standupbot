@@ -34,11 +34,11 @@ const list = {
   employees: [row],
   maySeePay: true,
   teams: ['MERN'],
-  pageSizes: [10, 20, 50, 100],
+  pageSizes: [10, 20, 40, 100],
   total: 1,
   rosterTotal: 1,
   page: 1,
-  limit: 20,
+  limit: 10,
   totalPages: 1
 }
 

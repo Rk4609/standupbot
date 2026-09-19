@@ -10,6 +10,8 @@ import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Field, Input, Select } from '../components/ui/Field'
 import { IconAlert, IconPlus, IconUsers } from '../components/ui/icons'
 import { cn } from '../lib/cn'
@@ -17,6 +19,7 @@ import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
 import { shortDay } from '../lib/leave'
 import { initials } from '../lib/attendance'
+import { usePaged } from '../lib/paging'
 
 const OWNER = { hr: 'HR', manager: 'Manager', employee: 'Joiner' }
 
@@ -81,6 +84,7 @@ export default function Onboarding() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [starting, setStarting] = useState(false)
+  const paged = usePaged(data?.onboardings, 'onboarding')
 
   const load = useCallback(() =>
     API.get('/onboarding', { params: { status } })
@@ -130,24 +134,27 @@ export default function Onboarding() {
         actions={start}
       />
 
-      <div className="mb-5 flex gap-1" role="tablist" aria-label="Show">
-        {[['active', 'In progress', data.counts.active], ['complete', 'Finished', data.counts.complete]].map(([id, label, n]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={status === id}
-            onClick={() => setStatus(id)}
-            className={cn(
-              'rounded-full px-3.5 py-1.5 text-xs transition-colors',
-              status === id
-                ? 'bg-brand-600 font-medium text-white dark:bg-brand-400 dark:text-brand-700'
-                : 'bg-surface-sunken text-content-muted hover:text-content'
-            )}
-          >
-            {label} <span className="tabular opacity-70">{n}</span>
-          </button>
-        ))}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-1" role="tablist" aria-label="Show">
+          {[['active', 'In progress', data.counts.active], ['complete', 'Finished', data.counts.complete]].map(([id, label, n]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={status === id}
+              onClick={() => { setStatus(id); paged.setPage(1) }}
+              className={cn(
+                'rounded-full px-3.5 py-1.5 text-xs transition-colors',
+                status === id
+                  ? 'bg-brand-600 font-medium text-white dark:bg-brand-400 dark:text-brand-700'
+                  : 'bg-surface-sunken text-content-muted hover:text-content'
+              )}
+            >
+              {label} <span className="tabular opacity-70">{n}</span>
+            </button>
+          ))}
+        </div>
+        {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
       </div>
 
       {data.onboardings.length === 0 ? (
@@ -158,48 +165,51 @@ export default function Onboarding() {
           action={status === 'active' ? start : undefined}
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {data.onboardings.map(item => (
-            <Link
-              key={item._id}
-              to={`/onboarding/${item._id}`}
-              className="group block rounded-card border border-line/70 bg-surface/85 p-5 shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-400 text-xs font-semibold text-brand-700">
-                  {initials(item.userName)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-content">{item.userName}</p>
-                  <p className="truncate text-xs text-content-subtle">
-                    {[item.position, item.team, `joined ${shortDay(item.startsOn)}`].filter(Boolean).join(' · ')}
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            {paged.rows.map(item => (
+              <Link
+                key={item._id}
+                to={`/onboarding/${item._id}`}
+                className="group block rounded-card border border-line/70 bg-surface/85 p-5 shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-400 text-xs font-semibold text-brand-700">
+                    {initials(item.userName)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-content">{item.userName}</p>
+                    <p className="truncate text-xs text-content-subtle">
+                      {[item.position, item.team, `joined ${shortDay(item.startsOn)}`].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  {item.progress.overdue > 0 && <Badge tone="danger">{item.progress.overdue} overdue</Badge>}
+                  {item.status === 'complete' && <Badge tone="positive">Complete</Badge>}
+                </div>
+
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
+                    <div
+                      className="h-full rounded-full bg-brand-600 transition-[width] duration-500 dark:bg-brand-400"
+                      style={{ width: `${item.progress.percent}%` }}
+                    />
+                  </div>
+                  <span className="tabular text-xs text-content-muted">{item.progress.done}/{item.progress.total}</span>
+                </div>
+
+                {item.next && (
+                  <p className="mt-3 truncate text-xs text-content-muted">
+                    <span className={item.next.overdue ? 'text-red-600 dark:text-red-400' : 'text-content-subtle'}>
+                      Next · {OWNER[item.next.owner]} · {shortDay(item.next.dueOn)}:
+                    </span>{' '}
+                    {item.next.title}
                   </p>
-                </div>
-                {item.progress.overdue > 0 && <Badge tone="danger">{item.progress.overdue} overdue</Badge>}
-                {item.status === 'complete' && <Badge tone="positive">Complete</Badge>}
-              </div>
-
-              <div className="mt-4 flex items-center gap-3">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
-                  <div
-                    className="h-full rounded-full bg-brand-600 transition-[width] duration-500 dark:bg-brand-400"
-                    style={{ width: `${item.progress.percent}%` }}
-                  />
-                </div>
-                <span className="tabular text-xs text-content-muted">{item.progress.done}/{item.progress.total}</span>
-              </div>
-
-              {item.next && (
-                <p className="mt-3 truncate text-xs text-content-muted">
-                  <span className={item.next.overdue ? 'text-red-600 dark:text-red-400' : 'text-content-subtle'}>
-                    Next · {OWNER[item.next.owner]} · {shortDay(item.next.dueOn)}:
-                  </span>{' '}
-                  {item.next.title}
-                </p>
-              )}
-            </Link>
-          ))}
-        </div>
+                )}
+              </Link>
+            ))}
+          </div>
+          <ListPager paged={paged} className="mt-5" />
+        </>
       )}
 
       <AnimatePresence>

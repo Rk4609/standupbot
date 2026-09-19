@@ -9,12 +9,15 @@ import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { IconAlert, IconCalendar, IconPlus } from '../components/ui/icons'
 import LeaveForm from '../components/LeaveForm'
 import LeaveCalendar from '../components/LeaveCalendar'
 import { cn } from '../lib/cn'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 import {
   STATUS_LABEL, STATUS_TONE, TYPE_DOT, TYPE_LABEL, dayRange, dayWord
 } from '../lib/leave'
@@ -72,6 +75,7 @@ export default function Leave() {
   const [asking, setAsking] = useState(false)
   const [cancelling, setCancelling] = useState(null)
   const [changes, setChanges] = useState(0)
+  const paged = usePaged(data?.requests, 'my-leave')
 
   const load = useCallback(() =>
     API.get('/leave/mine')
@@ -146,8 +150,9 @@ export default function Leave() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_minmax(0,26rem)]">
         <Card padded={false}>
-          <div className="px-4 pt-4 md:px-6 md:pt-5">
+          <div className="flex items-center justify-between gap-3 px-4 pt-4 md:px-6 md:pt-5">
             <CardTitle className="mb-0">Your requests</CardTitle>
+            {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
           </div>
 
           {data.requests.length === 0 ? (
@@ -161,7 +166,7 @@ export default function Leave() {
             </div>
           ) : (
             <ul className="mt-3 divide-y divide-line">
-              {data.requests.map(leave => {
+              {paged.rows.map(leave => {
                 const upcoming = leave.from > data.today
                 const canCancel = leave.status === 'pending' || (leave.status === 'approved' && upcoming)
 
@@ -207,6 +212,7 @@ export default function Leave() {
               })}
             </ul>
           )}
+          <ListPager paged={paged} />
         </Card>
 
         <LeaveCalendar title="Who is away" refreshKey={changes} />

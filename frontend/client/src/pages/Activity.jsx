@@ -8,12 +8,14 @@ import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import { Select } from '../components/ui/Field'
 import { IconAlert, IconList, IconPencil, IconShield, IconTrash } from '../components/ui/icons'
 import { cn } from '../lib/cn'
 import { itemVariants, listVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePageSize } from '../lib/paging'
 
 const ACTION_META = {
   'standup.updated': { label: 'Standup edited', icon: IconPencil, tone: 'neutral' },
@@ -105,7 +107,8 @@ function Entry({ entry }) {
 export default function Activity() {
   // Reload in place when something new may have happened — see liveRefresh
   const live = useLiveRefresh()
-  const [query, setQuery] = useState({ page: 1, limit: 20, action: '' })
+  const [size, setSize] = usePageSize('activity')
+  const [query, setQuery] = useState({ page: 1, limit: size, action: '' })
   const [loaded, setLoaded] = useState(null)
   const [error, setError] = useState('')
 
@@ -157,20 +160,31 @@ export default function Activity() {
         title="Activity"
         subtitle="Every edit to a standup and every role change, with what moved."
         actions={
-          <div className="w-52">
-            <Select
-              value={query.action}
-              onChange={e => setQuery(q => ({ ...q, action: e.target.value, page: 1 }))}
-              aria-label="Filter by action"
-              className="py-2 text-sm"
-            >
-              <option value="">All activity</option>
-              {data.actions.map(a => (
-                <option key={a} value={a}>
-                  {ACTION_META[a]?.label || a}
-                </option>
-              ))}
-            </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            {data.total > 10 && (
+              <PageSizeSelect
+                value={size}
+                onChange={limit => {
+                  setSize(limit)
+                  setQuery(q => ({ ...q, limit, page: 1 }))
+                }}
+              />
+            )}
+            <div className="w-52">
+              <Select
+                value={query.action}
+                onChange={e => setQuery(q => ({ ...q, action: e.target.value, page: 1 }))}
+                aria-label="Filter by action"
+                className="py-2 text-sm"
+              >
+                <option value="">All activity</option>
+                {data.actions.map(a => (
+                  <option key={a} value={a}>
+                    {ACTION_META[a]?.label || a}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
         }
       />
@@ -202,7 +216,7 @@ export default function Activity() {
           page={data.page}
           totalPages={data.totalPages}
           total={data.total}
-          limit={data.limit}
+          limit={data.limit || size}
           onPage={page => setQuery(q => ({ ...q, page }))}
         />
       </div>

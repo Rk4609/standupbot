@@ -10,10 +10,13 @@ import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Field, Input, Select } from '../components/ui/Field'
 import { IconAlert, IconPlus, IconPrinter } from '../components/ui/icons'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 import { LETTER_STATUS, LETTER_TYPE, letterDate } from '../lib/letters'
 
 function AskForm({ types, onClose, onSaved }) {
@@ -69,6 +72,7 @@ export default function Documents() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [asking, setAsking] = useState(false)
+  const paged = usePaged(data?.letters, 'my-letters')
 
   const load = useCallback(() =>
     API.get('/letters/mine')
@@ -98,7 +102,11 @@ export default function Documents() {
 
   return (
     <PageShell>
-      <PageHeader title="Documents" subtitle="Letters from HR, ready to download as a PDF." actions={askButton} />
+      <PageHeader
+        title="Documents"
+        subtitle="Letters from HR, ready to download as a PDF."
+        actions={<>{paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}{askButton}</>}
+      />
 
       <Card padded={false}>
         {data.letters.length === 0 ? (
@@ -107,7 +115,7 @@ export default function Documents() {
           </div>
         ) : (
           <ul className="divide-y divide-line">
-            {data.letters.map(letter => (
+            {paged.rows.map(letter => (
               <li key={letter._id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 md:px-6">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-content">{LETTER_TYPE[letter.type].label}</p>
@@ -127,6 +135,7 @@ export default function Documents() {
             ))}
           </ul>
         )}
+        <ListPager paged={paged} />
       </Card>
       <p className="mt-4 text-xs text-content-subtle">
         Every letter carries a verification code printed at the bottom, so a bank or a next employer can confirm it is genuine.

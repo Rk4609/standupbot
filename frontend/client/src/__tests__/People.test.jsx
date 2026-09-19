@@ -51,10 +51,10 @@ const payload = (over = {}) => ({
   ending: [{ _id: 'u2', name: 'Kabir Sen', employment: { type: 'intern', endsOn: '2026-09-30T00:00:00.000Z' } }],
   teams: [{ _id: 't1', name: 'MERN' }],
   maySeePay: false,
-  pageSizes: [10, 25, 50, 100],
+  pageSizes: [10, 20, 40, 100],
   total: 2,
   page: 1,
-  limit: 25,
+  limit: 10,
   totalPages: 1,
   ...over
 })

@@ -132,7 +132,7 @@ export default function Templates() {
 
   if (error) {
     return (
-      <PageShell className="max-w-3xl">
+      <PageShell>
         <PageHeader title="Standup template" />
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
       </PageShell>
@@ -141,7 +141,7 @@ export default function Templates() {
 
   if (!template) {
     return (
-      <PageShell className="max-w-3xl">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-56" />
         <Skeleton className="mb-7 h-4 w-80" />
         <Skeleton className="h-[420px] rounded-card" />
@@ -152,7 +152,7 @@ export default function Templates() {
   const blank = template.questions.some(q => !q.label.trim())
 
   return (
-    <PageShell className="max-w-3xl">
+    <PageShell>
       <PageHeader
         title="Standup template"
         subtitle="The questions your team is asked each morning."
@@ -170,204 +170,210 @@ export default function Templates() {
         }
       />
 
-      {!template.custom && (
-        <div className="mb-4 rounded-xl border border-line bg-surface-sunken px-4 py-3 text-sm text-content-muted">
-          Your team is on the standard questions. Anything you change here
-          applies to your team only.
-        </div>
-      )}
+      {/* The questions are the work here; the settings around them sit to
+          the side on a wide screen */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
+        <div className="min-w-0">
+          <Card padded={false}>
+            <div className="flex items-center justify-between gap-3 px-5 pt-5">
+              <CardTitle className="mb-0">Questions</CardTitle>
+              <span className="text-xs text-content-subtle">
+                {template.questions.length} of 15
+              </span>
+            </div>
 
-      <Card className="mb-4">
-        <Field label="Template name" hint="Shown as the heading on the standup form.">
-          <Input
-            value={template.name}
-            onChange={e => setTemplate(t => ({ ...t, name: e.target.value }))}
-            maxLength={80}
-          />
-        </Field>
-      </Card>
+            <ul className="mt-4 divide-y divide-line border-t border-line">
+              <AnimatePresence initial={false}>
+                {template.questions.map((q, i) => (
+                  <motion.li
+                    key={q.key}
+                    layout
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: DURATION.fast, ease: EASE }}
+                    className="px-5 py-4"
+                  >
+                    <div className="mb-2.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="tabular text-xs text-content-subtle">{i + 1}</span>
+                        {isCore(q.key) ? (
+                          <Badge tone="neutral">Built in</Badge>
+                        ) : (
+                          <Badge tone="brand">Your question</Badge>
+                        )}
+                        <code className="rounded bg-surface-sunken px-1.5 py-0.5 text-[11px] text-content-subtle">
+                          {q.key}
+                        </code>
+                      </div>
 
-      <Card padded={false} className="mb-4">
-        <div className="flex items-center justify-between gap-3 px-5 pt-5">
-          <CardTitle className="mb-0">Questions</CardTitle>
-          <span className="text-xs text-content-subtle">
-            {template.questions.length} of 15
-          </span>
-        </div>
-
-        <ul className="mt-4 divide-y divide-line border-t border-line">
-          <AnimatePresence initial={false}>
-            {template.questions.map((q, i) => (
-              <motion.li
-                key={q.key}
-                layout
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: DURATION.fast, ease: EASE }}
-                className="px-5 py-4"
-              >
-                <div className="mb-2.5 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="tabular text-xs text-content-subtle">{i + 1}</span>
-                    {isCore(q.key) ? (
-                      <Badge tone="neutral">Built in</Badge>
-                    ) : (
-                      <Badge tone="brand">Your question</Badge>
-                    )}
-                    <code className="rounded bg-surface-sunken px-1.5 py-0.5 text-[11px] text-content-subtle">
-                      {q.key}
-                    </code>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => move(i, -1)}
-                      disabled={i === 0}
-                      aria-label={`Move "${q.label}" up`}
-                      className="rounded-md px-1.5 py-1 text-xs text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content disabled:opacity-30"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => move(i, 1)}
-                      disabled={i === template.questions.length - 1}
-                      aria-label={`Move "${q.label}" down`}
-                      className="rounded-md px-1.5 py-1 text-xs text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content disabled:opacity-30"
-                    >
-                      ↓
-                    </button>
-                    {!isRequired(q.key) && (
-                      <button
-                        type="button"
-                        onClick={() => remove(i)}
-                        aria-label={`Remove "${q.label}"`}
-                        className="rounded-md p-1 text-content-subtle transition-colors hover:bg-red-500/10 hover:text-red-500"
-                      >
-                        <IconTrash className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2.5">
-                  <Input
-                    value={q.label}
-                    onChange={e => patch(i, { label: e.target.value })}
-                    placeholder="What do you want to ask?"
-                    aria-label={`Question ${i + 1} wording`}
-                    maxLength={160}
-                    invalid={!q.label.trim()}
-                  />
-                  <Input
-                    value={q.placeholder || ''}
-                    onChange={e => patch(i, { placeholder: e.target.value })}
-                    placeholder="Hint shown inside the empty box (optional)"
-                    aria-label={`Question ${i + 1} hint`}
-                    maxLength={160}
-                    className="text-xs"
-                  />
-
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="w-36">
-                      <Select
-                        value={q.type}
-                        onChange={e => patch(i, { type: e.target.value })}
-                        aria-label={`Question ${i + 1} answer size`}
-                        className="py-2 text-xs"
-                      >
-                        <option value="long">Long answer</option>
-                        <option value="short">Short answer</option>
-                      </Select>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => move(i, -1)}
+                          disabled={i === 0}
+                          aria-label={`Move "${q.label}" up`}
+                          className="rounded-md px-1.5 py-1 text-xs text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content disabled:opacity-30"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => move(i, 1)}
+                          disabled={i === template.questions.length - 1}
+                          aria-label={`Move "${q.label}" down`}
+                          className="rounded-md px-1.5 py-1 text-xs text-content-subtle transition-colors hover:bg-surface-sunken hover:text-content disabled:opacity-30"
+                        >
+                          ↓
+                        </button>
+                        {!isRequired(q.key) && (
+                          <button
+                            type="button"
+                            onClick={() => remove(i)}
+                            aria-label={`Remove "${q.label}"`}
+                            className="rounded-md p-1 text-content-subtle transition-colors hover:bg-red-500/10 hover:text-red-500"
+                          >
+                            <IconTrash className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <Checkbox
-                      label="Required"
-                      checked={Boolean(q.required)}
-                      // Everything downstream assumes a standup says what the
-                      // day's plan is, so this one cannot be turned off
-                      disabled={q.key === 'today'}
-                      onChange={e => patch(i, { required: e.target.checked })}
-                    />
-                  </div>
-                </div>
-              </motion.li>
-            ))}
+                    <div className="space-y-2.5">
+                      <Input
+                        value={q.label}
+                        onChange={e => patch(i, { label: e.target.value })}
+                        placeholder="What do you want to ask?"
+                        aria-label={`Question ${i + 1} wording`}
+                        maxLength={160}
+                        invalid={!q.label.trim()}
+                      />
+                      <Input
+                        value={q.placeholder || ''}
+                        onChange={e => patch(i, { placeholder: e.target.value })}
+                        placeholder="Hint shown inside the empty box (optional)"
+                        aria-label={`Question ${i + 1} hint`}
+                        maxLength={160}
+                        className="text-xs"
+                      />
+
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="w-36">
+                          <Select
+                            value={q.type}
+                            onChange={e => patch(i, { type: e.target.value })}
+                            aria-label={`Question ${i + 1} answer size`}
+                            className="py-2 text-xs"
+                          >
+                            <option value="long">Long answer</option>
+                            <option value="short">Short answer</option>
+                          </Select>
+                        </div>
+
+                        <Checkbox
+                          label="Required"
+                          checked={Boolean(q.required)}
+                          // Everything downstream assumes a standup says what the
+                          // day's plan is, so this one cannot be turned off
+                          disabled={q.key === 'today'}
+                          onChange={e => patch(i, { required: e.target.checked })}
+                        />
+                      </div>
+                    </div>
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+            </ul>
+
+            <div className="flex flex-col gap-2 border-t border-line px-5 py-4 sm:flex-row">
+              <Input
+                value={newLabel}
+                onChange={e => setNewLabel(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    add()
+                  }
+                }}
+                placeholder="Add a question of your own…"
+                aria-label="New question"
+                maxLength={160}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={add}
+                disabled={!newLabel.trim() || template.questions.length >= 15}
+                className="shrink-0"
+              >
+                <IconPlus className="h-4 w-4" />
+                Add
+              </Button>
+            </div>
+          </Card>
+          <AnimatePresence initial={false}>
+            {blank && (
+              <motion.div
+                variants={collapseVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="overflow-hidden"
+              >
+                <p className={cn('mt-4 flex items-center gap-2 text-sm text-red-500')}>
+                  <IconClose className="h-4 w-4 shrink-0" />
+                  Every question needs some wording before this can be saved.
+                </p>
+              </motion.div>
+            )}
           </AnimatePresence>
-        </ul>
-
-        <div className="flex flex-col gap-2 border-t border-line px-5 py-4 sm:flex-row">
-          <Input
-            value={newLabel}
-            onChange={e => setNewLabel(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                add()
-              }
-            }}
-            placeholder="Add a question of your own…"
-            aria-label="New question"
-            maxLength={160}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={add}
-            disabled={!newLabel.trim() || template.questions.length >= 15}
-            className="shrink-0"
-          >
-            <IconPlus className="h-4 w-4" />
-            Add
-          </Button>
-        </div>
-      </Card>
-
-      <Card className="space-y-5">
-        <div>
-          <Checkbox
-            label="Ask how people are feeling"
-            checked={template.askMood}
-            onChange={e => setTemplate(t => ({ ...t, askMood: e.target.checked }))}
-          />
-          <p className="ml-7 mt-1 text-xs text-content-subtle">
-            Mood is what the analytics trend and the at-risk list are built on. Turning
-            it off leaves those blank.
-          </p>
         </div>
 
-        <div>
-          <Checkbox
-            label="Ask where the hours went"
-            checked={Boolean(template.trackTime)}
-            onChange={e => setTemplate(t => ({ ...t, trackTime: e.target.checked }))}
-          />
-          <p className="ml-7 mt-1 text-xs text-content-subtle">
-            Adds a project and hours section to the standup, and those hours become the
-            week's timesheet for you to approve. Turn this on and the standup stops being
-            optional — the week cannot be signed off without it.
-          </p>
-        </div>
-      </Card>
+        <div className="space-y-4 xl:sticky xl:top-24">
+          {!template.custom && (
+            <div className="rounded-xl border border-line bg-surface-sunken px-4 py-3 text-sm text-content-muted">
+              Your team is on the standard questions. Anything you change here
+              applies to your team only.
+            </div>
+          )}
 
-      <AnimatePresence initial={false}>
-        {blank && (
-          <motion.div
-            variants={collapseVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className="overflow-hidden"
-          >
-            <p className={cn('mt-4 flex items-center gap-2 text-sm text-red-500')}>
-              <IconClose className="h-4 w-4 shrink-0" />
-              Every question needs some wording before this can be saved.
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <Card>
+            <Field label="Template name" hint="Shown as the heading on the standup form.">
+              <Input
+                value={template.name}
+                onChange={e => setTemplate(t => ({ ...t, name: e.target.value }))}
+                maxLength={80}
+              />
+            </Field>
+          </Card>
+          <Card className="space-y-5">
+            <div>
+              <Checkbox
+                label="Ask how people are feeling"
+                checked={template.askMood}
+                onChange={e => setTemplate(t => ({ ...t, askMood: e.target.checked }))}
+              />
+              <p className="ml-7 mt-1 text-xs text-content-subtle">
+                Mood is what the analytics trend and the at-risk list are built on. Turning
+                it off leaves those blank.
+              </p>
+            </div>
+
+            <div>
+              <Checkbox
+                label="Ask where the hours went"
+                checked={Boolean(template.trackTime)}
+                onChange={e => setTemplate(t => ({ ...t, trackTime: e.target.checked }))}
+              />
+              <p className="ml-7 mt-1 text-xs text-content-subtle">
+                Adds a project and hours section to the standup, and those hours become the
+                week's timesheet for you to approve. Turn this on and the standup stops being
+                optional — the week cannot be signed off without it.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
     </PageShell>
   )
 }

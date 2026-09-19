@@ -11,6 +11,7 @@ import NotificationList from './NotificationList'
 import CommandPalette from './CommandPalette'
 import { showNotificationToast } from '../lib/notificationToast'
 import { requestRefresh } from '../lib/liveRefresh'
+import { GUTTER } from '../lib/pageWidth'
 import {
   IconBell,
   IconMenu,
@@ -519,8 +520,8 @@ export default function AppShell({ user, setUser, children }) {
         onLogout={handleLogout}
       />
 
-      <header className="no-print sticky top-0 z-30 px-4 pt-4 md:px-6">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 rounded-full border border-line/70 bg-surface-muted/70 p-1.5 pl-2 shadow-card backdrop-blur-md">
+      <header className={cn('no-print sticky top-0 z-30 pt-4', GUTTER)}>
+        <div className="flex items-center gap-3 rounded-full border border-line/70 bg-surface-muted/70 p-1.5 pl-2 shadow-card backdrop-blur-md">
           <button
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"

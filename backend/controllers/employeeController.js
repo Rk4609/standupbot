@@ -5,7 +5,7 @@ const { canUse } = require('../services/roleService')
 const { lastNDates, todayIn, zoneOf } = require('../utils/time')
 const { collectWellbeing } = require('../utils/wellbeing')
 
-const PAGE_SIZES = [10, 20, 50, 100]
+const { ACCEPTED, PAGE_SIZES } = require('../utils/paging')
 const DEFAULT_LIMIT = 20
 
 /** Treat user input as literal text, not as a pattern. */
@@ -31,7 +31,7 @@ const listEmployees = async (req, res) => {
       return res.status(400).json({ message: 'You are not managing any team!' })
     }
 
-    const limit = PAGE_SIZES.includes(Number(req.query.limit))
+    const limit = ACCEPTED.includes(Number(req.query.limit))
       ? Number(req.query.limit)
       : DEFAULT_LIMIT
     const page = Math.max(1, Number(req.query.page) || 1)

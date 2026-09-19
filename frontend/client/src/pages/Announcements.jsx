@@ -8,10 +8,13 @@ import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Checkbox, Field, Input, Select, Textarea } from '../components/ui/Field'
 import { IconAlert, IconInbox, IconTrash } from '../components/ui/icons'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 import { prettyDate } from '../lib/dates'
 
 const blank = { title: '', body: '', important: false, team: '' }
@@ -23,6 +26,7 @@ export default function Announcements() {
   const [error, setError] = useState('')
   const [form, setForm] = useState(blank)
   const [saving, setSaving] = useState(false)
+  const paged = usePaged(data?.announcements, 'announcements')
 
   const load = useCallback(() =>
     API.get('/announcements')
@@ -87,7 +91,11 @@ export default function Announcements() {
 
   return (
     <PageShell>
-      <PageHeader title="Announcements" subtitle="Notices stay on everybody's dashboard until they have read them." />
+      <PageHeader
+        title="Announcements"
+        subtitle="Notices stay on everybody's dashboard until they have read them."
+        actions={paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+      />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
         {data.canPost && (
@@ -119,7 +127,7 @@ export default function Announcements() {
         <div className="space-y-3">
           {data.announcements.length === 0 ? (
             <EmptyState icon={<IconInbox className="h-6 w-6" />} title="No announcements yet" />
-          ) : data.announcements.map(item => (
+          ) : paged.rows.map(item => (
             <Card key={item._id}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -143,6 +151,7 @@ export default function Announcements() {
               </div>
             </Card>
           ))}
+          <ListPager paged={paged} className="pt-1" />
         </div>
       </div>
     </PageShell>

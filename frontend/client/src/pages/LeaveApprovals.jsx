@@ -12,12 +12,14 @@ import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import { Field, Select, Textarea } from '../components/ui/Field'
 import { IconAlert, IconCalendar, IconCheck, IconClose } from '../components/ui/icons'
 import LeaveCalendar from '../components/LeaveCalendar'
 import { cn } from '../lib/cn'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePageSize } from '../lib/paging'
 import {
   STATUS_LABEL, STATUS_TONE, TYPE_DOT, TYPE_LABEL, dayRange, dayWord, shortDay
 } from '../lib/leave'
@@ -34,13 +36,14 @@ export default function LeaveApprovals() {
   const [error, setError] = useState('')
   const [status, setStatus] = useState('pending')
   const [page, setPage] = useState(1)
+  const [size, setSize] = usePageSize('leave-approvals')
   const [busy, setBusy] = useState(null)
   const [rejecting, setRejecting] = useState(null)
   const [note, setNote] = useState('')
   const [changes, setChanges] = useState(0)
 
   const load = useCallback(() => {
-    const params = { page }
+    const params = { page, limit: size }
     if (status) params.status = status
     return API.get('/leave/team', { params })
       .then(res => {
@@ -48,7 +51,7 @@ export default function LeaveApprovals() {
         setError('')
       })
       .catch(err => setError(apiErrorMessage(err, 'Could not load leave requests')))
-  }, [page, status])
+  }, [page, size, status])
 
   useEffect(() => {
     load()
@@ -153,21 +156,32 @@ export default function LeaveApprovals() {
         <Card padded={false}>
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-6">
             <CardTitle className="mb-0">Requests</CardTitle>
-            <div className="w-40">
-              <Select
-                value={status}
-                onChange={e => {
-                  setStatus(e.target.value)
-                  setPage(1)
-                }}
-                aria-label="Filter by status"
-                className="py-2 text-sm"
-              >
-                <option value="">All of them</option>
-                {data.statuses.map(s => (
-                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                ))}
-              </Select>
+            <div className="flex flex-wrap items-center gap-2">
+              {data.total > 10 && (
+                <PageSizeSelect
+                  value={size}
+                  onChange={n => {
+                    setSize(n)
+                    setPage(1)
+                  }}
+                />
+              )}
+              <div className="w-40">
+                <Select
+                  value={status}
+                  onChange={e => {
+                    setStatus(e.target.value)
+                    setPage(1)
+                  }}
+                  aria-label="Filter by status"
+                  className="py-2 text-sm"
+                >
+                  <option value="">All of them</option>
+                  {data.statuses.map(s => (
+                    <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                  ))}
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -242,7 +256,7 @@ export default function LeaveApprovals() {
                 page={data.page}
                 totalPages={data.totalPages}
                 total={data.total}
-                limit={data.limit}
+                limit={data.limit || size}
                 onPage={setPage}
               />
             </div>

@@ -12,10 +12,12 @@ import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import { Field, Input, Select, Textarea } from '../components/ui/Field'
 import { IconAlert, IconPlus, IconPrinter } from '../components/ui/icons'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePageSize } from '../lib/paging'
 import { LETTER_STATUS, LETTER_TYPE, NEEDS_LAST_DAY, letterDate } from '../lib/letters'
 
 /** Issue a letter: straight to somebody, or in answer to what they asked for. */
@@ -109,6 +111,7 @@ export default function Letters() {
   const live = useLiveRefresh()
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
+  const [size, setSize] = usePageSize('letters')
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [issuing, setIssuing] = useState(null)
@@ -116,9 +119,9 @@ export default function Letters() {
   const [note, setNote] = useState('')
 
   const load = useCallback(() =>
-    API.get('/letters', { params: { page, ...(status ? { status } : {}) } })
+    API.get('/letters', { params: { page, limit: size, ...(status ? { status } : {}) } })
       .then(res => { setData(res.data); setError('') })
-      .catch(err => setError(apiErrorMessage(err, 'Could not load letters'))), [page, status])
+      .catch(err => setError(apiErrorMessage(err, 'Could not load letters'))), [page, size, status])
 
   useEffect(() => { load() }, [load, live])
 
@@ -151,6 +154,7 @@ export default function Letters() {
         subtitle={data.waiting ? `${data.waiting} request${data.waiting === 1 ? '' : 's'} waiting` : 'Employment, salary, experience and relieving letters.'}
         actions={
           <>
+            {data.total > 10 && <PageSizeSelect value={size} onChange={n => { setSize(n); setPage(1) }} />}
             <div className="w-36">
               <Select value={status} onChange={e => { setStatus(e.target.value); setPage(1) }} aria-label="Filter by status" className="py-2 text-sm">
                 <option value="">All of them</option>
@@ -196,7 +200,7 @@ export default function Letters() {
         )}
         {data.totalPages > 1 && (
           <div className="border-t border-line px-4 py-3 md:px-6">
-            <Pagination page={data.page} totalPages={data.totalPages} total={data.total} limit={20} onPage={setPage} />
+            <Pagination page={data.page} totalPages={data.totalPages} total={data.total} limit={data.limit || size} onPage={setPage} />
           </div>
         )}
       </Card>

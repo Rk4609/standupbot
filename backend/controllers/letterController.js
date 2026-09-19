@@ -8,7 +8,7 @@ const { settings } = require('../services/settingsService')
 const { letterText } = require('../utils/letterText')
 const { todayIn, zoneOf } = require('../utils/time')
 
-const PAGE_SIZE = 20
+const { paging, PAGE_SIZES } = require('../utils/paging')
 const NEEDS_LAST_DAY = ['experience', 'relieving']
 const same = (a, b) => a != null && b != null && String(a) === String(b)
 
@@ -192,11 +192,11 @@ const listLetters = async (req, res) => {
     else filter.status = { $ne: 'cancelled' }
     // Without pay, salary certificates are not theirs to see
     if (!(await canUse(req.user, 'pay'))) filter.type = { $ne: 'salary' }
-    const page = Math.max(1, Number(req.query.page) || 1)
+    const { page, limit, skip } = paging(req.query, 20)
 
     const [letters, total, waiting] = await Promise.all([
       Letter.find(filter).select('-body -company').sort({ status: -1, createdAt: -1 })
-        .skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+        .skip(skip).limit(limit).lean(),
       Letter.countDocuments(filter),
       Letter.countDocuments({ ...filter, status: 'requested' })
     ])
@@ -206,7 +206,9 @@ const listLetters = async (req, res) => {
       types: Letter.TYPES,
       canSalary: await canUse(req.user, 'pay'),
       page,
-      totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      limit,
+      pageSizes: PAGE_SIZES,
       total
     })
   } catch (err) {

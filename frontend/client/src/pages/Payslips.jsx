@@ -6,10 +6,13 @@ import PageHeader from '../components/ui/PageHeader'
 import Button from '../components/ui/Button'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { IconAlert, IconInbox, IconPrinter } from '../components/ui/icons'
 import PayslipDocument from '../components/PayslipDocument'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 import { money, monthLabel } from '../lib/money'
 import { prettyDate } from '../lib/dates'
 
@@ -67,6 +70,7 @@ export default function Payslips() {
   const live = useLiveRefresh()
   const [slips, setSlips] = useState(null)
   const [error, setError] = useState('')
+  const paged = usePaged(slips, 'my-payslips')
 
   useEffect(() => {
     if (id) return
@@ -82,7 +86,11 @@ export default function Payslips() {
 
   return (
     <PageShell>
-      <PageHeader title="Payslips" subtitle="Each month's slip appears here once payroll publishes it." />
+      <PageHeader
+        title="Payslips"
+        subtitle="Each month's slip appears here once payroll publishes it."
+        actions={paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+      />
 
       {error && !slips ? (
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
@@ -97,36 +105,43 @@ export default function Payslips() {
           description="When payroll publishes a month, its slip lands here and you get a notification."
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {slips.map((slip, i) => (
-            <Link key={slip._id} to={`/payslips/${slip._id}`} className="block rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-              {/* Not a Card: the latest slip has its own surface, and Card's
-                  would sit under it with class order deciding which shows */}
-              <div
-                className={
-                  i === 0
-                    ? 'rounded-card bg-brand-600 p-5 text-white shadow-card transition-shadow hover:shadow-lift dark:bg-surface-raised dark:text-content md:p-6'
-                    : 'rounded-card border border-line/70 bg-surface/85 p-5 text-content shadow-card transition-shadow hover:shadow-lift md:p-6'
-                }
-              >
-                <p className={i === 0 ? 'text-xs uppercase tracking-wide text-white/60 dark:text-content-subtle' : 'eyebrow'}>
-                  {i === 0 ? 'Latest' : 'Payslip'}
-                </p>
-                <p className="mt-1 text-lg font-semibold tracking-tight">{monthLabel(slip.month)}</p>
-                <p className="tabular mt-4 text-3xl font-light tracking-tight">{money(slip.net, slip.currency)}</p>
-                <p className={i === 0 ? 'mt-1 text-xs text-white/70 dark:text-content-subtle' : 'mt-1 text-xs text-content-subtle'}>
-                  Net pay · gross {money(slip.gross, slip.currency)}
-                  {slip.lossOfPayDays ? ` · ${slip.lossOfPayDays} LOP days` : ''}
-                </p>
-                {slip.publishedAt && (
-                  <p className={i === 0 ? 'mt-3 text-[11px] text-white/50 dark:text-content-subtle' : 'mt-3 text-[11px] text-content-subtle'}>
-                    Published {prettyDate(slip.publishedAt)}
-                  </p>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {paged.rows.map((slip, n) => {
+              // Where it sits in the whole list: only the newest slip is "Latest"
+              const i = (paged.page - 1) * paged.size + n
+              return (
+                <Link key={slip._id} to={`/payslips/${slip._id}`} className="block rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                  {/* Not a Card: the latest slip has its own surface, and Card's
+                      would sit under it with class order deciding which shows */}
+                  <div
+                    className={
+                      i === 0
+                        ? 'rounded-card bg-brand-600 p-5 text-white shadow-card transition-shadow hover:shadow-lift dark:bg-surface-raised dark:text-content md:p-6'
+                        : 'rounded-card border border-line/70 bg-surface/85 p-5 text-content shadow-card transition-shadow hover:shadow-lift md:p-6'
+                    }
+                  >
+                    <p className={i === 0 ? 'text-xs uppercase tracking-wide text-white/60 dark:text-content-subtle' : 'eyebrow'}>
+                      {i === 0 ? 'Latest' : 'Payslip'}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold tracking-tight">{monthLabel(slip.month)}</p>
+                    <p className="tabular mt-4 text-3xl font-light tracking-tight">{money(slip.net, slip.currency)}</p>
+                    <p className={i === 0 ? 'mt-1 text-xs text-white/70 dark:text-content-subtle' : 'mt-1 text-xs text-content-subtle'}>
+                      Net pay · gross {money(slip.gross, slip.currency)}
+                      {slip.lossOfPayDays ? ` · ${slip.lossOfPayDays} LOP days` : ''}
+                    </p>
+                    {slip.publishedAt && (
+                      <p className={i === 0 ? 'mt-3 text-[11px] text-white/50 dark:text-content-subtle' : 'mt-3 text-[11px] text-content-subtle'}>
+                        Published {prettyDate(slip.publishedAt)}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+          <ListPager paged={paged} className="mt-4" />
+        </>
       )}
     </PageShell>
   )

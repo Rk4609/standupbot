@@ -32,14 +32,16 @@ const payload = {
     }
   ],
   actions: ['standup.updated', 'standup.deleted', 'user.role_changed'],
-  pageSizes: [10, 20, 50, 100],
+  pageSizes: [10, 20, 40, 100],
   total: 2,
   page: 1,
-  limit: 20,
+  limit: 10,
   totalPages: 1
 }
 
 beforeEach(() => {
+  // The chosen page size is remembered per browser; start each test fresh
+  window.localStorage.clear()
   API.get.mockReset()
   API.get.mockResolvedValue({ data: payload })
 })
@@ -81,7 +83,7 @@ describe('Activity page', () => {
 
     await waitFor(() =>
       expect(API.get).toHaveBeenLastCalledWith('/audit', {
-        params: { page: 1, limit: 20, action: 'user.role_changed' }
+        params: { page: 1, limit: 10, action: 'user.role_changed' }
       })
     )
   })
@@ -91,8 +93,30 @@ describe('Activity page', () => {
     await screen.findByRole('list')
 
     expect(API.get).toHaveBeenCalledWith('/audit', {
-      params: { page: 1, limit: 20, action: undefined }
+      params: { page: 1, limit: 10, action: undefined }
     })
+  })
+
+  it('offers a page size only once there is more than one page of ten', async () => {
+    render(<Activity />)
+    await screen.findByRole('list')
+
+    expect(screen.queryByLabelText('Rows per page')).not.toBeInTheDocument()
+  })
+
+  it('refetches from page one with the rows per page chosen', async () => {
+    const user = userEvent.setup()
+    API.get.mockResolvedValue({ data: { ...payload, total: 34, page: 2, totalPages: 4 } })
+    render(<Activity />)
+    await screen.findByRole('list')
+
+    await user.selectOptions(screen.getByLabelText('Rows per page'), '40')
+
+    await waitFor(() =>
+      expect(API.get).toHaveBeenLastCalledWith('/audit', {
+        params: { page: 1, limit: 40, action: undefined }
+      })
+    )
   })
 
   it('says so plainly when there is nothing recorded', async () => {

@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import { Input, Select } from '../components/ui/Field'
 import { IconAlert, IconHourglass, IconSearch, IconUsers } from '../components/ui/icons'
 import PersonRecord from '../components/PersonRecord'
@@ -16,6 +17,7 @@ import { collapseVariants } from '../lib/motion'
 import { asDateInput, prettyDate } from '../lib/dates'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePageSize } from '../lib/paging'
 
 const TYPE_LABEL = {
   intern: 'Intern',
@@ -76,6 +78,7 @@ export default function People({ user }) {
   const [type, setType] = useState('')
   const [team, setTeam] = useState('')
   const [page, setPage] = useState(1)
+  const [size, setSize] = usePageSize('people')
 
   // The typed value is separate from the committed one so a keystroke does
   // not become a request
@@ -88,7 +91,7 @@ export default function People({ user }) {
   }, [typed])
 
   const load = useCallback(() => {
-    const query = new URLSearchParams({ page: String(page) })
+    const query = new URLSearchParams({ page: String(page), limit: String(size) })
     if (search) query.set('search', search)
     if (type) query.set('type', type)
     if (team) query.set('team', team)
@@ -96,7 +99,7 @@ export default function People({ user }) {
     return API.get(`/people?${query}`)
       .then(res => setData(res.data))
       .catch(err => setError(apiErrorMessage(err, 'Could not load the records')))
-  }, [page, search, type, team])
+  }, [page, size, search, type, team])
 
   useEffect(() => {
     load()
@@ -216,6 +219,15 @@ export default function People({ user }) {
                 </Select>
               </div>
             )}
+            {data.total > 10 && (
+              <PageSizeSelect
+                value={size}
+                onChange={n => {
+                  setSize(n)
+                  setPage(1)
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -334,7 +346,7 @@ export default function People({ user }) {
               page={data.page}
               totalPages={data.totalPages}
               total={data.total}
-              limit={data.limit}
+              limit={data.limit || size}
               onPage={setPage}
             />
           </div>

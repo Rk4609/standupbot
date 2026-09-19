@@ -8,12 +8,14 @@ import Button from '../components/ui/Button'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import { IconAlert, IconPlus, IconSparkles } from '../components/ui/icons'
 import KudosCard from '../components/KudosCard'
 import KudosForm from '../components/KudosForm'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
 import { initials } from '../lib/attendance'
+import { usePageSize } from '../lib/paging'
 
 /**
  * Thank-yous across the team, newest first, and who has been thanked most
@@ -22,17 +24,18 @@ import { initials } from '../lib/attendance'
 export default function Kudos() {
   const live = useLiveRefresh()
   const [page, setPage] = useState(1)
+  const [size, setSize] = usePageSize('kudos')
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [giving, setGiving] = useState(false)
 
   const load = useCallback(() =>
-    API.get('/kudos', { params: { page } })
+    API.get('/kudos', { params: { page, limit: size } })
       .then(res => {
         setData(res.data)
         setError('')
       })
-      .catch(err => setError(apiErrorMessage(err, 'Could not load kudos'))), [page])
+      .catch(err => setError(apiErrorMessage(err, 'Could not load kudos'))), [page, size])
 
   useEffect(() => {
     load()
@@ -75,6 +78,12 @@ export default function Kudos() {
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div>
+          {data.total > 10 && (
+            <div className="mb-4 flex justify-end">
+              <PageSizeSelect value={size} onChange={n => { setSize(n); setPage(1) }} />
+            </div>
+          )}
+
           {data.kudos.length === 0 ? (
             <EmptyState
               icon={<IconSparkles className="h-6 w-6" />}
@@ -96,7 +105,7 @@ export default function Kudos() {
               page={data.page}
               totalPages={data.totalPages}
               total={data.total}
-              limit={20}
+              limit={data.limit || size}
               onPage={setPage}
             />
           )}

@@ -459,6 +459,11 @@ export default function Profile({ user, setUser }) {
                 Ask for a correction
               </Button>
             </Card>
+            {/* A list that grows with every device, so it gets the wide
+                column; stacked under the side cards it ran far below the rest */}
+            <div className="mt-4">
+              <SessionsCard />
+            </div>
           </motion.div>
 
           {/* Set by somebody else, and shorter, so it takes the side column */}
@@ -482,9 +487,6 @@ export default function Profile({ user, setUser }) {
             </div>
             <div className="mt-4">
               <PushSettings />
-            </div>
-            <div className="mt-4">
-              <SessionsCard />
             </div>
           </motion.div>
         </div>

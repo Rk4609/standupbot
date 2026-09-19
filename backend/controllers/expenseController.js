@@ -9,7 +9,7 @@ const { cloudinary } = require('../config/cloudinary')
 const { ownTeam } = require('../utils/teams')
 const { todayIn, zoneOf } = require('../utils/time')
 
-const PAGE_SIZE = 20
+const { paging, PAGE_SIZES } = require('../utils/paging')
 const isAdmin = (user) => user.role === 'admin'
 const rupees = (n) => `₹${Number(n).toLocaleString('en-IN')}`
 
@@ -133,11 +133,11 @@ const teamExpenses = async (req, res) => {
     const base = { ...scope, user: { $ne: req.user._id } }
     const filter = { ...base }
     if (Expense.STATUSES.includes(req.query.status)) filter.status = req.query.status
-    const page = Math.max(1, Number(req.query.page) || 1)
+    const { page, limit, skip } = paging(req.query, 20)
 
     const [rows, total, waiting] = await Promise.all([
       Expense.find(filter).populate('team', 'name').sort({ status: 1, createdAt: -1 })
-        .skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+        .skip(skip).limit(limit).lean(),
       Expense.countDocuments(filter),
       Expense.aggregate([{ $match: { ...base, status: 'pending' } }, { $group: { _id: null, n: { $sum: 1 }, amount: { $sum: '$amount' } } }])
     ])
@@ -147,7 +147,9 @@ const teamExpenses = async (req, res) => {
       pending: { count: waiting[0]?.n || 0, amount: waiting[0]?.amount || 0 },
       statuses: Expense.STATUSES,
       page,
-      totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      limit,
+      pageSizes: PAGE_SIZES,
       total
     })
   } catch (err) {

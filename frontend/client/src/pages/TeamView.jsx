@@ -18,6 +18,8 @@ import PageHeader from '../components/ui/PageHeader'
 import Card, { CardTitle } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import Skeleton, { SkeletonCard } from '../components/ui/Skeleton'
 import { Input } from '../components/ui/Field'
 import { DURATION, EASE, itemVariants } from '../lib/motion'
@@ -27,6 +29,7 @@ import { apiErrorMessage } from '../lib/apiError'
 import { IconAlert, IconCalendar, IconSparkles, IconTrendDown } from '../components/ui/icons'
 import { todayForUser } from '../lib/timezone'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 
 export default function TeamView() {
   // Reload in place when something new may have happened — see liveRefresh
@@ -36,6 +39,7 @@ export default function TeamView() {
   const [date, setDate] = useState(todayForUser())
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const paged = usePaged(standups, 'team-standups')
 
   const [aiResult, setAiResult] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
@@ -228,12 +232,13 @@ export default function TeamView() {
         <Input
           type="date"
           value={date}
-          onChange={e => setDate(e.target.value)}
+          onChange={e => { setDate(e.target.value); paged.setPage(1) }}
           className="w-auto flex-1 py-2 sm:flex-none"
         />
         <span className="tabular text-sm text-content-muted">
           {standups.length} {standups.length === 1 ? 'submission' : 'submissions'}
         </span>
+        {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} className="w-36 sm:ml-auto" />}
       </motion.div>
 
       {/* Standups */}
@@ -252,21 +257,24 @@ export default function TeamView() {
           description="Pick another date, or nudge your team to submit."
         />
       ) : (
-        <div className="space-y-3">
-          <AnimatePresence initial={false}>
-            {standups.map(s => (
-              <motion.div
-                key={s._id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-                transition={{ duration: DURATION.base, ease: EASE }}
-              >
-                <StandupCard standup={s} showUser />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+        <>
+          <div className="space-y-3">
+            <AnimatePresence initial={false}>
+              {paged.rows.map(s => (
+                <motion.div
+                  key={s._id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: DURATION.base, ease: EASE }}
+                >
+                  <StandupCard standup={s} showUser />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+          <ListPager paged={paged} className="mt-4" />
+        </>
       )}
     </PageShell>
   )

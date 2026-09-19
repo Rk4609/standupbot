@@ -12,6 +12,8 @@ import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Field, Input, Select, Textarea } from '../components/ui/Field'
 import { IconAlert, IconPencil, IconSearch, IconUsers } from '../components/ui/icons'
 import { cn } from '../lib/cn'
@@ -19,6 +21,7 @@ import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
 import { STATE_LABEL, STATE_TONE, duration, initials, minutesSince } from '../lib/attendance'
 import { addDays, shortDay } from '../lib/leave'
+import { usePaged } from '../lib/paging'
 
 const longDay = (iso) =>
   new Date(`${iso}T00:00:00.000Z`).toLocaleDateString(undefined, {
@@ -109,6 +112,19 @@ export default function TeamAttendance() {
   const [search, setSearch] = useState('')
   const [fixing, setFixing] = useState(null)
 
+  // Page the people the filter and search leave; the counts use everybody
+  const query = search.trim().toLowerCase()
+  const shown = (data?.people || [])
+    .filter(FILTERS.find(f => f.id === filter).test)
+    .filter(p => !query || p.user.name.toLowerCase().includes(query) || p.user.position.toLowerCase().includes(query))
+  const paged = usePaged(shown, 'team-attendance')
+
+  // Another day or team starts the list from the top
+  const pickDate = (day) => {
+    setDate(day)
+    paged.setPage(1)
+  }
+
   const load = useCallback(() => {
     const params = {}
     if (date) params.date = date
@@ -149,10 +165,6 @@ export default function TeamAttendance() {
 
   const isToday = data.date === data.today
   const { counts } = data
-  const query = search.trim().toLowerCase()
-  const shown = data.people
-    .filter(FILTERS.find(f => f.id === filter).test)
-    .filter(p => !query || p.user.name.toLowerCase().includes(query) || p.user.position.toLowerCase().includes(query))
 
   return (
     <PageShell>
@@ -167,7 +179,7 @@ export default function TeamAttendance() {
             <button
               type="button"
               aria-label="Previous day"
-              onClick={() => setDate(addDays(data.date, -1))}
+              onClick={() => pickDate(addDays(data.date, -1))}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-content-muted hover:text-content"
             >
               ‹
@@ -177,20 +189,20 @@ export default function TeamAttendance() {
               aria-label="Day"
               value={data.date}
               max={data.today}
-              onChange={e => e.target.value && setDate(e.target.value)}
+              onChange={e => e.target.value && pickDate(e.target.value)}
               className="w-40 py-2 text-sm"
             />
             <button
               type="button"
               aria-label="Next day"
               disabled={isToday}
-              onClick={() => setDate(addDays(data.date, 1))}
+              onClick={() => pickDate(addDays(data.date, 1))}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-content-muted hover:text-content disabled:opacity-40"
             >
               ›
             </button>
             {!isToday && (
-              <Button size="sm" variant="outline" onClick={() => setDate(data.today)}>Today</Button>
+              <Button size="sm" variant="outline" onClick={() => pickDate(data.today)}>Today</Button>
             )}
           </div>
         }
@@ -220,7 +232,7 @@ export default function TeamAttendance() {
                   type="button"
                   role="tab"
                   aria-selected={filter === f.id}
-                  onClick={() => setFilter(f.id)}
+                  onClick={() => { setFilter(f.id); paged.setPage(1) }}
                   className={cn(
                     'shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs transition-colors',
                     filter === f.id
@@ -235,10 +247,11 @@ export default function TeamAttendance() {
           </div>
 
           <div className="grid grid-cols-2 gap-2 md:flex">
+            {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
             {data.teams.length > 1 && (
               <Select
                 value={team}
-                onChange={e => setTeam(e.target.value)}
+                onChange={e => { setTeam(e.target.value); paged.setPage(1) }}
                 aria-label="Team"
                 className="py-2 text-sm md:w-40"
               >
@@ -249,7 +262,7 @@ export default function TeamAttendance() {
             <Input
               icon={IconSearch}
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); paged.setPage(1) }}
               placeholder="Search people"
               aria-label="Search people"
               className="py-2 text-sm md:w-52"
@@ -266,73 +279,76 @@ export default function TeamAttendance() {
             />
           </div>
         ) : (
-          <ul className="divide-y divide-line border-t border-line">
-            {shown.map(person => {
-              const r = person.record
-              const worked = r ? (r.minutes ?? (person.state === 'working' ? minutesSince(r.checkIn) : null)) : null
+          <>
+            <ul className="divide-y divide-line border-t border-line">
+              {paged.rows.map(person => {
+                const r = person.record
+                const worked = r ? (r.minutes ?? (person.state === 'working' ? minutesSince(r.checkIn) : null)) : null
 
-              return (
-                <li key={person.user._id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 md:grid-cols-[auto_minmax(0,1.4fr)_repeat(3,minmax(0,0.6fr))_auto] md:px-6">
-                  <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-sunken text-[11px] font-semibold text-content-muted">
-                    {person.user.avatar
-                      ? <img src={person.user.avatar} alt="" className="h-full w-full object-cover" />
-                      : initials(person.user.name)}
-                  </span>
+                return (
+                  <li key={person.user._id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 md:grid-cols-[auto_minmax(0,1.4fr)_repeat(3,minmax(0,0.6fr))_auto] md:px-6">
+                    <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-sunken text-[11px] font-semibold text-content-muted">
+                      {person.user.avatar
+                        ? <img src={person.user.avatar} alt="" className="h-full w-full object-cover" />
+                        : initials(person.user.name)}
+                    </span>
 
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="truncate text-sm font-medium text-content">{person.user.name}</span>
-                      {STATE_LABEL[person.state] && (
-                        <Badge tone={STATE_TONE[person.state]}>{STATE_LABEL[person.state]}</Badge>
-                      )}
-                      {r?.late && <Badge tone="warning">Late {r.lateBy}m</Badge>}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="truncate text-sm font-medium text-content">{person.user.name}</span>
+                        {STATE_LABEL[person.state] && (
+                          <Badge tone={STATE_TONE[person.state]}>{STATE_LABEL[person.state]}</Badge>
+                        )}
+                        {r?.late && <Badge tone="warning">Late {r.lateBy}m</Badge>}
+                      </div>
+                      <p className="truncate text-xs text-content-subtle">
+                        {[person.user.position, person.user.team].filter(Boolean).join(' · ')}
+                      </p>
+                      {/* On a phone the times sit under the name */}
+                      <p className="tabular mt-0.5 text-xs text-content-muted md:hidden">
+                        {r
+                          ? `${r.inAt} – ${r.outAt || '…'} · ${duration(worked)}`
+                          : person.leave
+                            ? `${person.leave.type} leave · back after ${shortDay(person.leave.to)}`
+                            : ''}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-content-subtle">
+                        This month: {person.month.present} present · {person.month.late} late · {person.month.absent} absent
+                      </p>
                     </div>
-                    <p className="truncate text-xs text-content-subtle">
-                      {[person.user.position, person.user.team].filter(Boolean).join(' · ')}
-                    </p>
-                    {/* On a phone the times sit under the name */}
-                    <p className="tabular mt-0.5 text-xs text-content-muted md:hidden">
-                      {r
-                        ? `${r.inAt} – ${r.outAt || '…'} · ${duration(worked)}`
-                        : person.leave
-                          ? `${person.leave.type} leave · back after ${shortDay(person.leave.to)}`
-                          : ''}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-content-subtle">
-                      This month: {person.month.present} present · {person.month.late} late · {person.month.absent} absent
-                    </p>
-                  </div>
 
-                  <div className="hidden text-sm md:block">
-                    <p className="text-[11px] text-content-subtle">In</p>
-                    <p className="tabular text-content">{r?.inAt || '—'}</p>
-                  </div>
-                  <div className="hidden text-sm md:block">
-                    <p className="text-[11px] text-content-subtle">Out</p>
-                    <p className="tabular text-content">{r?.outAt || '—'}</p>
-                  </div>
-                  <div className="hidden text-sm md:block">
-                    <p className="text-[11px] text-content-subtle">{person.leave && !r ? 'Back after' : 'Worked'}</p>
-                    <p className="tabular text-content">
-                      {person.leave && !r ? shortDay(person.leave.to) : duration(worked)}
-                    </p>
-                  </div>
+                    <div className="hidden text-sm md:block">
+                      <p className="text-[11px] text-content-subtle">In</p>
+                      <p className="tabular text-content">{r?.inAt || '—'}</p>
+                    </div>
+                    <div className="hidden text-sm md:block">
+                      <p className="text-[11px] text-content-subtle">Out</p>
+                      <p className="tabular text-content">{r?.outAt || '—'}</p>
+                    </div>
+                    <div className="hidden text-sm md:block">
+                      <p className="text-[11px] text-content-subtle">{person.leave && !r ? 'Back after' : 'Worked'}</p>
+                      <p className="tabular text-content">
+                        {person.leave && !r ? shortDay(person.leave.to) : duration(worked)}
+                      </p>
+                    </div>
 
-                  {person.state !== 'leave' && person.state !== 'weekend' ? (
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      onClick={() => setFixing(person)}
-                      aria-label={`Correct ${person.user.name}`}
-                    >
-                      <IconPencil className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">Correct</span>
-                    </Button>
-                  ) : <span />}
-                </li>
-              )
-            })}
-          </ul>
+                    {person.state !== 'leave' && person.state !== 'weekend' ? (
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => setFixing(person)}
+                        aria-label={`Correct ${person.user.name}`}
+                      >
+                        <IconPencil className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Correct</span>
+                      </Button>
+                    ) : <span />}
+                  </li>
+                )
+              })}
+            </ul>
+            <ListPager paged={paged} />
+          </>
         )}
       </Card>
 

@@ -9,7 +9,7 @@ const { sendMail } = require('../services/emailService')
 const { ownTeam } = require('../utils/teams')
 const { startOnboarding } = require('../services/onboardingService')
 
-const PAGE_SIZES = [10, 20, 50]
+const { ACCEPTED, PAGE_SIZES } = require('../utils/paging')
 const DEFAULT_LIMIT = 20
 
 const isAdmin = (user) => user.role === 'admin'
@@ -130,7 +130,7 @@ const listCandidates = async (req, res) => {
     // Somebody who decides sees every submission; a manager sees their own
     const scope = decider && isAdmin(req.user) ? {} : { submittedBy: req.user._id }
 
-    const limit = PAGE_SIZES.includes(Number(req.query.limit))
+    const limit = ACCEPTED.includes(Number(req.query.limit))
       ? Number(req.query.limit)
       : DEFAULT_LIMIT
     const page = Math.max(1, Number(req.query.page) || 1)

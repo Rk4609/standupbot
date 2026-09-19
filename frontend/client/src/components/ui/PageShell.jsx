@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { cn } from '../../lib/cn'
 import { listVariants, pageVariants } from '../../lib/motion'
+import { GUTTER } from '../../lib/pageWidth'
 
 /**
  * Page wrapper inside AppShell.
@@ -21,13 +22,13 @@ export default function PageShell({ className, children }) {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="px-4 py-6 md:px-6 md:py-8"
+      className={cn(GUTTER, 'py-6 md:py-8')}
     >
       <motion.div
         variants={listVariants}
         initial="initial"
         animate="animate"
-        className={cn('mx-auto max-w-6xl', className)}
+        className={className}
       >
         {children}
       </motion.div>

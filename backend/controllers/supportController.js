@@ -8,7 +8,7 @@ const { REQUESTABLE, REQUESTABLE_KEYS, labelOf, readField } = require('../utils/
 
 const { STATUSES, CATEGORIES } = SupportTicket
 
-const PAGE_SIZES = [10, 20, 50]
+const { ACCEPTED, PAGE_SIZES } = require('../utils/paging')
 const DEFAULT_LIMIT = 20
 
 /** Anyone may read their own; an admin reads everything. */
@@ -104,7 +104,7 @@ const listTickets = async (req, res) => {
       return res.status(403).json({ message: 'Only an admin can read every ticket' })
     }
 
-    const limit = PAGE_SIZES.includes(Number(req.query.limit))
+    const limit = ACCEPTED.includes(Number(req.query.limit))
       ? Number(req.query.limit)
       : DEFAULT_LIMIT
     const page = Math.max(1, Number(req.query.page) || 1)

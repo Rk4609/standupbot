@@ -38,10 +38,10 @@ const payload = (over = {}) => ({
   types: ['intern', 'probation', 'full-time', 'contract'],
   canDecide: false,
   maySeePay: false,
-  pageSizes: [10, 20, 50],
+  pageSizes: [10, 20, 40, 100],
   total: 1,
   page: 1,
-  limit: 20,
+  limit: 10,
   totalPages: 1,
   ...over
 })

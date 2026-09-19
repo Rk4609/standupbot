@@ -8,12 +8,14 @@ import Button from '../components/ui/Button'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import { Select } from '../components/ui/Field'
 import { IconAlert, IconPlus, IconUsers } from '../components/ui/icons'
 import CandidateForm from '../components/CandidateForm'
 import CandidateList from '../components/CandidateList'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePageSize } from '../lib/paging'
 
 const STATUS_LABEL = { pending: 'Waiting', approved: 'Approved', rejected: 'Rejected' }
 
@@ -31,16 +33,17 @@ export default function Hiring({ decide = false }) {
   const [error, setError] = useState('')
   const [status, setStatus] = useState(decide ? 'pending' : '')
   const [page, setPage] = useState(1)
+  const [size, setSize] = usePageSize(decide ? 'hiring-approvals' : 'hiring')
   const [adding, setAdding] = useState(false)
 
   const load = useCallback(() => {
-    const query = new URLSearchParams({ page: String(page) })
+    const query = new URLSearchParams({ page: String(page), limit: String(size) })
     if (status) query.set('status', status)
 
     return API.get(`/hiring?${query}`)
       .then(res => setData(res.data))
       .catch(err => setError(apiErrorMessage(err, 'Could not load this')))
-  }, [page, status])
+  }, [page, size, status])
 
   useEffect(() => {
     load()
@@ -101,21 +104,32 @@ export default function Hiring({ decide = false }) {
             </p>
           </div>
 
-          <div className="w-40">
-            <Select
-              value={status}
-              onChange={e => {
-                setStatus(e.target.value)
-                setPage(1)
-              }}
-              aria-label="Filter by status"
-              className="py-2 text-sm"
-            >
-              <option value="">All of them</option>
-              {(data.statuses || []).map(s => (
-                <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>
-              ))}
-            </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            {data.total > 10 && (
+              <PageSizeSelect
+                value={size}
+                onChange={n => {
+                  setSize(n)
+                  setPage(1)
+                }}
+              />
+            )}
+            <div className="w-40">
+              <Select
+                value={status}
+                onChange={e => {
+                  setStatus(e.target.value)
+                  setPage(1)
+                }}
+                aria-label="Filter by status"
+                className="py-2 text-sm"
+              >
+                <option value="">All of them</option>
+                {(data.statuses || []).map(s => (
+                  <option key={s} value={s}>{STATUS_LABEL[s] || s}</option>
+                ))}
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -154,7 +168,7 @@ export default function Hiring({ decide = false }) {
               page={data.page}
               totalPages={data.totalPages}
               total={data.total}
-              limit={data.limit}
+              limit={data.limit || size}
               onPage={setPage}
             />
           </div>

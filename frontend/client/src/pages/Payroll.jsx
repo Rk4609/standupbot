@@ -13,11 +13,14 @@ import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Input } from '../components/ui/Field'
 import { IconAlert, IconCheck, IconRefresh, IconSearch, IconUsers } from '../components/ui/icons'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
 import { money, monthLabel } from '../lib/money'
+import { usePaged } from '../lib/paging'
 
 const shiftMonth = (month, by) => {
   const [y, m] = month.split('-').map(Number)
@@ -50,6 +53,11 @@ export default function Payroll() {
   const [busy, setBusy] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [search, setSearch] = useState('')
+
+  // Page the people who match the search; the figures above use everybody
+  const query = search.trim().toLowerCase()
+  const rows = (data?.rows || []).filter(r => !query || r.user.name.toLowerCase().includes(query))
+  const paged = usePaged(rows, 'payroll')
 
   const load = useCallback(() =>
     API.get('/payslips/run', { params: month ? { month } : {} })
@@ -101,8 +109,6 @@ export default function Payroll() {
 
   const { counts, totals } = data
   const thisMonth = data.today.slice(0, 7)
-  const query = search.trim().toLowerCase()
-  const rows = data.rows.filter(r => !query || r.user.name.toLowerCase().includes(query))
 
   return (
     <PageShell>
@@ -119,7 +125,7 @@ export default function Payroll() {
             <button
               type="button"
               aria-label="Previous month"
-              onClick={() => setMonth(shiftMonth(data.month, -1))}
+              onClick={() => { setMonth(shiftMonth(data.month, -1)); paged.setPage(1) }}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-content-muted hover:text-content"
             >
               ‹
@@ -129,14 +135,14 @@ export default function Payroll() {
               aria-label="Month"
               value={data.month}
               max={thisMonth}
-              onChange={e => e.target.value && setMonth(e.target.value)}
+              onChange={e => { if (e.target.value) { setMonth(e.target.value); paged.setPage(1) } }}
               className="w-40 py-2 text-sm"
             />
             <button
               type="button"
               aria-label="Next month"
               disabled={data.month >= thisMonth}
-              onClick={() => setMonth(shiftMonth(data.month, 1))}
+              onClick={() => { setMonth(shiftMonth(data.month, 1)); paged.setPage(1) }}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-content-muted hover:text-content disabled:opacity-40"
             >
               ›
@@ -197,14 +203,17 @@ export default function Payroll() {
       <Card padded={false}>
         <div className="flex items-center justify-between gap-3 px-4 py-4 md:px-6">
           <p className="text-sm font-semibold text-content">People</p>
-          <Input
-            icon={IconSearch}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search people"
-            aria-label="Search people"
-            className="w-44 py-2 text-sm md:w-56"
-          />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+            <Input
+              icon={IconSearch}
+              value={search}
+              onChange={e => { setSearch(e.target.value); paged.setPage(1) }}
+              placeholder="Search people"
+              aria-label="Search people"
+              className="w-44 py-2 text-sm md:w-56"
+            />
+          </div>
         </div>
 
         {rows.length === 0 ? (
@@ -216,51 +225,54 @@ export default function Payroll() {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto border-t border-line">
-            <table className="w-full min-w-[40rem] text-sm">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-content-subtle">
-                  <th className="px-4 py-2.5 font-medium md:px-6">Person</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Monthly</th>
-                  <th className="px-3 py-2.5 text-right font-medium">LOP days</th>
-                  <th className="px-3 py-2.5 text-right font-medium">Net pay</th>
-                  <th className="px-3 py-2.5 font-medium">Status</th>
-                  <th className="px-4 py-2.5 md:px-6"><span className="sr-only">Open</span></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {rows.map(row => {
-                  const figures = row.slip || row.preview
-                  return (
-                    <tr key={row.user._id}>
-                      <td className="px-4 py-3 md:px-6">
-                        <p className="font-medium text-content">{row.user.name}</p>
-                        <p className="text-xs text-content-subtle">
-                          {[row.user.position, row.user.team].filter(Boolean).join(' · ')}
-                        </p>
-                      </td>
-                      <td className="tabular px-3 py-3 text-right text-content-muted">{money(row.monthly, row.currency)}</td>
-                      <td className="tabular px-3 py-3 text-right text-content-muted">{figures.lossOfPayDays || '—'}</td>
-                      <td className="tabular px-3 py-3 text-right font-medium text-content">
-                        {money(figures.net, row.currency)}
-                        {!row.slip && <span className="block text-[10px] font-normal text-content-subtle">estimate</span>}
-                      </td>
-                      <td className="px-3 py-3">
-                        {row.slip
-                          ? <Badge tone={STATUS[row.slip.status].tone}>{STATUS[row.slip.status].label}</Badge>
-                          : <Badge>Not run</Badge>}
-                      </td>
-                      <td className="px-4 py-3 text-right md:px-6">
-                        {row.slip && (
-                          <Button size="xs" variant="outline" to={`/payslips/${row.slip._id}`}>View</Button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="overflow-x-auto border-t border-line">
+              <table className="w-full min-w-[40rem] text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-wide text-content-subtle">
+                    <th className="px-4 py-2.5 font-medium md:px-6">Person</th>
+                    <th className="px-3 py-2.5 text-right font-medium">Monthly</th>
+                    <th className="px-3 py-2.5 text-right font-medium">LOP days</th>
+                    <th className="px-3 py-2.5 text-right font-medium">Net pay</th>
+                    <th className="px-3 py-2.5 font-medium">Status</th>
+                    <th className="px-4 py-2.5 md:px-6"><span className="sr-only">Open</span></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {paged.rows.map(row => {
+                    const figures = row.slip || row.preview
+                    return (
+                      <tr key={row.user._id}>
+                        <td className="px-4 py-3 md:px-6">
+                          <p className="font-medium text-content">{row.user.name}</p>
+                          <p className="text-xs text-content-subtle">
+                            {[row.user.position, row.user.team].filter(Boolean).join(' · ')}
+                          </p>
+                        </td>
+                        <td className="tabular px-3 py-3 text-right text-content-muted">{money(row.monthly, row.currency)}</td>
+                        <td className="tabular px-3 py-3 text-right text-content-muted">{figures.lossOfPayDays || '—'}</td>
+                        <td className="tabular px-3 py-3 text-right font-medium text-content">
+                          {money(figures.net, row.currency)}
+                          {!row.slip && <span className="block text-[10px] font-normal text-content-subtle">estimate</span>}
+                        </td>
+                        <td className="px-3 py-3">
+                          {row.slip
+                            ? <Badge tone={STATUS[row.slip.status].tone}>{STATUS[row.slip.status].label}</Badge>
+                            : <Badge>Not run</Badge>}
+                        </td>
+                        <td className="px-4 py-3 text-right md:px-6">
+                          {row.slip && (
+                            <Button size="xs" variant="outline" to={`/payslips/${row.slip._id}`}>View</Button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <ListPager paged={paged} />
+          </>
         )}
       </Card>
 

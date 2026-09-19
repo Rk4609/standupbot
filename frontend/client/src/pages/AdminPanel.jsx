@@ -23,11 +23,13 @@ import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
 import Skeleton from '../components/ui/Skeleton'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import { Field, Input, Select } from '../components/ui/Field'
 import { apiErrorMessage } from '../lib/apiError'
 import { cn } from '../lib/cn'
 import { IconSearch, IconUser, IconUsers } from '../components/ui/icons'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePageSize } from '../lib/paging'
 
 const loadAdminData = async () => {
   const [t, u, r] = await Promise.all([
@@ -39,8 +41,6 @@ const loadAdminData = async () => {
   ])
   return { teams: t.data, users: u.data, roles: r?.data?.roles || [] }
 }
-
-const PAGE_SIZES = [10, 25, 50, 100]
 
 const ROLE_COLORS = ['#e9b20c', '#a8a293', '#f8d65a']
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
@@ -66,7 +66,7 @@ export default function AdminPanel({ user }) {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [teamFilter, setTeamFilter] = useState('all')
-  const [perPage, setPerPage] = useState(25)
+  const [perPage, setPerPage] = usePageSize('admin-users')
   const [page, setPage] = useState(1)
   const [picked, setPicked] = useState([])
   const [bulkRole, setBulkRole] = useState('')
@@ -481,23 +481,13 @@ export default function AdminPanel({ user }) {
                 ))}
               </Select>
             </div>
-            <div className="w-36">
-              <Select
-                value={perPage}
-                onChange={e => {
-                  setPerPage(Number(e.target.value))
-                  setPage(1)
-                }}
-                aria-label="Rows per page"
-                className="py-2 text-sm"
-              >
-                {PAGE_SIZES.map(n => (
-                  <option key={n} value={n}>
-                    {n} per page
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <PageSizeSelect
+              value={perPage}
+              onChange={n => {
+                setPerPage(n)
+                setPage(1)
+              }}
+            />
           </div>
         </div>
 

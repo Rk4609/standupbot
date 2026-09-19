@@ -3,14 +3,15 @@ import { NavLink, useLocation, useOutlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Skeleton from './ui/Skeleton'
 import { cn } from '../lib/cn'
+import { GUTTER } from '../lib/pageWidth'
 import { SPRING } from '../lib/motion'
 import { workspaceSectionsFor } from '../lib/workspaceSections'
 
 /** Stands in for the page under the tabs while its code is still arriving. */
 function ContentFallback() {
   return (
-    <div className="px-4 py-6 md:px-6 md:py-8">
-      <div className="mx-auto max-w-6xl">
+    <div className={cn(GUTTER, 'py-6 md:py-8')}>
+      <div>
         <Skeleton className="mb-2 h-8 w-56" />
         <Skeleton className="mb-7 h-4 w-80" />
         <Skeleton className="h-72 rounded-card" />
@@ -52,8 +53,8 @@ export default function WorkspaceLayout({ user }) {
 
   return (
     <>
-      <div className="px-4 pt-6 md:px-6">
-        <div className="mx-auto max-w-6xl">
+      <div className={cn(GUTTER, 'pt-6')}>
+        <div>
           <p className="eyebrow mb-2.5">Workspace</p>
 
           {/* The same pills as the main navigation, in their own tray. They

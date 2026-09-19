@@ -9,7 +9,7 @@ const { addDays, daysBetween, todayIn, zoneOf } = require('../utils/time')
 const { allowances, MAX_SPAN_DAYS, workingDays, balanceFor } = require('../utils/leavePolicy')
 const { settings } = require('../services/settingsService')
 
-const PAGE_SIZES = [10, 20, 50]
+const { ACCEPTED, PAGE_SIZES } = require('../utils/paging')
 const DEFAULT_LIMIT = 20
 
 const isAdmin = (user) => user.role === 'admin'
@@ -225,7 +225,7 @@ const teamLeave = async (req, res) => {
     const filter = { ...base }
     if (Leave.STATUSES.includes(req.query.status)) filter.status = req.query.status
 
-    const limit = PAGE_SIZES.includes(Number(req.query.limit)) ? Number(req.query.limit) : DEFAULT_LIMIT
+    const limit = ACCEPTED.includes(Number(req.query.limit)) ? Number(req.query.limit) : DEFAULT_LIMIT
     const page = Math.max(1, Number(req.query.page) || 1)
 
     const total = await Leave.countDocuments(filter)

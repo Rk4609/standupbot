@@ -11,12 +11,15 @@ import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Field, Input, Select } from '../components/ui/Field'
 import { IconAlert, IconPlus } from '../components/ui/icons'
 import { MeetingList } from './Reviews'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
 import { REVIEW_STATUS } from '../lib/reviews'
+import { usePaged } from '../lib/paging'
 
 function Schedule({ people, today, onClose }) {
   const navigate = useNavigate()
@@ -104,6 +107,7 @@ export default function TeamReviews() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [modal, setModal] = useState('')
+  const paged = usePaged(data?.round?.reviews, 'team-reviews')
 
   const load = useCallback(() =>
     Promise.all([API.get('/one-on-ones'), API.get('/reviews/cycles', { params: cycleId ? { cycle: cycleId } : {} })])
@@ -149,19 +153,22 @@ export default function TeamReviews() {
       <div className="grid gap-5 lg:grid-cols-2">
         <Card padded={false}>
           <div className="px-4 pt-4 md:px-6 md:pt-5"><CardTitle>Your 1:1s</CardTitle></div>
-          <MeetingList meetings={data.oneOnOnes} nameOf={m => m.employeeName} empty="None yet. A short one every week or two keeps small problems small." />
+          <MeetingList pageKey="team-one-on-ones" meetings={data.oneOnOnes} nameOf={m => m.employeeName} empty="None yet. A short one every week or two keeps small problems small." />
         </Card>
 
         <Card padded={false}>
           <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 md:px-6 md:pt-5">
             <CardTitle className="mb-0">Reviews</CardTitle>
-            {round.cycles.length > 1 && (
-              <div className="w-40">
-                <Select value={round.cycle?._id || ''} onChange={e => setCycleId(e.target.value)} aria-label="Review round" className="py-2 text-sm">
-                  {round.cycles.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </Select>
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+              {round.cycles.length > 1 && (
+                <div className="w-40">
+                  <Select value={round.cycle?._id || ''} onChange={e => { setCycleId(e.target.value); paged.setPage(1) }} aria-label="Review round" className="py-2 text-sm">
+                    {round.cycles.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  </Select>
+                </div>
+              )}
+            </div>
           </div>
           {!round.cycle ? (
             <p className="px-4 py-5 text-sm text-content-subtle md:px-6">
@@ -179,21 +186,24 @@ export default function TeamReviews() {
               {round.reviews.length === 0
                 ? <p className="px-4 pb-5 text-sm text-content-subtle md:px-6">Nobody for you to review in this round.</p>
                 : (
-                  <ul className="divide-y divide-line border-t border-line">
-                    {round.reviews.map(r => (
-                      <li key={r._id}>
-                        <Link to={`/reviews/${r._id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken/60 md:px-6">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-content">{r.employeeName}</p>
-                            <p className="text-xs text-content-subtle">
-                              {r.team?.name || 'No team'}{r.manager?.overall ? ` · overall ${r.manager.overall}/5` : ''}
-                            </p>
-                          </div>
-                          <Badge tone={REVIEW_STATUS[r.status].tone}>{REVIEW_STATUS[r.status].label}</Badge>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  <>
+                    <ul className="divide-y divide-line border-t border-line">
+                      {paged.rows.map(r => (
+                        <li key={r._id}>
+                          <Link to={`/reviews/${r._id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-sunken/60 md:px-6">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-content">{r.employeeName}</p>
+                              <p className="text-xs text-content-subtle">
+                                {r.team?.name || 'No team'}{r.manager?.overall ? ` · overall ${r.manager.overall}/5` : ''}
+                              </p>
+                            </div>
+                            <Badge tone={REVIEW_STATUS[r.status].tone}>{REVIEW_STATUS[r.status].label}</Badge>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                    <ListPager paged={paged} />
+                  </>
                 )}
             </>
           )}

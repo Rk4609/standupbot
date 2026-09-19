@@ -35,10 +35,10 @@ const queue = (tickets, over = {}) => ({
   openCount: tickets.filter(t => t.status === 'open').length,
   statuses: ['open', 'answered', 'closed'],
   categories: CATEGORIES,
-  pageSizes: [10, 20, 50],
+  pageSizes: [10, 20, 40, 100],
   total: tickets.length,
   page: 1,
-  limit: 20,
+  limit: 10,
   totalPages: 1,
   ...over
 })

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 vi.mock('../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }))
@@ -38,19 +38,23 @@ beforeEach(() => {
   API.post.mockResolvedValue({ data: {} })
 })
 
+// The labels also appear in the progress list beside the form; ask the form itself
+const questions = () => within(screen.getByRole('group', { name: 'Questions' }))
+const findQuestion = async (text) => within(await screen.findByRole('group', { name: 'Questions' })).findByText(text)
+
 describe('the standup form', () => {
   it('asks the questions the team wrote, in their words', async () => {
     render(<NewStandup />)
 
-    expect(await screen.findByText('What did you get done?')).toBeInTheDocument()
-    expect(screen.getByText('What is the plan?')).toBeInTheDocument()
-    expect(screen.getByText('Anything in your way?')).toBeInTheDocument()
+    expect(await findQuestion('What did you get done?')).toBeInTheDocument()
+    expect(questions().getByText('What is the plan?')).toBeInTheDocument()
+    expect(questions().getByText('Anything in your way?')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Morning check-in' })).toBeInTheDocument()
   })
 
   it('marks the questions the team made optional', async () => {
     render(<NewStandup />)
-    await screen.findByText('Anything in your way?')
+    await findQuestion('Anything in your way?')
 
     // Two required questions, so exactly one is flagged optional
     expect(screen.getAllByText('(optional)')).toHaveLength(1)
@@ -70,7 +74,7 @@ describe('the standup form', () => {
     )
 
     render(<NewStandup />)
-    await screen.findByText('What did you learn?')
+    await findQuestion('What did you learn?')
 
     const boxes = screen.getAllByRole('textbox')
     await user.type(boxes[0], 'Shipped the export')
@@ -93,7 +97,7 @@ describe('the standup form', () => {
   it('will not submit while a required question is empty', async () => {
     const user = userEvent.setup()
     render(<NewStandup />)
-    await screen.findByText('What did you get done?')
+    await findQuestion('What did you get done?')
 
     const submit = screen.getByRole('button', { name: /submit standup/i })
     expect(submit).toBeDisabled()
@@ -110,7 +114,7 @@ describe('the standup form', () => {
   it('hides the mood picker when the team turned it off', async () => {
     API.get.mockResolvedValue(template({ askMood: false }))
     render(<NewStandup />)
-    await screen.findByText('What did you get done?')
+    await findQuestion('What did you get done?')
 
     expect(screen.queryByText('How are you feeling today?')).not.toBeInTheDocument()
   })
@@ -121,7 +125,7 @@ describe('the standup form', () => {
     render(<NewStandup />)
 
     expect(
-      await screen.findByText('What are you working on today?')
+      await findQuestion('What are you working on today?')
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /submit standup/i })).toBeInTheDocument()
   })
@@ -131,7 +135,7 @@ describe('the standup form', () => {
     API.get.mockRejectedValue(new Error('offline'))
     render(<NewStandup />)
 
-    await screen.findByText('What are you working on today?')
+    await findQuestion('What are you working on today?')
     expect(screen.queryByText(/accomplish yesterday/i)).not.toBeInTheDocument()
   })
 
@@ -148,7 +152,7 @@ describe('the standup form', () => {
     )
 
     render(<NewStandup />)
-    await screen.findByText('How confident?')
+    await findQuestion('How confident?')
 
     const boxes = screen.getAllByRole('textbox')
     expect(boxes[3].tagName).toBe('INPUT')

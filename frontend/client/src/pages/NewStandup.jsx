@@ -168,7 +168,7 @@ export default function NewStandup() {
 
   if (!template) {
     return (
-      <PageShell className="max-w-2xl">
+      <PageShell>
         <Skeleton className="mb-2 h-9 w-48" />
         <Skeleton className="mb-7 h-4 w-64" />
         <div className="space-y-4">
@@ -181,120 +181,144 @@ export default function NewStandup() {
   }
 
   return (
-    <PageShell className="max-w-2xl">
+    <PageShell>
       <PageHeader title={template.name || 'Daily standup'} subtitle={dateLabel} />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {template.questions.map((q, i) => (
-          <Question key={q.key} step={i + 1} label={q.label} optional={!q.required}>
-            {q.type === 'short' ? (
-              <Input
-                value={values[q.key] || ''}
-                onChange={set(q.key)}
-                placeholder={q.placeholder}
-                maxLength={2000}
-              />
-            ) : (
-              <Textarea
-                rows={3}
-                value={values[q.key] || ''}
-                onChange={set(q.key)}
-                placeholder={q.placeholder}
-                maxLength={2000}
-              />
-            )}
-          </Question>
-        ))}
+      {/* The answers take the width; what is left to do stays in view
+          beside them on a wide screen, and follows below on a phone */}
+      <form onSubmit={handleSubmit} className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+        <div className="space-y-4" role="group" aria-label="Questions">
+          {template.questions.map((q, i) => (
+            <Question key={q.key} step={i + 1} label={q.label} optional={!q.required}>
+              {q.type === 'short' ? (
+                <Input
+                  value={values[q.key] || ''}
+                  onChange={set(q.key)}
+                  placeholder={q.placeholder}
+                  maxLength={2000}
+                />
+              ) : (
+                <Textarea
+                  rows={3}
+                  value={values[q.key] || ''}
+                  onChange={set(q.key)}
+                  placeholder={q.placeholder}
+                  maxLength={2000}
+                />
+              )}
+            </Question>
+          ))}
 
-        {template.trackTime && (
-          <Card>
-            <label className="mb-3 flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-                {template.questions.length + 1}
-              </span>
-              <span className="text-sm font-medium text-content md:text-base">
-                Where did your hours go?
-              </span>
-            </label>
-            <WorkEntries projects={projects} rows={work} onChange={setWork} />
-          </Card>
-        )}
+          {template.trackTime && (
+            <Card>
+              <label className="mb-3 flex items-start gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                  {template.questions.length + 1}
+                </span>
+                <span className="text-sm font-medium text-content md:text-base">
+                  Where did your hours go?
+                </span>
+              </label>
+              <WorkEntries projects={projects} rows={work} onChange={setWork} />
+            </Card>
+          )}
+        </div>
 
-        {template.askMood && (
-          <Card>
-            <label className="mb-4 flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-                {template.questions.length + (template.trackTime ? 2 : 1)}
-              </span>
-              <span className="text-sm font-medium text-content md:text-base">
-                How are you feeling today?
-              </span>
-            </label>
+        <div className="space-y-4 xl:sticky xl:top-24">
+          {template.askMood && (
+            <Card>
+              <label className="mb-4 flex items-start gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                  {template.questions.length + (template.trackTime ? 2 : 1)}
+                </span>
+                <span className="text-sm font-medium text-content md:text-base">
+                  How are you feeling today?
+                </span>
+              </label>
 
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:gap-3">
-              {MOOD_OPTIONS.map(m => {
-                const active = mood === m.value
-                return (
-                  <motion.button
-                    type="button"
-                    key={m.value}
-                    onClick={() => setMood(m.value)}
-                    whileTap={{ scale: 0.94 }}
-                    transition={SPRING}
-                    aria-pressed={active}
-                    className={cn(
-                      'relative flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 transition-colors md:px-3 md:py-3',
-                      active
-                        ? 'border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
-                        : 'border-line bg-surface hover:border-brand-200 dark:hover:border-brand-800'
-                    )}
-                  >
-                    <motion.span
-                      aria-hidden="true"
-                      className="text-xl md:text-2xl"
-                      animate={active ? { scale: 1.15, y: -1 } : { scale: 1, y: 0 }}
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:gap-3 xl:grid-cols-3">
+                {MOOD_OPTIONS.map(m => {
+                  const active = mood === m.value
+                  return (
+                    <motion.button
+                      type="button"
+                      key={m.value}
+                      onClick={() => setMood(m.value)}
+                      whileTap={{ scale: 0.94 }}
                       transition={SPRING}
-                    >
-                      {m.emoji}
-                    </motion.span>
-                    <span
+                      aria-pressed={active}
                       className={cn(
-                        'text-center text-xs leading-tight transition-colors',
+                        'relative flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 transition-colors md:px-3 md:py-3',
                         active
-                          ? 'font-medium text-brand-700 dark:text-brand-300'
-                          : 'text-content-muted'
+                          ? 'border-brand-500 bg-brand-50 dark:border-brand-400 dark:bg-brand-950'
+                          : 'border-line bg-surface hover:border-brand-200 dark:hover:border-brand-800'
                       )}
                     >
-                      {m.label}
-                    </span>
-                  </motion.button>
+                      <motion.span
+                        aria-hidden="true"
+                        className="text-xl md:text-2xl"
+                        animate={active ? { scale: 1.15, y: -1 } : { scale: 1, y: 0 }}
+                        transition={SPRING}
+                      >
+                        {m.emoji}
+                      </motion.span>
+                      <span
+                        className={cn(
+                          'text-center text-xs leading-tight transition-colors',
+                          active
+                            ? 'font-medium text-brand-700 dark:text-brand-300'
+                            : 'text-content-muted'
+                        )}
+                      >
+                        {m.label}
+                      </span>
+                    </motion.button>
+                  )
+                })}
+              </div>
+            </Card>
+          )}
+
+          <Card>
+            <p className="mb-3 text-sm font-medium text-content">Your standup</p>
+            <ul className="mb-4 space-y-2">
+              {template.questions.map(q => {
+                const done = Boolean(String(values[q.key] || '').trim())
+                return (
+                  <li key={q.key} className="flex items-center gap-2.5 text-sm">
+                    <span className={cn(
+                      'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px]',
+                      done ? 'border-brand-500 bg-brand-500 text-white dark:border-brand-400 dark:bg-brand-400 dark:text-brand-700' : 'border-line text-transparent'
+                    )}>✓</span>
+                    <span className={cn('min-w-0 truncate', done ? 'text-content' : 'text-content-muted')}>{q.label}</span>
+                    {!q.required && <span className="shrink-0 text-xs text-content-subtle">optional</span>}
+                  </li>
                 )
               })}
-            </div>
+            </ul>
+            <Button
+              type="submit"
+              size="lg"
+              full
+              loading={loading}
+              disabled={missing.length > 0 || needsHours || tooManyHours}
+            >
+              {loading ? 'Submitting…' : 'Submit standup'}
+            </Button>
+
+            {missing.length > 0 && (
+              <p className="text-center text-xs text-content-subtle">
+                Still to answer: {missing.map(q => q.label).join(', ')}
+              </p>
+            )}
+
+            {missing.length === 0 && needsHours && (
+              <p className="text-center text-xs text-content-subtle">
+                Add where your hours went before submitting.
+              </p>
+            )}
           </Card>
-        )}
-
-        <Button
-          type="submit"
-          size="lg"
-          full
-          loading={loading}
-          disabled={missing.length > 0 || needsHours || tooManyHours}
-        >
-          {loading ? 'Submitting…' : 'Submit standup'}
-        </Button>
-
-        {missing.length > 0 && (
-          <p className="text-center text-xs text-content-subtle">
-            Still to answer: {missing.map(q => q.label).join(', ')}
-          </p>
-        )}
-
-        {missing.length === 0 && needsHours && (
-          <p className="text-center text-xs text-content-subtle">
-            Add where your hours went before submitting.
-          </p>
-        )}
+        </div>
       </form>
     </PageShell>
   )

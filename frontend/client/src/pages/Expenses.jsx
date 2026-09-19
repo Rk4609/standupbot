@@ -11,10 +11,13 @@ import Modal from '../components/ui/Modal'
 import Skeleton from '../components/ui/Skeleton'
 import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Field, Input, Select, Textarea } from '../components/ui/Field'
 import { IconAlert, IconPlus } from '../components/ui/icons'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 import { money } from '../lib/money'
 import { shortDay } from '../lib/leave'
 import { CATEGORY_LABEL, EXPENSE_STATUS } from '../lib/expenses'
@@ -101,6 +104,7 @@ export default function Expenses() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [claiming, setClaiming] = useState(false)
+  const paged = usePaged(data?.expenses, 'my-expenses')
 
   const load = useCallback(() =>
     API.get('/expenses/mine')
@@ -139,14 +143,17 @@ export default function Expenses() {
       </div>
 
       <Card padded={false}>
-        <div className="px-4 pt-4 md:px-6 md:pt-5"><CardTitle className="mb-0">Your claims</CardTitle></div>
+        <div className="flex items-center justify-between gap-3 px-4 pt-4 md:px-6 md:pt-5">
+          <CardTitle className="mb-0">Your claims</CardTitle>
+          {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+        </div>
         {data.expenses.length === 0 ? (
           <div className="px-4 py-6 md:px-6">
             <EmptyState icon={<IconPlus className="h-6 w-6" />} title="No claims yet" description="Paid for a cab, a meal or a cable for work? Claim it back." action={claimButton} />
           </div>
         ) : (
           <ul className="mt-3 divide-y divide-line">
-            {data.expenses.map(item => (
+            {paged.rows.map(item => (
               <li key={item._id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3.5 md:px-6">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-content">
@@ -169,6 +176,7 @@ export default function Expenses() {
             ))}
           </ul>
         )}
+        <ListPager paged={paged} />
       </Card>
 
       <AnimatePresence>

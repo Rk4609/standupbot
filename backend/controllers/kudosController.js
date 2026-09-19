@@ -5,7 +5,7 @@ const { notify } = require('../services/notifyService')
 const { ownTeam } = require('../utils/teams')
 const { todayIn, zoneOf } = require('../utils/time')
 
-const PAGE_SIZE = 20
+const { paging, PAGE_SIZES } = require('../utils/paging')
 /** Enough to thank a whole team on a good day; not enough to spam one. */
 const DAILY_LIMIT = 10
 /** Long enough to fix a typo by deleting and saying it again. */
@@ -64,11 +64,11 @@ const present = (row, user) => ({
 const listKudos = async (req, res) => {
   try {
     const scope = await feedScope(req.user)
-    const page = Math.max(1, Number(req.query.page) || 1)
+    const { page, limit, skip } = paging(req.query, 20)
     const monthStart = `${todayIn(zoneOf(req.user)).slice(0, 7)}-01`
 
     const [rows, total, top] = await Promise.all([
-      Kudos.find(scope).sort({ createdAt: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
+      Kudos.find(scope).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       Kudos.countDocuments(scope),
       Kudos.aggregate([
         { $match: { ...scope, createdAt: { $gte: new Date(`${monthStart}T00:00:00.000Z`) } } },
@@ -83,7 +83,9 @@ const listKudos = async (req, res) => {
       top: top.map(t => ({ _id: t._id, name: t.name, count: t.count })),
       values: Kudos.VALUES,
       page,
-      totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      limit,
+      pageSizes: PAGE_SIZES,
       total
     })
   } catch (err) {

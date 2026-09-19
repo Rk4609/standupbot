@@ -10,6 +10,7 @@ import Badge from '../components/ui/Badge'
 import StatCard from '../components/ui/StatCard'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
 import Skeleton, { SkeletonText } from '../components/ui/Skeleton'
 import { Input, Select } from '../components/ui/Field'
 import { IconAlert, IconSearch, IconUsers } from '../components/ui/icons'
@@ -19,10 +20,10 @@ import { DURATION, EASE, SPRING, itemVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 import { prettyDate } from '../lib/dates'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePageSize } from '../lib/paging'
 
 const ROLE_TONE = { admin: 'danger', manager: 'positive', employee: 'brand' }
 const WEEKDAY = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-const DEFAULT_PAGE_SIZES = [10, 20, 50, 100]
 
 /** Seven squares showing which of the last 7 days this person submitted. */
 function WeekStrip({ week, dates }) {
@@ -251,11 +252,13 @@ export default function Employees() {
     setSearch(linked)
   }
 
+  const [size, setSize] = usePageSize('employees')
+
   // One object, so every filter change can reset the page in the same update
   // rather than through a follow-up effect.
   const [query, setQuery] = useState({
     page: 1,
-    limit: 20,
+    limit: size,
     search: '',
     role: 'all',
     team: 'all'
@@ -325,7 +328,6 @@ export default function Employees() {
   const week = data?.week || []
   const employees = data?.employees || []
   const teams = data?.teams || []
-  const pageSizes = data?.pageSizes || DEFAULT_PAGE_SIZES
 
   if (loading) {
     return (
@@ -404,18 +406,14 @@ export default function Employees() {
                 </option>
               ))}
             </Select>
-            <Select
-              value={query.limit}
-              onChange={e => patch({ limit: Number(e.target.value) })}
-              aria-label="Rows per page"
+            <PageSizeSelect
+              value={size}
+              onChange={limit => {
+                setSize(limit)
+                patch({ limit })
+              }}
               className="lg:w-36"
-            >
-              {pageSizes.map(n => (
-                <option key={n} value={n}>
-                  {n} per page
-                </option>
-              ))}
-            </Select>
+            />
           </motion.div>
 
           <Card padded={false} className="relative overflow-hidden">

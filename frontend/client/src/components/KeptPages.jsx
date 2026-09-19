@@ -1,6 +1,8 @@
 import { Activity, Suspense, useEffect, useState } from 'react'
 import { useLocation, useOutlet } from 'react-router-dom'
 import Skeleton from './ui/Skeleton'
+import { cn } from '../lib/cn'
+import { GUTTER } from '../lib/pageWidth'
 import { warmUp } from '../api/axios'
 import { can } from '../lib/permissions'
 import { keepKeyFor } from '../lib/keepAlive'
@@ -19,20 +21,20 @@ const firstRequests = (user) => [
   ['team-attendance', '/attendance/team', { params: {} }],
   ['brief', '/brief', { params: {} }],
   ['payslips', '/payslips/mine'],
-  ['kudos', '/kudos', { params: { page: 1 } }],
+  ['kudos', '/kudos', { params: { page: 1, limit: 10 } }],
   ['expenses', '/expenses/mine'],
   ['documents', '/letters/mine'],
   ['dashboard', '/celebrations'],
   ['dashboard', '/announcements'],
   ['leave', '/leave/mine'],
   ['leave', '/leave/calendar', { params: {} }],
-  ['leaves', '/leave/team', { params: { page: 1, status: 'pending' } }],
+  ['leaves', '/leave/team', { params: { page: 1, limit: 10, status: 'pending' } }],
   ['support', '/support/mine'],
-  ...(user?.role === 'admin' ? [['support', '/support?page=1']] : []),
+  ...(user?.role === 'admin' ? [['support', '/support?page=1&limit=10']] : []),
   ['team', `/standups/team?date=${todayForUser()}`],
   ['team', '/standups/stats'],
   ['employees', '/employees/summary'],
-  ['employees', '/employees', { params: { page: 1, limit: 20 } }],
+  ['employees', '/employees', { params: { page: 1, limit: 10 } }],
   ['blockers', '/standups/blockers'],
   ['timesheets', '/timesheets', { params: {} }],
   ['analytics', '/analytics/overview', { params: { days: 30 } }],
@@ -95,8 +97,8 @@ const PAGES = [
 
 function PageFallback() {
   return (
-    <div className="px-4 py-6 md:px-6 md:py-8">
-      <div className="mx-auto max-w-6xl">
+    <div className={cn(GUTTER, 'py-6 md:py-8')}>
+      <div>
         <Skeleton className="mb-2 h-8 w-56" />
         <Skeleton className="mb-7 h-4 w-80" />
         <Skeleton className="h-72 rounded-card" />

@@ -130,6 +130,31 @@ describe('everybody being onboarded', () => {
     expect(screen.getByText(/Buddy assigned/)).toBeInTheDocument()
   })
 
+  it('shows ten checklists at a time, with the rest on the next page', async () => {
+    const onboardings = Array.from({ length: 25 }, (_, i) => ({
+      ...list().onboardings[0], _id: `o${i + 1}`, userName: `Joiner ${i + 1}`, next: null
+    }))
+    API.get.mockResolvedValue({ data: list({ onboardings, counts: { active: 25, complete: 0 } }) })
+
+    at('/workspace/onboarding', <Onboarding />, '/workspace/onboarding')
+
+    expect(await screen.findByText('Joiner 1')).toBeInTheDocument()
+    expect(screen.getByText('Joiner 10')).toBeInTheDocument()
+    expect(screen.queryByText('Joiner 11')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Rows per page' })).toHaveValue('10')
+    expect(screen.getByText(/Showing 1–10 of 25/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    expect(screen.getByText('Joiner 11')).toBeInTheDocument()
+    expect(screen.queryByText('Joiner 1')).not.toBeInTheDocument()
+
+    // Forty a page fits everybody; the tab counts never change with the page
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Rows per page' }), '40')
+    expect(screen.getByText('Joiner 1')).toBeInTheDocument()
+    expect(screen.getByText('Joiner 25')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /In progress/ })).toHaveTextContent('25')
+  })
+
   it('starts a checklist by hand and opens it', async () => {
     API.get.mockResolvedValue({ data: list() })
     API.post.mockResolvedValue({ data: { message: 'Started', onboarding: { _id: 'o2' } } })

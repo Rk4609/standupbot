@@ -9,6 +9,8 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Checkbox, Field, Input, Select } from '../components/ui/Field'
 import { IconAlert, IconBriefcase, IconCalendar, IconPlus, IconUsers } from '../components/ui/icons'
 import ProjectMembers from '../components/ProjectMembers'
@@ -17,6 +19,7 @@ import { cn } from '../lib/cn'
 import { collapseVariants, DURATION, EASE, SPRING } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 
 const blank = { name: '', code: '', client: '', billable: true }
 
@@ -249,6 +252,7 @@ export default function Projects() {
         <>
           <ProjectList
             title="Open"
+            pageKey="projects-open"
             projects={open}
             onArchive={p => setActive(p, false)}
             assignable={data.assignable || []}
@@ -260,6 +264,7 @@ export default function Projects() {
           {archived.length > 0 && (
             <ProjectList
               title="Archived"
+              pageKey="projects-archived"
               projects={archived}
               onReopen={p => setActive(p, true)}
               muted
@@ -273,20 +278,24 @@ export default function Projects() {
 }
 
 function ProjectList({
-  title, projects, onArchive, onReopen, muted,
+  title, pageKey, projects, onArchive, onReopen, muted,
   assignable = [], allProjects = [], openId, onToggle, onChanged
 }) {
+  const paged = usePaged(projects, pageKey)
   if (projects.length === 0) return null
 
   return (
     <Card padded={false} className={cn('mb-4', muted && 'opacity-75')}>
       <div className="flex items-center justify-between gap-3 px-5 py-4">
         <CardTitle className="mb-0">{title}</CardTitle>
-        <span className="text-xs text-content-subtle">{projects.length}</span>
+        <div className="flex items-center gap-3">
+          {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+          <span className="text-xs text-content-subtle">{projects.length}</span>
+        </div>
       </div>
 
       <ul className="divide-y divide-line border-t border-line">
-        {projects.map(p => {
+        {paged.rows.map(p => {
           const open = openId === p._id
           const named = p.members?.length || 0
 
@@ -370,6 +379,7 @@ function ProjectList({
           )
         })}
       </ul>
+      <ListPager paged={paged} className="border-t border-line px-5 py-3" />
     </Card>
   )
 }

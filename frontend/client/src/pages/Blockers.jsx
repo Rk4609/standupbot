@@ -8,12 +8,15 @@ import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { Textarea } from '../components/ui/Field'
 import { IconAlert, IconCheck, IconHourglass, IconPencil, IconTrash } from '../components/ui/icons'
 import { DURATION, EASE, collapseVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 
 const loadBlockers = () => API.get('/standups/blockers').then(res => res.data)
 
@@ -37,6 +40,7 @@ export default function Blockers({ user }) {
   const [editText, setEditText] = useState('')
   const [deleteId, setDeleteId] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const paged = usePaged(blockers, 'blockers')
 
   useEffect(() => {
     let cancelled = false
@@ -115,11 +119,16 @@ export default function Blockers({ user }) {
         title="Active blockers"
         subtitle="Everything currently slowing your team down"
         actions={
-          canManage && (
-            <Badge tone="neutral">
-              <IconPencil className="h-3 w-3" />
-              {user?.role === 'admin' ? 'Admin' : 'Manager'} — can edit &amp; delete
-            </Badge>
+          (canManage || paged.total > 10) && (
+            <>
+              {canManage && (
+                <Badge tone="neutral">
+                  <IconPencil className="h-3 w-3" />
+                  {user?.role === 'admin' ? 'Admin' : 'Manager'} — can edit &amp; delete
+                </Badge>
+              )}
+              {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+            </>
           )
         }
       />
@@ -154,154 +163,157 @@ export default function Blockers({ user }) {
           description="Everything is running smoothly."
         />
       ) : (
-        <div className="space-y-4">
-          <AnimatePresence initial={false}>
-            {blockers.map(b => {
-              const age = ageInDays(b.date)
-              const aging = age >= 3
+        <>
+          <div className="space-y-4">
+            <AnimatePresence initial={false}>
+              {paged.rows.map(b => {
+                const age = ageInDays(b.date)
+                const aging = age >= 3
 
-              return (
-                <motion.div
-                  key={b._id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -24, scale: 0.97 }}
-                  transition={{ duration: DURATION.base, ease: EASE }}
-                >
-                  <Card className="p-4 md:p-5">
-                    {/* Author row */}
-                    <div className="mb-3 flex items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600/12 text-sm font-semibold text-brand-700 dark:text-brand-300">
-                        {b.user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-content">
-                          {b.user.name}
-                        </p>
-                        <p className="truncate text-xs text-content-subtle">
-                          {b.user.email} · {b.date}
-                        </p>
-                      </div>
-                      <Badge tone={aging ? 'warning' : 'neutral'}>
-                        {age === 0 ? 'Today' : `${age}d old`}
-                      </Badge>
-                    </div>
-
-                    {/* Blocker text / edit form */}
-                    <AnimatePresence mode="wait" initial={false}>
-                      {editId === b._id ? (
-                        <motion.div
-                          key="edit"
-                          variants={collapseVariants}
-                          initial="initial"
-                          animate="animate"
-                          exit="exit"
-                          className="overflow-hidden"
-                        >
-                          <Textarea
-                            rows={3}
-                            autoFocus
-                            value={editText}
-                            onChange={e => setEditText(e.target.value)}
-                            placeholder="Edit blocker text…"
-                            className="border-brand-300 dark:border-brand-700"
-                          />
-                          <div className="mt-2 flex gap-2">
-                            <Button
-                              size="sm"
-                              full
-                              loading={actionLoading}
-                              onClick={() => handleSaveEdit(b._id)}
-                            >
-                              {actionLoading ? 'Saving…' : 'Save changes'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              full
-                              variant="secondary"
-                              onClick={() => setEditId(null)}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="view"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="rounded-lg border-l-2 border-red-500/70 bg-red-500/[0.055] py-2.5 pl-3.5 pr-4"
-                        >
-                          <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-red-600 dark:text-red-400">
-                            <IconAlert className="h-3.5 w-3.5" />
-                            Blocker
+                return (
+                  <motion.div
+                    key={b._id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -24, scale: 0.97 }}
+                    transition={{ duration: DURATION.base, ease: EASE }}
+                  >
+                    <Card className="p-4 md:p-5">
+                      {/* Author row */}
+                      <div className="mb-3 flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600/12 text-sm font-semibold text-brand-700 dark:text-brand-300">
+                          {b.user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-content">
+                            {b.user.name}
                           </p>
-                          <p className="text-sm leading-relaxed text-content">{b.blockers}</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                          <p className="truncate text-xs text-content-subtle">
+                            {b.user.email} · {b.date}
+                          </p>
+                        </div>
+                        <Badge tone={aging ? 'warning' : 'neutral'}>
+                          {age === 0 ? 'Today' : `${age}d old`}
+                        </Badge>
+                      </div>
 
-                    <p className="mt-3 text-sm text-content-muted">
-                      <span className="font-medium text-content">Today&apos;s plan: </span>
-                      {b.today}
-                    </p>
-
-                    {/* Actions */}
-                    {canManage && editId !== b._id && (
-                      <div className="mt-3 flex gap-2 border-t border-line pt-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          full
-                          onClick={() => handleEdit(b)}
-                        >
-                          <IconPencil className="h-3.5 w-3.5" />
-                          Edit
-                        </Button>
-
-                        {deleteId === b._id ? (
-                          <div className="flex flex-1 gap-2">
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              full
-                              loading={actionLoading}
-                              onClick={() => handleDelete(b._id)}
-                            >
-                              {actionLoading ? 'Deleting…' : 'Confirm'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              full
-                              onClick={() => setDeleteId(null)}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
+                      {/* Blocker text / edit form */}
+                      <AnimatePresence mode="wait" initial={false}>
+                        {editId === b._id ? (
+                          <motion.div
+                            key="edit"
+                            variants={collapseVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="overflow-hidden"
+                          >
+                            <Textarea
+                              rows={3}
+                              autoFocus
+                              value={editText}
+                              onChange={e => setEditText(e.target.value)}
+                              placeholder="Edit blocker text…"
+                              className="border-brand-300 dark:border-brand-700"
+                            />
+                            <div className="mt-2 flex gap-2">
+                              <Button
+                                size="sm"
+                                full
+                                loading={actionLoading}
+                                onClick={() => handleSaveEdit(b._id)}
+                              >
+                                {actionLoading ? 'Saving…' : 'Save changes'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                full
+                                variant="secondary"
+                                onClick={() => setEditId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </motion.div>
                         ) : (
+                          <motion.div
+                            key="view"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="rounded-lg border-l-2 border-red-500/70 bg-red-500/[0.055] py-2.5 pl-3.5 pr-4"
+                          >
+                            <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-red-600 dark:text-red-400">
+                              <IconAlert className="h-3.5 w-3.5" />
+                              Blocker
+                            </p>
+                            <p className="text-sm leading-relaxed text-content">{b.blockers}</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <p className="mt-3 text-sm text-content-muted">
+                        <span className="font-medium text-content">Today&apos;s plan: </span>
+                        {b.today}
+                      </p>
+
+                      {/* Actions */}
+                      {canManage && editId !== b._id && (
+                        <div className="mt-3 flex gap-2 border-t border-line pt-3">
                           <Button
                             size="sm"
-                            variant="quiet-danger"
+                            variant="outline"
                             full
-                            onClick={() => {
-                              setDeleteId(b._id)
-                              setEditId(null)
-                            }}
+                            onClick={() => handleEdit(b)}
                           >
-                            <IconTrash className="h-3.5 w-3.5" />
-                            Delete
+                            <IconPencil className="h-3.5 w-3.5" />
+                            Edit
                           </Button>
-                        )}
-                      </div>
-                    )}
-                  </Card>
-                </motion.div>
-              )
-            })}
-          </AnimatePresence>
-        </div>
+
+                          {deleteId === b._id ? (
+                            <div className="flex flex-1 gap-2">
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                full
+                                loading={actionLoading}
+                                onClick={() => handleDelete(b._id)}
+                              >
+                                {actionLoading ? 'Deleting…' : 'Confirm'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                full
+                                onClick={() => setDeleteId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="quiet-danger"
+                              full
+                              onClick={() => {
+                                setDeleteId(b._id)
+                                setEditId(null)
+                              }}
+                            >
+                              <IconTrash className="h-3.5 w-3.5" />
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
+          </div>
+          <ListPager paged={paged} className="mt-5" />
+        </>
       )}
     </PageShell>
   )

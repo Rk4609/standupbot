@@ -9,12 +9,15 @@ import PageShell from '../components/ui/PageShell'
 import PageHeader from '../components/ui/PageHeader'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { Input } from '../components/ui/Field'
 import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, collapseVariants, itemVariants } from '../lib/motion'
 import { IconFilter, IconInbox, IconSearch } from '../components/ui/icons'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 
 const MOODS = ['all', 'great', 'good', 'okay', 'bad', 'stressed']
 const MOOD_ICON = MOOD_EMOJI
@@ -143,6 +146,16 @@ export default function History() {
     })
   }, [standups, search, moodFilter, blockerFilter, dateFrom, dateTo])
 
+  const paged = usePaged(filtered, 'my-standups')
+
+  // A new filter starts from the first page, not wherever the old one was
+  const filterKey = [search, moodFilter, blockerFilter, dateFrom, dateTo].join('|')
+  const [pagedFor, setPagedFor] = useState(filterKey)
+  if (pagedFor !== filterKey) {
+    setPagedFor(filterKey)
+    paged.setPage(1)
+  }
+
   const activeFilters = [
     search.trim() !== '',
     moodFilter !== 'all',
@@ -206,14 +219,17 @@ export default function History() {
           {filtered.length} of {standups.length}
         </span>
 
-        {activeFilters > 0 && (
-          <button
-            onClick={resetFilters}
-            className="ml-auto text-xs font-medium text-red-500 hover:underline dark:text-red-400"
-          >
-            Reset all
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-3">
+          {activeFilters > 0 && (
+            <button
+              onClick={resetFilters}
+              className="text-xs font-medium text-red-500 hover:underline dark:text-red-400"
+            >
+              Reset all
+            </button>
+          )}
+          {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+        </div>
       </motion.div>
 
       {/* Filter panel */}
@@ -352,7 +368,7 @@ export default function History() {
       ) : (
         <div className="space-y-4">
           <AnimatePresence initial={false}>
-            {filtered.map(s => (
+            {paged.rows.map(s => (
               // Explicit props rather than variants: this wrapper owns the
               // entrance so the Card inside does not animate on top of it.
               <motion.div
@@ -373,6 +389,7 @@ export default function History() {
               </motion.div>
             ))}
           </AnimatePresence>
+          <ListPager paged={paged} className="pt-2" />
         </div>
       )}
 

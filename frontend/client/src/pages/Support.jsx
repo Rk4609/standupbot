@@ -10,6 +10,8 @@ import Badge from '../components/ui/Badge'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { Field, Input, Select, Textarea } from '../components/ui/Field'
 import { IconAlert, IconInbox, IconPlus, IconUser } from '../components/ui/icons'
 import TicketThread from '../components/TicketThread'
@@ -17,6 +19,7 @@ import { cn } from '../lib/cn'
 import { DURATION, EASE, SPRING, itemVariants, listVariants } from '../lib/motion'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePageSize, usePaged } from '../lib/paging'
 
 const blank = {
   subject: '',
@@ -58,6 +61,9 @@ export default function Support({ user }) {
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
+  const [size, setSize] = usePageSize('support')
+  // My own reports come whole, so they are paged here
+  const minePaged = usePaged(mine?.tickets, 'support-mine')
 
   const loadMine = useCallback(
     () =>
@@ -69,12 +75,12 @@ export default function Support({ user }) {
 
   const loadQueue = useCallback(() => {
     if (!isAdmin) return Promise.resolve()
-    const query = new URLSearchParams({ page: String(page) })
+    const query = new URLSearchParams({ page: String(page), limit: String(size) })
     if (status) query.set('status', status)
     return API.get(`/support?${query}`)
       .then(res => setQueue(res.data))
       .catch(err => setError(apiErrorMessage(err, 'Could not load the queue')))
-  }, [isAdmin, page, status])
+  }, [isAdmin, page, size, status])
 
   useEffect(() => {
     loadMine()
@@ -356,25 +362,36 @@ export default function Support({ user }) {
                   </p>
                 </div>
 
-                {/* Boxed to a width: the select is w-full by default, and a
-                    filter stretched across the card reads as the main control */}
-                <div className="w-full sm:w-44">
-                  <Select
-                    value={status}
-                    onChange={e => {
-                      setStatus(e.target.value)
-                      setPage(1)
-                    }}
-                    aria-label="Filter by status"
-                    className="py-2 text-sm"
-                  >
-                    <option value="">All of them</option>
-                    {(queue.statuses || []).map(s => (
-                      <option key={s} value={s}>
-                        {STATUS_LABEL[s] || s}
-                      </option>
-                    ))}
-                  </Select>
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                  {queue.total > 10 && (
+                    <PageSizeSelect
+                      value={size}
+                      onChange={n => {
+                        setSize(n)
+                        setPage(1)
+                      }}
+                    />
+                  )}
+                  {/* Boxed to a width: the select is w-full by default, and a
+                      filter stretched across the card reads as the main control */}
+                  <div className="min-w-0 flex-1 sm:w-44 sm:flex-none">
+                    <Select
+                      value={status}
+                      onChange={e => {
+                        setStatus(e.target.value)
+                        setPage(1)
+                      }}
+                      aria-label="Filter by status"
+                      className="py-2 text-sm"
+                    >
+                      <option value="">All of them</option>
+                      {(queue.statuses || []).map(s => (
+                        <option key={s} value={s}>
+                          {STATUS_LABEL[s] || s}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
                 </div>
               </div>
 
@@ -400,7 +417,7 @@ export default function Support({ user }) {
                     page={queue.page}
                     totalPages={queue.totalPages}
                     total={queue.total}
-                    limit={queue.limit}
+                    limit={queue.limit || size}
                     onPage={setPage}
                   />
                 </div>
@@ -423,14 +440,19 @@ export default function Support({ user }) {
               />
             ) : (
               <Card padded={false}>
-                <div className="px-4 py-4 md:px-6">
-                  <CardTitle className="mb-0">My reports</CardTitle>
-                  <p className="mt-1 text-xs text-content-subtle">
-                    Open one to read the answer, or to add something you forgot.
-                  </p>
+                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-6">
+                  <div>
+                    <CardTitle className="mb-0">My reports</CardTitle>
+                    <p className="mt-1 text-xs text-content-subtle">
+                      Open one to read the answer, or to add something you forgot.
+                    </p>
+                  </div>
+                  {minePaged.total > 10 && (
+                    <PageSizeSelect value={minePaged.size} onChange={minePaged.setSize} />
+                  )}
                 </div>
                 <ul className="divide-y divide-line border-t border-line">
-                  {mine.tickets.map(t => (
+                  {minePaged.rows.map(t => (
                     <TicketThread
                       key={t._id}
                       ticket={t}
@@ -439,6 +461,7 @@ export default function Support({ user }) {
                     />
                   ))}
                 </ul>
+                <ListPager paged={minePaged} />
               </Card>
             )}
           </motion.div>

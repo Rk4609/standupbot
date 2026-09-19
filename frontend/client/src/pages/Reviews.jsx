@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
@@ -7,9 +7,12 @@ import Card, { CardTitle } from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
+import PageSizeSelect from '../components/ui/PageSizeSelect'
+import ListPager from '../components/ui/ListPager'
 import { IconAlert } from '../components/ui/icons'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
+import { usePaged } from '../lib/paging'
 import { meetingWhen, orderMeetings, REVIEW_STATUS } from '../lib/reviews'
 
 const Row = ({ to, title, sub, badge }) => (
@@ -24,23 +27,38 @@ const Row = ({ to, title, sub, badge }) => (
   </li>
 )
 
-export function MeetingList({ meetings, empty, nameOf }) {
+/**
+ * 1:1s, coming up first, a page at a time. `pageKey` names the list so each
+ * page that shows one remembers its own rows-per-page.
+ */
+export function MeetingList({ meetings, empty, nameOf, pageKey = 'one-on-ones' }) {
+  const ordered = useMemo(() => orderMeetings(meetings), [meetings])
+  const paged = usePaged(ordered, pageKey)
+
   if (meetings.length === 0) return <p className="px-4 pb-5 text-sm text-content-subtle md:px-6">{empty}</p>
   return (
-    <ul className="divide-y divide-line">
-      {orderMeetings(meetings).map(m => {
-        const open = m.items.filter(i => i.kind === 'action' && !i.done).length
-        return (
-          <Row
-            key={m._id}
-            to={`/one-on-ones/${m._id}`}
-            title={`1:1 with ${nameOf(m)}`}
-            sub={`${meetingWhen(m.date, m.time)}${open ? ` · ${open} open action${open === 1 ? '' : 's'}` : ''}`}
-            badge={<Badge tone={m.status === 'done' ? 'neutral' : 'info'}>{m.status === 'done' ? 'Held' : 'Coming up'}</Badge>}
-          />
-        )
-      })}
-    </ul>
+    <>
+      {paged.total > 10 && (
+        <div className="flex justify-end px-4 pb-3 md:px-6">
+          <PageSizeSelect value={paged.size} onChange={paged.setSize} />
+        </div>
+      )}
+      <ul className="divide-y divide-line">
+        {paged.rows.map(m => {
+          const open = m.items.filter(i => i.kind === 'action' && !i.done).length
+          return (
+            <Row
+              key={m._id}
+              to={`/one-on-ones/${m._id}`}
+              title={`1:1 with ${nameOf(m)}`}
+              sub={`${meetingWhen(m.date, m.time)}${open ? ` · ${open} open action${open === 1 ? '' : 's'}` : ''}`}
+              badge={<Badge tone={m.status === 'done' ? 'neutral' : 'info'}>{m.status === 'done' ? 'Held' : 'Coming up'}</Badge>}
+            />
+          )
+        })}
+      </ul>
+      <ListPager paged={paged} />
+    </>
   )
 }
 
@@ -49,6 +67,7 @@ export default function Reviews() {
   const live = useLiveRefresh()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
+  const paged = usePaged(data?.reviews, 'my-reviews')
 
   useEffect(() => {
     Promise.all([API.get('/reviews/mine'), API.get('/one-on-ones')])
@@ -72,15 +91,18 @@ export default function Reviews() {
       <div className="grid gap-5 lg:grid-cols-2">
         <Card padded={false}>
           <div className="px-4 pt-4 md:px-6 md:pt-5"><CardTitle>1:1s with your manager</CardTitle></div>
-          <MeetingList meetings={data.meetings} nameOf={m => m.managerName} empty="None yet. Your manager sets them up; you can add what you want to talk about." />
+          <MeetingList meetings={data.meetings} pageKey="my-one-on-ones" nameOf={m => m.managerName} empty="None yet. Your manager sets them up; you can add what you want to talk about." />
         </Card>
         <Card padded={false}>
-          <div className="px-4 pt-4 md:px-6 md:pt-5"><CardTitle>Your reviews</CardTitle></div>
+          <div className="flex items-start justify-between gap-3 px-4 pt-4 md:px-6 md:pt-5">
+            <CardTitle>Your reviews</CardTitle>
+            {paged.total > 10 && <PageSizeSelect value={paged.size} onChange={paged.setSize} />}
+          </div>
           {data.reviews.length === 0
             ? <p className="px-4 pb-5 text-sm text-content-subtle md:px-6">No review round has started yet.</p>
             : (
               <ul className="divide-y divide-line">
-                {data.reviews.map(r => (
+                {paged.rows.map(r => (
                   <Row
                     key={r._id}
                     to={`/reviews/${r._id}`}
@@ -91,6 +113,7 @@ export default function Reviews() {
                 ))}
               </ul>
             )}
+          <ListPager paged={paged} />
         </Card>
       </div>
     </PageShell>
