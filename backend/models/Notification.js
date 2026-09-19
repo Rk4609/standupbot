@@ -49,7 +49,10 @@ const notificationSchema = new mongoose.Schema({
       'review_started',
       'review_submitted',
       'review_shared',
-      'oneonone_scheduled'
+      'oneonone_scheduled',
+      // HR letters
+      'letter_requested',
+      'letter_issued'
     ],
     required: true
   },

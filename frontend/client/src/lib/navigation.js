@@ -38,7 +38,8 @@ export const navGroups = (user) => {
         { to: '/leave', label: 'Leave', icon: IconCalendar, module: 'leave' },
         { to: '/payslips', label: 'Payslips', icon: IconPrinter, module: 'payslips' },
         { to: '/expenses', label: 'Expenses', icon: IconBriefcase, module: 'expenses' },
-        { to: '/reviews', label: 'Reviews & 1:1s', icon: IconTarget, module: 'reviews' }
+        { to: '/reviews', label: 'Reviews & 1:1s', icon: IconTarget, module: 'reviews' },
+        { to: '/documents', label: 'Documents', icon: IconPrinter, module: 'documents' }
       ]
     },
     {

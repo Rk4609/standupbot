@@ -2,7 +2,7 @@ import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/cn'
 import { DURATION, EASE } from '../lib/motion'
-import { IconAlert, IconBell, IconCalendar, IconCheck, IconClose, IconInbox, IconSparkles, IconUsers, IconBriefcase, IconTarget } from './ui/icons'
+import { IconAlert, IconBell, IconCalendar, IconCheck, IconClose, IconInbox, IconSparkles, IconUsers, IconBriefcase, IconTarget, IconPrinter } from './ui/icons'
 
 /** Icon and tint per kind, so a blocker does not look like a standup. */
 const LOOK = {
@@ -29,6 +29,8 @@ const LOOK = {
   review_submitted: { icon: IconTarget, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
   review_shared: { icon: IconTarget, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   oneonone_scheduled: { icon: IconCalendar, plate: 'bg-sky-500/12 text-sky-600 dark:text-sky-400' },
+  letter_requested: { icon: IconPrinter, plate: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' },
+  letter_issued: { icon: IconPrinter, plate: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' },
   announcement: { icon: IconInbox, plate: 'bg-brand-600/12 text-brand-700 dark:text-brand-300' },
   reminder: { icon: IconBell, plate: 'bg-amber-500/12 text-amber-600 dark:text-amber-400' }
 }
@@ -57,6 +59,8 @@ const TITLE = {
   review_submitted: 'Self-review in',
   review_shared: 'Your review',
   oneonone_scheduled: '1:1 booked',
+  letter_requested: 'Letter requested',
+  letter_issued: 'Your letter',
   announcement: 'Announcement',
   reminder: 'Reminder'
 }

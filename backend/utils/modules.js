@@ -23,6 +23,7 @@ const MODULES = [
   { key: 'kudos', label: 'Kudos — thank teammates', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'expenses', label: 'Expenses — claim money back', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'reviews', label: 'Reviews & 1:1s — own', group: 'Personal', minBase: 'employee', rollOut: true },
+  { key: 'documents', label: 'Documents — own HR letters', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'support', label: 'Help & support', group: 'Personal', minBase: 'employee', always: true },
 
   // What a lead does with other people's days
@@ -49,6 +50,7 @@ const MODULES = [
   { key: 'announce', label: 'Announcements — post notices', group: 'Workspace', minBase: 'manager', rollOut: true },
   { key: 'onboarding', label: 'Onboarding — checklists for new joiners', group: 'Workspace', minBase: 'manager', rollOut: true },
   { key: 'approvals', label: 'Approvals — decide on hires', group: 'Workspace', minBase: 'admin' },
+  { key: 'letters', label: 'Letters — issue HR letters', group: 'Workspace', minBase: 'admin', rollOut: true },
   { key: 'pay', label: 'Pay details', group: 'Workspace', minBase: 'admin' },
   { key: 'people', label: 'People & teams', group: 'Workspace', minBase: 'admin' },
   { key: 'roles', label: 'Roles & access', group: 'Workspace', minBase: 'admin' },
@@ -81,9 +83,9 @@ const allowedFor = (base) =>
 
 /** What each built-in role starts with, and what a new role is offered. */
 const DEFAULTS = {
-  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'support'],
+  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support'],
   manager: [
-    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'support',
+    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support',
     'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
     'projects', 'templates', 'integrations', 'activity', 'records', 'hiring', 'onboarding', 'announce'
   ],

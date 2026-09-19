@@ -14,7 +14,8 @@ const DEFAULTS = {
   office: { start: '10:00', graceMinutes: 15, fullDayHours: 8, halfDayHours: 4 },
   leave: { casual: 12, sick: 8, earned: 15 },
   pay: { basicPercent: 50, hraPercent: 20, pfRate: 12, pfWageCeiling: 15000, professionalTax: 200, professionalTaxFrom: 15000 },
-  holidays: []
+  holidays: [],
+  company: { name: 'StandupBot', address: '', email: '', phone: '', signatory: '', signatoryTitle: 'HR Manager', letterPrefix: 'HR' }
 }
 
 const REFRESH_MS = 60 * 1000
@@ -29,6 +30,7 @@ const apply = (doc) => {
     leave: { ...DEFAULTS.leave, ...(doc?.leave || {}) },
     pay: { ...DEFAULTS.pay, ...(doc?.pay || {}) },
     holidays: [...(doc?.holidays || [])].sort((a, b) => a.date.localeCompare(b.date)),
+    company: { ...DEFAULTS.company, ...(doc?.company || {}) },
     updatedAt: doc?.updatedAt || null,
     updatedByName: doc?.updatedByName || ''
   }

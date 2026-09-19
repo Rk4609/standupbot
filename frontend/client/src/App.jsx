@@ -58,6 +58,10 @@ const Reviews = lazy(() => import("./pages/Reviews"))
 const TeamReviews = lazy(() => import("./pages/TeamReviews"))
 const ReviewDetail = lazy(() => import("./pages/ReviewDetail"))
 const OneOnOneDetail = lazy(() => import("./pages/OneOnOneDetail"))
+const Documents = lazy(() => import("./pages/Documents"))
+const Letters = lazy(() => import("./pages/Letters"))
+const LetterView = lazy(() => import("./pages/LetterView"))
+const VerifyLetter = lazy(() => import("./pages/VerifyLetter"))
 const Announcements = lazy(() => import("./pages/Announcements"))
 const CompanySettings = lazy(() => import("./pages/CompanySettings"))
 const Roles = lazy(() => import("./pages/Roles"))
@@ -139,6 +143,9 @@ function AnimatedRoutes({ user, setUser }) {
           element={!user ? <ForgotPassword /> : <Navigate to="/dashboard" replace />}
         />
 
+        {/* Public, signed in or not: a bank checking a letter is real */}
+        <Route path="/verify/:code" element={<VerifyLetter />} />
+
         <Route
           path="/reset-password/:token"
           element={!user ? <ResetPassword /> : <Navigate to="/dashboard" replace />}
@@ -182,6 +189,7 @@ function AnimatedRoutes({ user, setUser }) {
           {/* A review or a 1:1: its owner or the manager on the other side — the server says which */}
           <Route path="/reviews/:id" element={<ReviewDetail />} />
           <Route path="/one-on-ones/:id" element={<OneOnOneDetail />} />
+          <Route path="/letters/:id" element={<LetterView />} />
         </Route>
         <Route element={<ProtectedRoute user={user} module="payslips" />}>
           <Route path="/payslips" element={<Payslips />} />
@@ -191,6 +199,9 @@ function AnimatedRoutes({ user, setUser }) {
         </Route>
         <Route element={<ProtectedRoute user={user} module="reviews" />}>
           <Route path="/reviews" element={<Reviews />} />
+        </Route>
+        <Route element={<ProtectedRoute user={user} module="documents" />}>
+          <Route path="/documents" element={<Documents />} />
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["manager", "admin"]} />}>
@@ -285,6 +296,9 @@ function AnimatedRoutes({ user, setUser }) {
               </Route>
               <Route element={<ProtectedRoute user={user} module="settings" />}>
                 <Route path="settings" element={<CompanySettings />} />
+              </Route>
+              <Route element={<ProtectedRoute user={user} module="letters" />}>
+                <Route path="letters" element={<Letters />} />
               </Route>
             </Route>
           </Route>

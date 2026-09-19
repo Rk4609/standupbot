@@ -7,7 +7,7 @@ import Card, { CardTitle } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
-import { Field, Input } from '../components/ui/Field'
+import { Field, Input, Textarea } from '../components/ui/Field'
 import { IconAlert, IconPlus, IconTrash } from '../components/ui/icons'
 import { apiErrorMessage } from '../lib/apiError'
 import { prettyDate } from '../lib/dates'
@@ -54,7 +54,7 @@ export default function CompanySettings() {
     API.get('/settings')
       .then(res => {
         setData(res.data)
-        setForm({ office: res.data.office, leave: res.data.leave, pay: res.data.pay, holidays: res.data.holidays })
+        setForm({ office: res.data.office, leave: res.data.leave, pay: res.data.pay, holidays: res.data.holidays, company: res.data.company })
       })
       .catch(err => setError(apiErrorMessage(err, 'Could not load settings')))
   }, [])
@@ -67,7 +67,7 @@ export default function CompanySettings() {
     setSaving(true)
     try {
       const body = {}
-      for (const s of sections) body[s] = s === 'holidays' ? form.holidays : numbers(form[s])
+      for (const s of sections) body[s] = ['holidays', 'company'].includes(s) ? form[s] : numbers(form[s])
       await API.put('/settings', body)
       toast.success('Settings saved — they apply from now')
     } catch (err) {
@@ -111,6 +111,27 @@ export default function CompanySettings() {
       />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-2">
+        {form.company && (
+          <Card className="lg:col-span-2">
+            <CardTitle>Company details</CardTitle>
+            <p className="-mt-2 mb-4 text-xs text-content-subtle">Printed on HR letters. A letter already issued keeps the details it was issued with.</p>
+            <div className="grid gap-3 md:grid-cols-3">
+              <Field label="Company name"><Input value={form.company.name} maxLength={120} onChange={e => set('company', 'name', e.target.value)} /></Field>
+              <Field label="Email"><Input type="email" value={form.company.email} maxLength={120} onChange={e => set('company', 'email', e.target.value)} /></Field>
+              <Field label="Phone"><Input value={form.company.phone} maxLength={40} onChange={e => set('company', 'phone', e.target.value)} /></Field>
+              <div className="md:col-span-3">
+                <Field label="Address"><Textarea rows={2} value={form.company.address} maxLength={300} onChange={e => set('company', 'address', e.target.value)} /></Field>
+              </div>
+              <Field label="Signed by"><Input value={form.company.signatory} maxLength={80} onChange={e => set('company', 'signatory', e.target.value)} placeholder="Name on letters" /></Field>
+              <Field label="Their title"><Input value={form.company.signatoryTitle} maxLength={80} onChange={e => set('company', 'signatoryTitle', e.target.value)} /></Field>
+              <Field label="Letter number prefix" hint={`Letters read ${form.company.letterPrefix || 'HR'}/${new Date().getFullYear()}/0001`}>
+                <Input value={form.company.letterPrefix} maxLength={12} onChange={e => set('company', 'letterPrefix', e.target.value.toUpperCase())} />
+              </Field>
+            </div>
+            <Button size="sm" className="mt-4" loading={saving} onClick={() => save(['company'])}>Save company details</Button>
+          </Card>
+        )}
+
         <Card>
           <CardTitle>Office hours</CardTitle>
           <div className="grid grid-cols-2 gap-3">

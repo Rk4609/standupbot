@@ -39,7 +39,9 @@ const TITLES = {
   review_started: 'Review time',
   review_submitted: 'Self-review in',
   review_shared: 'Your review',
-  oneonone_scheduled: '1:1 booked'
+  oneonone_scheduled: '1:1 booked',
+  letter_requested: 'Letter requested',
+  letter_issued: 'Your letter'
 }
 
 let configuredWith = null

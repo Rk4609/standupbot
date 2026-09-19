@@ -22,6 +22,7 @@ export const WORKSPACE_SECTIONS = [
   { to: 'announcements', label: 'Announcements', icon: IconInbox, module: 'announce' },
   { to: 'approvals', label: 'Approvals', icon: IconCheck, module: 'approvals' },
   { to: 'payroll', label: 'Payroll', icon: IconPrinter, module: 'pay' },
+  { to: 'letters', label: 'Letters', icon: IconPrinter, module: 'letters' },
   // Called the admin panel by the people who use it, so that is its name
   { to: 'admin', label: 'Admin panel', icon: IconShield, module: 'people' },
   { to: 'roles', label: 'Roles & access', icon: IconShieldCheck, module: 'roles' },

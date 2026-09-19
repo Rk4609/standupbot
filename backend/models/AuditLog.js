@@ -22,6 +22,8 @@ const ACTIONS = [
   'expense.rejected',
   'review.cycle_started',
   'review.shared',
+  'letter.issued',
+  'letter.declined',
   'timesheet.reviewed',
   'project.transfer',
   'user.record_updated',

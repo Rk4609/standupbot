@@ -656,6 +656,35 @@ const updateOneOnOne = {
   }).strict()
 }
 
+/* letters ----------------------------------------------------------- */
+
+const letterType = z.enum(['employment', 'salary', 'experience', 'relieving'])
+const letterWords = z.string().trim().max(200, 'is too long')
+
+const requestLetter = z.object({
+  type: letterType,
+  purpose: letterWords.optional(),
+  addressedTo: letterWords.optional()
+}).strict()
+
+const issueLetter = z.object({
+  user: objectId,
+  type: letterType,
+  purpose: letterWords.optional(),
+  addressedTo: letterWords.optional(),
+  lastDay: fields.isoDate.optional()
+}).strict()
+
+const issueRequestedLetter = {
+  params: z.object({ id: objectId }),
+  body: z.object({ lastDay: fields.isoDate.optional() }).strict()
+}
+
+const declineLetter = {
+  params: z.object({ id: objectId }),
+  body: z.object({ note: z.string().trim().min(3, 'needs a reason').max(300, 'is too long') }).strict()
+}
+
 /* company settings -------------------------------------------------- */
 
 const hours = z.coerce.number().min(1).max(16)
@@ -680,7 +709,16 @@ const updateSettings = z.object({
   holidays: z.array(z.object({
     date: fields.isoDate,
     name: z.string().trim().min(2, 'is too short').max(80, 'is too long')
-  }).strict()).max(100).optional()
+  }).strict()).max(100).optional(),
+  company: z.object({
+    name: z.string().trim().min(2, 'is too short').max(120, 'is too long'),
+    address: z.string().trim().max(300, 'is too long'),
+    email: z.union([z.string().trim().email('is not an email').max(120), z.literal('')]),
+    phone: z.string().trim().max(40, 'is too long'),
+    signatory: z.string().trim().max(80, 'is too long'),
+    signatoryTitle: z.string().trim().max(80, 'is too long'),
+    letterPrefix: z.string().trim().min(1, 'is required').max(12, 'is too long').regex(/^[A-Za-z0-9-]+$/, 'letters, digits and - only')
+  }).strict().optional()
 }).strict()
 
 /* roles and access -------------------------------------------------- */
@@ -807,6 +845,10 @@ module.exports = {
   toggleOneOnOneItem,
   oneOnOneItemId,
   updateOneOnOne,
+  requestLetter,
+  issueLetter,
+  issueRequestedLetter,
+  declineLetter,
   pushSubscribe,
   pushUnsubscribe,
   giveKudos,

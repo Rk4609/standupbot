@@ -18,6 +18,7 @@ export const KEYWORDS = {
   '/leave': ['holiday', 'time off', 'vacation', 'sick', 'chhutti'],
   '/payslips': ['salary', 'pay', 'tankha', 'slip'],
   '/expenses': ['reimbursement', 'claim', 'bill', 'receipt', 'kharcha'],
+  '/documents': ['letter', 'certificate', 'experience letter', 'salary certificate', 'relieving', 'noc', 'proof'],
   '/reviews': ['performance', 'appraisal', 'self review', 'one on one', '1:1', 'feedback'],
   '/brief': ['ai', 'summary', 'morning'],
   '/team': ['overview', 'health'],
@@ -41,7 +42,8 @@ export const KEYWORDS = {
   '/workspace/payroll': ['salary', 'run payroll', 'payslips'],
   '/workspace/admin': ['users', 'admin'],
   '/workspace/roles': ['permissions', 'access'],
-  '/workspace/settings': ['holiday', 'holidays', 'office hours', 'leave quota', 'chhutti list', 'settings']
+  '/workspace/letters': ['issue letter', 'certificate', 'experience letter', 'relieving letter'],
+  '/workspace/settings': ['holiday', 'holidays', 'office hours', 'leave quota', 'chhutti list', 'settings', 'company name', 'address', 'signatory']
 }
 
 const normalise = (text) => String(text || '').toLowerCase().trim()

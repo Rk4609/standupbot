@@ -36,6 +36,17 @@ const settingsSchema = new mongoose.Schema({
 
   holidays: { type: [holidaySchema], default: [] },
 
+  // Printed on letters: who the company is and who signs
+  company: {
+    name: { type: String, default: 'StandupBot', trim: true, maxlength: 120 },
+    address: { type: String, default: '', trim: true, maxlength: 300 },
+    email: { type: String, default: '', trim: true, maxlength: 120 },
+    phone: { type: String, default: '', trim: true, maxlength: 40 },
+    signatory: { type: String, default: '', trim: true, maxlength: 80 },
+    signatoryTitle: { type: String, default: 'HR Manager', trim: true, maxlength: 80 },
+    letterPrefix: { type: String, default: 'HR', trim: true, maxlength: 12 }
+  },
+
   updatedByName: { type: String, default: '' }
 }, { timestamps: true })
 

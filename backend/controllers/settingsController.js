@@ -11,6 +11,7 @@ const getSettings = async (req, res) => {
       office: s.office,
       leave: s.leave,
       holidays: s.holidays,
+      company: s.company,
       ...(pay ? { pay: s.pay } : {}),
       updatedAt: s.updatedAt,
       updatedByName: s.updatedByName,
@@ -25,7 +26,7 @@ const getSettings = async (req, res) => {
 // PUT /api/settings — an admin changes them; they apply at once
 const updateSettings = async (req, res) => {
   try {
-    const { office, leave, pay, holidays } = req.body
+    const { office, leave, pay, holidays, company } = req.body
     if (office && office.halfDayHours >= office.fullDayHours) {
       return res.status(400).json({ message: 'A half day has to be shorter than a full day' })
     }
@@ -43,7 +44,8 @@ const updateSettings = async (req, res) => {
       ...(office ? { office } : {}),
       ...(leave ? { leave } : {}),
       ...(pay ? { pay } : {}),
-      ...(holidays ? { holidays } : {})
+      ...(holidays ? { holidays } : {}),
+      ...(company ? { company } : {})
     }, req.user)
 
     await audit.record({
