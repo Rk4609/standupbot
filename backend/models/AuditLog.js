@@ -20,6 +20,8 @@ const ACTIONS = [
   'settings.updated',
   'expense.approved',
   'expense.rejected',
+  'review.cycle_started',
+  'review.shared',
   'timesheet.reviewed',
   'project.transfer',
   'user.record_updated',

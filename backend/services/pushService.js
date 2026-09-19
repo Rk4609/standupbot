@@ -35,7 +35,11 @@ const TITLES = {
   celebration_wish: 'A wish for you',
   announcement: 'Announcement',
   expense_submitted: 'Expense claim',
-  expense_decided: 'Expense update'
+  expense_decided: 'Expense update',
+  review_started: 'Review time',
+  review_submitted: 'Self-review in',
+  review_shared: 'Your review',
+  oneonone_scheduled: '1:1 booked'
 }
 
 let configuredWith = null

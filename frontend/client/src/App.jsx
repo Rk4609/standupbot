@@ -54,6 +54,10 @@ const WeeklyReport = lazy(() => import("./pages/WeeklyReport"))
 const Kudos = lazy(() => import("./pages/Kudos"))
 const Expenses = lazy(() => import("./pages/Expenses"))
 const ExpenseApprovals = lazy(() => import("./pages/ExpenseApprovals"))
+const Reviews = lazy(() => import("./pages/Reviews"))
+const TeamReviews = lazy(() => import("./pages/TeamReviews"))
+const ReviewDetail = lazy(() => import("./pages/ReviewDetail"))
+const OneOnOneDetail = lazy(() => import("./pages/OneOnOneDetail"))
 const Announcements = lazy(() => import("./pages/Announcements"))
 const CompanySettings = lazy(() => import("./pages/CompanySettings"))
 const Roles = lazy(() => import("./pages/Roles"))
@@ -175,12 +179,18 @@ function AnimatedRoutes({ user, setUser }) {
           {/* A checklist: the joiner's own, or one the reader helps with —
               the server says which, and hides the rest */}
           <Route path="/onboarding/:id" element={<OnboardingDetail />} />
+          {/* A review or a 1:1: its owner or the manager on the other side — the server says which */}
+          <Route path="/reviews/:id" element={<ReviewDetail />} />
+          <Route path="/one-on-ones/:id" element={<OneOnOneDetail />} />
         </Route>
         <Route element={<ProtectedRoute user={user} module="payslips" />}>
           <Route path="/payslips" element={<Payslips />} />
         </Route>
         <Route element={<ProtectedRoute user={user} module="expenses" />}>
           <Route path="/expenses" element={<Expenses />} />
+        </Route>
+        <Route element={<ProtectedRoute user={user} module="reviews" />}>
+          <Route path="/reviews" element={<Reviews />} />
         </Route>
 
         <Route element={<ProtectedRoute user={user} roles={["manager", "admin"]} />}>
@@ -207,6 +217,9 @@ function AnimatedRoutes({ user, setUser }) {
           </Route>
           <Route element={<ProtectedRoute user={user} module="expense-approvals" />}>
             <Route path="/expense-approvals" element={<ExpenseApprovals />} />
+          </Route>
+          <Route element={<ProtectedRoute user={user} module="team-reviews" />}>
+            <Route path="/team-reviews" element={<TeamReviews />} />
           </Route>
           <Route element={<ProtectedRoute user={user} module="brief" />}>
             <Route path="/brief" element={<Brief />} />

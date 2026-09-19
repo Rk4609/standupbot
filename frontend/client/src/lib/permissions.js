@@ -8,15 +8,15 @@
  * suddenly lose its sidebar.
  */
 const FALLBACK = {
-  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'support'],
+  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'support'],
   manager: [
-    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals',
+    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'support',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
     'projects', 'templates', 'integrations', 'activity', 'onboarding', 'announce'
   ],
   admin: [
-    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals',
+    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'support',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
     'projects', 'templates', 'integrations', 'activity', 'onboarding', 'announce', 'people', 'roles', 'settings'
   ]
 }

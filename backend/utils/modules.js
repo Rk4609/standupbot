@@ -22,6 +22,7 @@ const MODULES = [
   { key: 'payslips', label: 'Payslips — own salary slips', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'kudos', label: 'Kudos — thank teammates', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'expenses', label: 'Expenses — claim money back', group: 'Personal', minBase: 'employee', rollOut: true },
+  { key: 'reviews', label: 'Reviews & 1:1s — own', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'support', label: 'Help & support', group: 'Personal', minBase: 'employee', always: true },
 
   // What a lead does with other people's days
@@ -34,6 +35,7 @@ const MODULES = [
   { key: 'leaves', label: 'Leave approvals', group: 'Team', minBase: 'manager', rollOut: true },
   { key: 'team-attendance', label: 'Team attendance', group: 'Team', minBase: 'manager', rollOut: true },
   { key: 'expense-approvals', label: 'Expense approvals', group: 'Team', minBase: 'manager', rollOut: true },
+  { key: 'team-reviews', label: 'Team reviews & 1:1s', group: 'Team', minBase: 'manager', rollOut: true },
   { key: 'brief', label: 'Daily AI brief', group: 'Team', minBase: 'manager', rollOut: true },
   { key: 'reports', label: 'Weekly project report', group: 'Team', minBase: 'manager', rollOut: true },
 
@@ -79,10 +81,10 @@ const allowedFor = (base) =>
 
 /** What each built-in role starts with, and what a new role is offered. */
 const DEFAULTS = {
-  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'support'],
+  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'support'],
   manager: [
-    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals',
+    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'support',
+    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
     'projects', 'templates', 'integrations', 'activity', 'records', 'hiring', 'onboarding', 'announce'
   ],
   admin: MODULE_KEYS

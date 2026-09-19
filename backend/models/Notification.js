@@ -44,7 +44,12 @@ const notificationSchema = new mongoose.Schema({
       'announcement',
       // Expense claims: one waiting, and the answer
       'expense_submitted',
-      'expense_decided'
+      'expense_decided',
+      // Reviews and 1:1s
+      'review_started',
+      'review_submitted',
+      'review_shared',
+      'oneonone_scheduled'
     ],
     required: true
   },

@@ -577,6 +577,85 @@ const decideExpense = {
   body: z.object({ note: z.string().trim().max(300, 'is too long').optional() }).strict()
 }
 
+/* reviews and 1:1s -------------------------------------------------- */
+
+const rating = z.coerce.number().int().min(1).max(5)
+const ratingsInput = z.object({
+  quality: rating.nullable().optional(),
+  delivery: rating.nullable().optional(),
+  teamwork: rating.nullable().optional(),
+  ownership: rating.nullable().optional(),
+  communication: rating.nullable().optional()
+}).strict()
+const longText = z.string().trim().max(2000, 'is too long')
+
+const saveSelfReview = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    ratings: ratingsInput.optional(),
+    wins: longText.optional(),
+    improve: longText.optional(),
+    submit: z.boolean().optional()
+  }).strict()
+}
+
+const saveManagerReview = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    ratings: ratingsInput.optional(),
+    strengths: longText.optional(),
+    growth: longText.optional(),
+    overall: rating.nullable().optional()
+  }).strict()
+}
+
+const acknowledgeReview = {
+  params: z.object({ id: objectId }),
+  body: z.object({ comment: z.string().trim().max(1000, 'is too long').optional() }).strict()
+}
+
+const startReviewCycle = z.object({
+  name: z.string().trim().min(3, 'needs a name').max(80, 'is too long'),
+  from: fields.isoDate,
+  to: fields.isoDate,
+  dueOn: fields.isoDate
+}).strict()
+
+const hhmm = z.string().regex(/^(\d{2}:\d{2})?$/, 'is not a time')
+
+const scheduleOneOnOne = z.object({
+  employee: objectId,
+  date: fields.isoDate,
+  time: hhmm.optional()
+}).strict()
+
+const oneOnOneItem = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    kind: z.enum(['point', 'action']),
+    text: z.string().trim().min(2, 'is too short').max(300, 'is too long'),
+    owner: z.enum(['manager', 'employee']).optional()
+  }).strict()
+}
+
+const toggleOneOnOneItem = {
+  params: z.object({ id: objectId, itemId: objectId }),
+  body: z.object({ done: z.boolean() }).strict()
+}
+
+const oneOnOneItemId = { params: z.object({ id: objectId, itemId: objectId }) }
+
+const updateOneOnOne = {
+  params: z.object({ id: objectId }),
+  body: z.object({
+    notes: z.string().max(4000, 'is too long').optional(),
+    privateNote: z.string().max(2000, 'is too long').optional(),
+    done: z.boolean().optional(),
+    date: fields.isoDate.optional(),
+    time: hhmm.optional()
+  }).strict()
+}
+
 /* company settings -------------------------------------------------- */
 
 const hours = z.coerce.number().min(1).max(16)
@@ -719,6 +798,15 @@ module.exports = {
   updateSettings,
   claimExpense,
   decideExpense,
+  saveSelfReview,
+  saveManagerReview,
+  acknowledgeReview,
+  startReviewCycle,
+  scheduleOneOnOne,
+  oneOnOneItem,
+  toggleOneOnOneItem,
+  oneOnOneItemId,
+  updateOneOnOne,
   pushSubscribe,
   pushUnsubscribe,
   giveKudos,
