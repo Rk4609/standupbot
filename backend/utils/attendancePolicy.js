@@ -1,4 +1,5 @@
-const { isWeekend, minuteOfDayIn } = require('./time')
+const { minuteOfDayIn } = require('./time')
+const { isOffDay, settings } = require('../services/settingsService')
 
 /**
  * The working day, as the office sets it.
@@ -6,11 +7,20 @@ const { isWeekend, minuteOfDayIn } = require('./time')
  * Times are minutes since midnight on the person's own clock: a team split
  * between Pune and Berlin each start at ten where they are.
  */
-const POLICY = {
-  start: 10 * 60,
-  graceMinutes: 15,
-  fullDayMinutes: 8 * 60,
-  halfDayMinutes: 4 * 60
+const toMinutes = (hhmm) => {
+  const [h, m] = hhmm.split(':').map(Number)
+  return h * 60 + m
+}
+
+/** The office's rules as currently set (see Settings), in minutes. */
+const policy = () => {
+  const { office } = settings()
+  return {
+    start: toMinutes(office.start),
+    graceMinutes: office.graceMinutes,
+    fullDayMinutes: office.fullDayHours * 60,
+    halfDayMinutes: office.halfDayHours * 60
+  }
 }
 
 const hhmm = (minutes) =>
@@ -29,8 +39,10 @@ const hhmm = (minutes) =>
  */
 const readDay = (row, { today, halfDayLeave = false } = {}) => {
   const tz = row.timezone || 'UTC'
+  const POLICY = policy()
   const inAt = minuteOfDayIn(tz, new Date(row.checkIn))
-  const lateBy = isWeekend(row.date) || halfDayLeave
+  // Nobody is late on a weekend or a holiday they chose to work
+  const lateBy = isOffDay(row.date) || halfDayLeave
     ? 0
     : Math.max(0, inAt - (POLICY.start + POLICY.graceMinutes))
 
@@ -60,11 +72,14 @@ const readDay = (row, { today, halfDayLeave = false } = {}) => {
   }
 }
 
-const policyForClient = () => ({
-  start: hhmm(POLICY.start),
-  graceMinutes: POLICY.graceMinutes,
-  fullDayHours: POLICY.fullDayMinutes / 60,
-  halfDayHours: POLICY.halfDayMinutes / 60
-})
+const policyForClient = () => {
+  const POLICY = policy()
+  return {
+    start: hhmm(POLICY.start),
+    graceMinutes: POLICY.graceMinutes,
+    fullDayHours: POLICY.fullDayMinutes / 60,
+    halfDayHours: POLICY.halfDayMinutes / 60
+  }
+}
 
-module.exports = { POLICY, hhmm, readDay, policyForClient }
+module.exports = { policy, hhmm, readDay, policyForClient }

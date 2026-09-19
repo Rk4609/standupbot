@@ -5,7 +5,8 @@ const User = require('../models/User')
 const audit = require('../services/auditService')
 const { notifyMany } = require('../services/notifyService')
 const { canUse } = require('../services/roleService')
-const { addDays, isWeekend, todayIn, zoneOf } = require('../utils/time')
+const { addDays, todayIn, zoneOf } = require('../utils/time')
+const { isOffDay } = require('../services/settingsService')
 const { computeSlip, monthBounds, monthlyOf } = require('../utils/payPolicy')
 
 const MONTH = /^\d{4}-\d{2}$/
@@ -13,7 +14,7 @@ const MONTH = /^\d{4}-\d{2}$/
 const weekdaysBetween = (from, to) => {
   const days = []
   for (let day = from; day <= to; day = addDays(day, 1)) {
-    if (!isWeekend(day)) days.push(day)
+    if (!isOffDay(day)) days.push(day)
   }
   return days
 }

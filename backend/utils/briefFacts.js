@@ -3,7 +3,8 @@ const Leave = require('../models/Leave')
 const Standup = require('../models/Standup')
 const { readDay } = require('./attendancePolicy')
 const { clip } = require('./promptBudget')
-const { addDays, isWeekend } = require('./time')
+const { addDays } = require('./time')
+const { isOffDay } = require('../services/settingsService')
 const { collectWellbeing } = require('./wellbeing')
 
 /**
@@ -24,7 +25,7 @@ const LOW_MOODS = ['bad', 'stressed']
 const workdaysBetween = (from, to) => {
   const days = []
   for (let day = from; day <= to; day = addDays(day, 1)) {
-    if (!isWeekend(day)) days.push(day)
+    if (!isOffDay(day)) days.push(day)
   }
   return days
 }
@@ -32,7 +33,7 @@ const workdaysBetween = (from, to) => {
 /** The working day before `date`. */
 const previousWorkday = (date) => {
   let day = addDays(date, -1)
-  while (isWeekend(day)) day = addDays(day, -1)
+  while (isOffDay(day)) day = addDays(day, -1)
   return day
 }
 
@@ -43,7 +44,7 @@ const previousWorkday = (date) => {
 const analyse = ({ people, date, today, standups, attendance, leaves, pendingLeave, wellbeing = new Map() }) => {
   const from = addDays(date, -LOOKBACK_DAYS)
   const window = workdaysBetween(from, date)
-  const workday = !isWeekend(date)
+  const workday = !isOffDay(date)
 
   const group = (rows) => {
     const by = new Map()

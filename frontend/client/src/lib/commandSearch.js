@@ -36,7 +36,8 @@ export const KEYWORDS = {
   '/workspace/approvals': ['approve hire'],
   '/workspace/payroll': ['salary', 'run payroll', 'payslips'],
   '/workspace/admin': ['users', 'admin'],
-  '/workspace/roles': ['permissions', 'access']
+  '/workspace/roles': ['permissions', 'access'],
+  '/workspace/settings': ['holiday', 'holidays', 'office hours', 'leave quota', 'chhutti list', 'settings']
 }
 
 const normalise = (text) => String(text || '').toLowerCase().trim()

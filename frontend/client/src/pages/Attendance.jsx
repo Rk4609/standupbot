@@ -162,7 +162,8 @@ function DayDetail({ day }) {
           {day.leave ? `On ${day.leave.type} leave${day.leave.halfDay ? ' for half the day' : ''}.`
             : day.state === 'absent' ? 'No check-in on a working day.'
               : day.state === 'untracked' ? 'Before attendance was kept for you.'
-                : day.state === 'weekend' ? 'Weekend.'
+                : day.state === 'holiday' ? `Holiday — ${day.holiday}.`
+              : day.state === 'weekend' ? 'Weekend.'
                   : 'Nothing yet.'}
         </p>
       )}
@@ -316,7 +317,7 @@ export default function Attendance() {
           </div>
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 px-2 text-[11px] text-content-subtle">
-            {['present', 'half-day', 'no-checkout', 'leave', 'absent'].map(state => (
+            {['present', 'half-day', 'no-checkout', 'leave', 'absent', 'holiday'].map(state => (
               <span key={state} className="flex items-center gap-1.5">
                 <span className={cn('h-2.5 w-2.5 rounded', STATE_CELL[state])} />
                 {STATE_LABEL[state]}

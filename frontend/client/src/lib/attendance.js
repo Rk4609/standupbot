@@ -9,6 +9,7 @@ export const STATE_LABEL = {
   absent: 'Absent',
   'not-in': 'Not in yet',
   weekend: 'Weekend',
+  holiday: 'Holiday',
   upcoming: '',
   untracked: ''
 }
@@ -21,7 +22,8 @@ export const STATE_TONE = {
   leave: 'neutral',
   absent: 'danger',
   'not-in': 'neutral',
-  weekend: 'neutral'
+  weekend: 'neutral',
+  holiday: 'info'
 }
 
 /** The fill of a day on the month grid. */
@@ -34,6 +36,7 @@ export const STATE_CELL = {
   absent: 'bg-red-500/15 text-red-600 dark:text-red-400',
   'not-in': 'ring-1 ring-inset ring-line text-content',
   weekend: 'text-content-subtle',
+  holiday: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
   upcoming: 'text-content-subtle',
   untracked: 'text-content-subtle'
 }

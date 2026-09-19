@@ -17,13 +17,13 @@ const BACKDATE_DAYS = 30
  * against what is left of that kind — somebody should find out they are two
  * days short here, not from a rejection a day later.
  */
-export default function LeaveForm({ balance, today, onClose, onSaved }) {
+export default function LeaveForm({ balance, today, holidays = [], onClose, onSaved }) {
   const [form, setForm] = useState({ type: 'casual', from: '', to: '', halfDay: false, reason: '' })
   const [saving, setSaving] = useState(false)
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }))
 
-  const days = workingDays(form.from, form.halfDay ? form.from : form.to, form.halfDay)
+  const days = workingDays(form.from, form.halfDay ? form.from : form.to, form.halfDay, holidays)
   const left = balance.find(b => b.type === form.type)?.remaining ?? null
   const short = left !== null && days > left
 
@@ -51,9 +51,9 @@ export default function LeaveForm({ balance, today, onClose, onSaved }) {
   }
 
   const hint = () => {
-    if (!form.from) return 'Weekends are not counted.'
+    if (!form.from) return 'Weekends and holidays are not counted.'
     if (!form.halfDay && form.to && form.to < form.from) return 'The last day is before the first.'
-    if (days === 0 && (form.halfDay || form.to)) return 'Those days are all a weekend.'
+    if (days === 0 && (form.halfDay || form.to)) return 'Those days are all weekends or holidays.'
     if (short) return `Only ${dayWord(left)} of ${TYPE_LABEL[form.type].toLowerCase()} leave left.`
     if (days > 0) return `Costs ${dayWord(days)}${left !== null ? ` · ${dayWord(left - days)} left after` : ''}.`
     return 'Weekends are not counted.'

@@ -136,7 +136,7 @@ export default function Leave() {
     <PageShell>
       <PageHeader
         title="Leave"
-        subtitle={`Your time off in ${data.year}. Weekends are never counted.`}
+        subtitle={`Your time off in ${data.year}. Weekends and holidays are never counted.`}
         actions={ask}
       />
 
@@ -217,6 +217,7 @@ export default function Leave() {
           <LeaveForm
             balance={data.balance}
             today={data.today}
+            holidays={data.holidays || []}
             onClose={() => setAsking(false)}
             onSaved={changed}
           />

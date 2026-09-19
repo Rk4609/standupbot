@@ -1,7 +1,8 @@
 const User = require('../models/User')
 const Team = require('../models/Team')
 const Standup = require('../models/Standup')
-const { isWeekend, lastNDates, zoneOf } = require('../utils/time')
+const { lastNDates, zoneOf } = require('../utils/time')
+const { isOffDay } = require('../services/settingsService')
 const { sendCsv } = require('../utils/csv')
 
 /** Mood as a number so it can be averaged and trended. */
@@ -70,7 +71,7 @@ const getOverview = async (req, res) => {
     const dates = lastNDates(days, zoneOf(req.user))
     const from = dates[0]
     const to = dates[dates.length - 1]
-    const workingDays = dates.filter(d => !isWeekend(d)).length
+    const workingDays = dates.filter(d => !isOffDay(d)).length
 
     const roster = await User.find(scope)
       .select('name email avatar role team streak')
@@ -128,7 +129,7 @@ const getOverview = async (req, res) => {
 
     const daily = dates.map(date => {
       const d = dayBy.get(date)
-      const weekend = isWeekend(date)
+      const weekend = isOffDay(date)
       return {
         date,
         weekend,

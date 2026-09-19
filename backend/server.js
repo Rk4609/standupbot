@@ -12,12 +12,17 @@ const User = require('./models/User')
 const { sessionAllows } = require('./services/sessionService')
 
 const { ensureBuiltIns } = require('./services/roleService')
+const { refreshSettings } = require('./services/settingsService')
 
 // Roles are brought up to date once connected, so a module added in this
 // release reaches managers and employees without anybody opening Roles first
-connectDB().then(() =>
+connectDB().then(() => {
   ensureBuiltIns().catch(err => console.error('Could not update roles:', err.message))
-)
+  // The morning jobs work outside any request, so the company settings they
+  // count days by are kept fresh here too
+  refreshSettings(true)
+  setInterval(() => refreshSettings(), 60 * 1000).unref()
+})
 
 const app = createApp()
 const server = http.createServer(app)

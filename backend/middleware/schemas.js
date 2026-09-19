@@ -555,6 +555,33 @@ const postAnnouncement = z.object({
   team: z.union([objectId, z.null()]).optional()
 }).strict()
 
+/* company settings -------------------------------------------------- */
+
+const hours = z.coerce.number().min(1).max(16)
+const days = z.coerce.number().int().min(0).max(365)
+
+const updateSettings = z.object({
+  office: z.object({
+    start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be HH:MM'),
+    graceMinutes: z.coerce.number().int().min(0).max(180),
+    fullDayHours: hours,
+    halfDayHours: hours
+  }).strict().optional(),
+  leave: z.object({ casual: days, sick: days, earned: days }).strict().optional(),
+  pay: z.object({
+    basicPercent: z.coerce.number().min(1).max(100),
+    hraPercent: z.coerce.number().min(0).max(100),
+    pfRate: z.coerce.number().min(0).max(50),
+    pfWageCeiling: z.coerce.number().min(0).max(1e9),
+    professionalTax: z.coerce.number().min(0).max(1e6),
+    professionalTaxFrom: z.coerce.number().min(0).max(1e9)
+  }).strict().optional(),
+  holidays: z.array(z.object({
+    date: fields.isoDate,
+    name: z.string().trim().min(2, 'is too short').max(80, 'is too long')
+  }).strict()).max(100).optional()
+}).strict()
+
 /* roles and access -------------------------------------------------- */
 
 const moduleList = z.array(z.string().max(40)).max(60)
@@ -667,6 +694,7 @@ module.exports = {
   readWeeklyReport,
   writeWeeklyReport,
   searchQuery,
+  updateSettings,
   pushSubscribe,
   pushUnsubscribe,
   giveKudos,

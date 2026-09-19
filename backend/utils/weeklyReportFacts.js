@@ -2,7 +2,8 @@ const Leave = require('../models/Leave')
 const Project = require('../models/Project')
 const Standup = require('../models/Standup')
 const { clip } = require('./promptBudget')
-const { addDays, isWeekend } = require('./time')
+const { addDays } = require('./time')
+const { isOffDay } = require('../services/settingsService')
 
 /**
  * A week of a team's work, by project, as the records have it.
@@ -24,7 +25,7 @@ const analyseWeek = ({ week, today, people, standups, projects, leaves }) => {
   const lastDay = week.weekEnd < today ? week.weekEnd : today
   const workdays = []
   for (let day = week.weekStart; day <= lastDay; day = addDays(day, 1)) {
-    if (!isWeekend(day)) workdays.push(day)
+    if (!isOffDay(day)) workdays.push(day)
   }
 
   const byProject = new Map()

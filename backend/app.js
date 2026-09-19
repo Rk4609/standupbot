@@ -3,6 +3,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 
 const { apiLimiter } = require('./middleware/rateLimiters')
+const { refreshSettings } = require('./services/settingsService')
 
 /** Origins the browser client may call from. */
 const allowedOrigins = () =>
@@ -56,6 +57,10 @@ const createApp = ({ globalRateLimit = true } = {}) => {
 
   if (globalRateLimit) app.use('/api', apiLimiter)
 
+  // Company settings (office hours, allowances, holidays) are read by plain
+  // functions everywhere; keep the copy they read at most a minute old
+  app.use('/api', (req, res, next) => { refreshSettings().then(() => next(), next) })
+
   app.use('/api/auth', require('./routes/authRoutes'))
   app.use('/api/standups', require('./routes/standupRoutes'))
   app.use('/api/teams', require('./routes/teamRoutes'))
@@ -87,6 +92,7 @@ const createApp = ({ globalRateLimit = true } = {}) => {
   app.use('/api/announcements', require('./routes/announcementRoutes'))
   app.use('/api/sessions', require('./routes/sessionRoutes'))
   app.use('/api/exports', require('./routes/exportRoutes'))
+  app.use('/api/settings', require('./routes/settingsRoutes'))
 
   // Health check — also keeps Render from sleeping
   app.get('/', (req, res) => res.send('StandupBot API ✅'))

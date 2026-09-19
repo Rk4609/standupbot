@@ -1,4 +1,5 @@
-const { addDays, daysBetween, isWeekend } = require('./time')
+const { addDays, daysBetween } = require('./time')
+const { isOffDay, settings } = require('../services/settingsService')
 
 /**
  * How much time off a person has in a calendar year, by kind.
@@ -6,24 +7,22 @@ const { addDays, daysBetween, isWeekend } = require('./time')
  * `null` means no limit: unpaid leave is still asked for and approved, it
  * just does not run out.
  */
-const ALLOWANCE = {
-  casual: 12,
-  sick: 8,
-  earned: 15,
-  unpaid: null
+const allowances = () => {
+  const { leave } = settings()
+  return { casual: leave.casual, sick: leave.sick, earned: leave.earned, unpaid: null }
 }
 
 /** The longest single request, so a typo in the year is caught, not approved. */
 const MAX_SPAN_DAYS = 60
 
-/** Working days from `from` to `to` inclusive; a half day costs half. */
+/** Working days from `from` to `to` inclusive — weekends and holidays are free; a half day costs half. */
 const workingDays = (from, to, halfDay = false) => {
-  if (halfDay) return isWeekend(from) ? 0 : 0.5
+  if (halfDay) return isOffDay(from) ? 0 : 0.5
 
   let count = 0
   const span = daysBetween(from, to)
   for (let i = 0; i <= span; i++) {
-    if (!isWeekend(addDays(from, i))) count += 1
+    if (!isOffDay(addDays(from, i))) count += 1
   }
   return count
 }
@@ -38,7 +37,7 @@ const workingDays = (from, to, halfDay = false) => {
 const balanceFor = (requests, year) => {
   const inYear = requests.filter(r => r.from.startsWith(`${year}-`))
 
-  return Object.entries(ALLOWANCE).map(([type, allowance]) => {
+  return Object.entries(allowances()).map(([type, allowance]) => {
     const sum = (status) => inYear
       .filter(r => r.type === type && r.status === status)
       .reduce((total, r) => total + r.days, 0)
@@ -56,4 +55,4 @@ const balanceFor = (requests, year) => {
   })
 }
 
-module.exports = { ALLOWANCE, MAX_SPAN_DAYS, workingDays, balanceFor }
+module.exports = { allowances, MAX_SPAN_DAYS, workingDays, balanceFor }

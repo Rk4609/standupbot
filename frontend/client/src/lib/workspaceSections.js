@@ -24,7 +24,8 @@ export const WORKSPACE_SECTIONS = [
   { to: 'payroll', label: 'Payroll', icon: IconPrinter, module: 'pay' },
   // Called the admin panel by the people who use it, so that is its name
   { to: 'admin', label: 'Admin panel', icon: IconShield, module: 'people' },
-  { to: 'roles', label: 'Roles & access', icon: IconShieldCheck, module: 'roles' }
+  { to: 'roles', label: 'Roles & access', icon: IconShieldCheck, module: 'roles' },
+  { to: 'settings', label: 'Company settings', icon: IconTarget, module: 'settings' }
 ]
 
 /** The sections this person may open, in order. */

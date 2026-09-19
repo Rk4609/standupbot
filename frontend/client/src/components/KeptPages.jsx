@@ -79,7 +79,8 @@ const PAGES = [
   ['dashboard', () => import('../pages/OnboardingDetail')],
   ['people', () => import('../pages/AdminPanel')],
   ['roles', () => import('../pages/Roles')],
-  ['pay', () => import('../pages/Payroll')]
+  ['pay', () => import('../pages/Payroll')],
+  ['settings', () => import('../pages/CompanySettings')]
 ]
 
 function PageFallback() {

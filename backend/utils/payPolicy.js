@@ -1,4 +1,5 @@
-const { addDays, isWeekend } = require('./time')
+const { addDays } = require('./time')
+const { isOffDay, settings } = require('../services/settingsService')
 
 /**
  * How a monthly salary is split and what comes off it.
@@ -10,9 +11,6 @@ const { addDays, isWeekend } = require('./time')
  * here — it depends on declarations this app does not hold — and the slip
  * says so rather than printing a guess.
  */
-const SPLIT = { basic: 0.5, hra: 0.2 }
-const PF = { rate: 0.12, wageCeiling: 15000 }
-const PROFESSIONAL_TAX = { amount: 200, from: 15000 }
 
 const rupees = (n) => Math.round(n)
 
@@ -22,12 +20,12 @@ const monthBounds = (month) => {
   return { first, last }
 }
 
-/** Monday to Friday in the month. */
+/** Days the office is open in the month: not weekends, not holidays. */
 const workingDaysIn = (month) => {
   const { first, last } = monthBounds(month)
   let count = 0
   for (let day = first; day <= last; day = addDays(day, 1)) {
-    if (!isWeekend(day)) count += 1
+    if (!isOffDay(day)) count += 1
   }
   return count
 }
@@ -51,8 +49,9 @@ const computeSlip = ({ salary, month, unpaidLeaveDays = 0, absentDays = 0, notJo
   const workingDays = workingDaysIn(month)
   const lossOfPayDays = Math.min(workingDays, unpaidLeaveDays + absentDays + notJoinedDays)
 
-  const basic = rupees(gross * SPLIT.basic)
-  const hra = rupees(gross * SPLIT.hra)
+  const { pay } = settings()
+  const basic = rupees(gross * pay.basicPercent / 100)
+  const hra = rupees(gross * pay.hraPercent / 100)
   const special = gross - basic - hra
 
   const earnings = [
@@ -65,10 +64,10 @@ const computeSlip = ({ salary, month, unpaidLeaveDays = 0, absentDays = 0, notJo
   // Statutory deductions are Indian rules; a salary paid in another currency
   // gets none rather than the wrong ones
   if (currency === 'INR') {
-    const pf = rupees(Math.min(basic, PF.wageCeiling) * PF.rate)
-    if (pf > 0) deductions.push({ label: 'Provident fund', amount: pf, note: '12% of basic' })
-    if (gross >= PROFESSIONAL_TAX.from) {
-      deductions.push({ label: 'Professional tax', amount: PROFESSIONAL_TAX.amount })
+    const pf = rupees(Math.min(basic, pay.pfWageCeiling) * pay.pfRate / 100)
+    if (pf > 0) deductions.push({ label: 'Provident fund', amount: pf, note: `${pay.pfRate}% of basic` })
+    if (pay.professionalTax > 0 && gross >= pay.professionalTaxFrom) {
+      deductions.push({ label: 'Professional tax', amount: pay.professionalTax })
     }
   }
 
@@ -104,4 +103,4 @@ const computeSlip = ({ salary, month, unpaidLeaveDays = 0, absentDays = 0, notJo
   }
 }
 
-module.exports = { SPLIT, PF, PROFESSIONAL_TAX, monthBounds, workingDaysIn, monthlyOf, computeSlip }
+module.exports = { monthBounds, workingDaysIn, monthlyOf, computeSlip }

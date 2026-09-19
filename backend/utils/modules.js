@@ -47,7 +47,8 @@ const MODULES = [
   { key: 'approvals', label: 'Approvals — decide on hires', group: 'Workspace', minBase: 'admin' },
   { key: 'pay', label: 'Pay details', group: 'Workspace', minBase: 'admin' },
   { key: 'people', label: 'People & teams', group: 'Workspace', minBase: 'admin' },
-  { key: 'roles', label: 'Roles & access', group: 'Workspace', minBase: 'admin' }
+  { key: 'roles', label: 'Roles & access', group: 'Workspace', minBase: 'admin' },
+  { key: 'settings', label: 'Company settings — hours, leave, pay, holidays', group: 'Workspace', minBase: 'admin', rollOut: true }
 ]
 
 const MODULE_KEYS = MODULES.map(m => m.key)

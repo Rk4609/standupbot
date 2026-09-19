@@ -58,13 +58,14 @@ export const addDays = (iso, n) => {
 export const isWeekend = (iso) => [0, 6].includes(asUtc(iso).getUTCDay())
 
 /** Working days a request costs — the same count the server makes. */
-export const workingDays = (from, to, halfDay = false) => {
+export const workingDays = (from, to, halfDay = false, holidays = []) => {
   if (!from) return 0
-  if (halfDay) return isWeekend(from) ? 0 : 0.5
+  const off = (day) => isWeekend(day) || holidays.some(h => h.date === day)
+  if (halfDay) return off(from) ? 0 : 0.5
   if (!to || to < from) return 0
   let count = 0
   for (let day = from; day <= to; day = addDays(day, 1)) {
-    if (!isWeekend(day)) count += 1
+    if (!off(day)) count += 1
   }
   return count
 }

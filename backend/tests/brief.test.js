@@ -17,6 +17,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllGlobals()
   delete process.env.GROQ_API_KEY
 })
@@ -114,6 +115,13 @@ describe('working out the facts', () => {
 })
 
 describe('the brief page', () => {
+  // A Thursday: on a weekend nobody is expected to file, and the prompt
+  // would have no missing names to check for
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-17T06:00:00.000Z'))
+  })
+
   const crew = async () => {
     const manager = await makeUser({ role: 'manager' })
     const team = await makeTeam(manager, { name: 'MERN' })

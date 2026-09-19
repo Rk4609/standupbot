@@ -17,6 +17,7 @@ const ACTIONS = [
   'user.role_changed',
   'user.2fa_enabled',
   'user.2fa_disabled',
+  'settings.updated',
   'timesheet.reviewed',
   'project.transfer',
   'user.record_updated',

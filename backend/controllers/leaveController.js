@@ -6,7 +6,8 @@ const { notify, notifyMany } = require('../services/notifyService')
 const { canUse } = require('../services/roleService')
 const { ownTeam } = require('../utils/teams')
 const { addDays, daysBetween, todayIn, zoneOf } = require('../utils/time')
-const { ALLOWANCE, MAX_SPAN_DAYS, workingDays, balanceFor } = require('../utils/leavePolicy')
+const { allowances, MAX_SPAN_DAYS, workingDays, balanceFor } = require('../utils/leavePolicy')
+const { settings } = require('../services/settingsService')
 
 const PAGE_SIZES = [10, 20, 50]
 const DEFAULT_LIMIT = 20
@@ -82,7 +83,9 @@ const myLeave = async (req, res) => {
       today: todayIn(zoneOf(req.user)),
       requests,
       balance: balanceFor(requests, year),
-      types: Leave.TYPES
+      types: Leave.TYPES,
+      // So the form counts days the way the server will
+      holidays: settings().holidays
     })
   } catch (err) {
     console.error('My leave error:', err.message)
@@ -130,7 +133,7 @@ const requestLeave = async (req, res) => {
       })
     }
 
-    const allowance = ALLOWANCE[type]
+    const allowance = allowances()[type]
     if (allowance !== null) {
       const year = from.slice(0, 4)
       const thisYear = await Leave.find({ user: req.user._id, from: { $regex: `^${year}-` } }).lean()

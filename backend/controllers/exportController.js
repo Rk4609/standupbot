@@ -8,7 +8,8 @@ const { sendCsv } = require('../utils/csv')
 const { readDay } = require('../utils/attendancePolicy')
 const { balanceFor } = require('../utils/leavePolicy')
 const { monthBounds } = require('../utils/payPolicy')
-const { addDays, isWeekend, todayIn, zoneOf } = require('../utils/time')
+const { addDays, todayIn, zoneOf } = require('../utils/time')
+const { isOffDay } = require('../services/settingsService')
 
 /**
  * Downloads of what a lead can already see on the page, as CSV.
@@ -82,7 +83,7 @@ const exportAttendance = async (req, res) => {
       for (let d = first; d <= last && d <= today; d = addDays(d, 1)) {
         const row = rows.find(r => String(r.user) === id && r.date === d)
         const leave = leaves.find(l => String(l.user) === id && l.from <= d && l.to >= d)
-        if (!row && (isWeekend(d) || (!leave && (!since.get(id) || d < since.get(id) || d === today)))) continue
+        if (!row && (isOffDay(d) || (!leave && (!since.get(id) || d < since.get(id) || d === today)))) continue
 
         const read = row ? readDay(row, { today, halfDayLeave: Boolean(leave?.halfDay) }) : null
         const state = read ? read.state : leave ? `${leave.type} leave${leave.halfDay ? ' (half)' : ''}` : 'absent'

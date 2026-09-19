@@ -6,6 +6,7 @@ const audit = require('../services/auditService')
 const { canUse } = require('../services/roleService')
 const { ownTeam } = require('../utils/teams')
 const { addDays, instantIn, isWeekend, todayIn, zoneOf } = require('../utils/time')
+const { holidayOn, isOffDay } = require('../services/settingsService')
 const { readDay, policyForClient } = require('../utils/attendancePolicy')
 
 const isAdmin = (user) => user.role === 'admin'
@@ -35,6 +36,7 @@ const leaveOn = (leaves, day) => leaves.find(l => l.from <= day && l.to >= day)
 const dayFor = ({ day, record, leave, today, since }) => {
   if (record) return record.state
   if (leave && !leave.halfDay) return 'leave'
+  if (holidayOn(day)) return 'holiday'
   if (isWeekend(day)) return 'weekend'
   if (day > today) return 'upcoming'
   if (day === today) return 'not-in'
@@ -70,6 +72,7 @@ const myAttendance = async (req, res) => {
       return {
         date: day,
         weekend: isWeekend(day),
+        holiday: holidayOn(day),
         state: dayFor({ day, record, leave, today, since }),
         record,
         leave: leave ? { type: leave.type, halfDay: leave.halfDay } : null
@@ -252,7 +255,7 @@ const teamAttendance = async (req, res) => {
     const monthLeavesBy = group(monthLeaves)
 
     const sinceOf = new Map(starts.map(s => [String(s._id), s.since]))
-    const workdays = eachDay(first, monthEnd).filter(d => !isWeekend(d))
+    const workdays = eachDay(first, monthEnd).filter(d => !isOffDay(d))
 
     const list = people.map(person => {
       const id = String(person._id)
