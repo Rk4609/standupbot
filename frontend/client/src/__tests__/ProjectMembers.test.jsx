@@ -34,7 +34,7 @@ describe('a project with nobody named on it', () => {
   it('says it is open to the team rather than showing an empty list', () => {
     renderPanel()
 
-    expect(screen.getByText(/whole team can book to it/i)).toBeInTheDocument()
+    expect(screen.getByText(/whole team works on it/i)).toBeInTheDocument()
   })
 
   it('puts somebody on it', async () => {
@@ -55,10 +55,10 @@ describe('a project with nobody named on it', () => {
 })
 
 describe('a project with people on it', () => {
-  it('says plainly that nobody else can book to it', () => {
+  it('says plainly that nobody else is on it', () => {
     renderPanel({ project: { members: [asha] } })
 
-    expect(screen.getByText(/Nobody else can/i)).toBeInTheDocument()
+    expect(screen.getByText(/Nobody else is on it/i)).toBeInTheDocument()
     expect(screen.queryByText(/whole team can book/i)).not.toBeInTheDocument()
   })
 
@@ -78,16 +78,16 @@ describe('a project with people on it', () => {
     await waitFor(() =>
       expect(API.patch).toHaveBeenCalledWith('/projects/p1/members', { remove: ['u1'] })
     )
-    expect(await screen.findByText(/whole team can book to it/i)).toBeInTheDocument()
+    expect(await screen.findByText(/whole team works on it/i)).toBeInTheDocument()
   })
 
-  it('moves somebody to another project, and says the hours stay put', async () => {
+  it('moves somebody to another project', async () => {
     API.post.mockResolvedValue({ data: { message: 'Asha Rao moved to Internal tools' } })
 
     renderPanel({ project: { members: [asha] } })
     await userEvent.click(screen.getByRole('button', { name: /move/i }))
 
-    expect(screen.getByText(/hours already\s+booked here stay here/i)).toBeInTheDocument()
+    expect(screen.getByText(/come off this\s+one and go on the one you pick/i)).toBeInTheDocument()
 
     await userEvent.selectOptions(screen.getByLabelText(/Move Asha Rao to/i), 'p2')
 

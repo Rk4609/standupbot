@@ -32,14 +32,11 @@ const History = lazy(() => import("./pages/History"))
 const Profile = lazy(() => import("./pages/Profile"))
 const TeamView = lazy(() => import("./pages/TeamView"))
 const Blockers = lazy(() => import("./pages/Blockers"))
-const Retro = lazy(() => import("./pages/Retro"))
-const Employees = lazy(() => import("./pages/Employees"))
 const Analytics = lazy(() => import("./pages/Analytics"))
 const Activity = lazy(() => import("./pages/Activity"))
 const Templates = lazy(() => import("./pages/Templates"))
 const Integrations = lazy(() => import("./pages/Integrations"))
 const WorkspaceLayout = lazy(() => import("./components/WorkspaceLayout"))
-const Timesheet = lazy(() => import("./pages/Timesheet"))
 const Support = lazy(() => import("./pages/Support"))
 const Leave = lazy(() => import("./pages/Leave"))
 const LeaveApprovals = lazy(() => import("./pages/LeaveApprovals"))
@@ -65,12 +62,10 @@ const VerifyLetter = lazy(() => import("./pages/VerifyLetter"))
 const Announcements = lazy(() => import("./pages/Announcements"))
 const CompanySettings = lazy(() => import("./pages/CompanySettings"))
 const Roles = lazy(() => import("./pages/Roles"))
-const People = lazy(() => import("./pages/People"))
+const PeopleHub = lazy(() => import("./pages/PeopleHub"))
 const Hiring = lazy(() => import("./pages/Hiring"))
 const Projects = lazy(() => import("./pages/Projects"))
-const TeamTimesheets = lazy(() => import("./pages/TeamTimesheets"))
 const NotFound = lazy(() => import("./pages/NotFound"))
-const AdminPanel = lazy(() => import("./pages/AdminPanel"))
 
 /** Shown while a route chunk is in flight — mirrors the page layout. */
 function RouteFallback() {
@@ -168,8 +163,9 @@ function AnimatedRoutes({ user, setUser }) {
         <Route element={<ProtectedRoute user={user} module="history" />}>
           <Route path="/history" element={<History />} />
         </Route>
-        <Route element={<ProtectedRoute user={user} module="timesheet" />}>
-          <Route path="/timesheet" element={<Timesheet />} />
+        {/* Activity, HR details and access: one page, a tab each for whoever may open it */}
+        <Route element={<ProtectedRoute user={user} module={["employees", "records", "people"]} />}>
+          <Route path="/people" element={<PeopleHub user={user} />} />
         </Route>
         <Route element={<ProtectedRoute user={user} module="leave" />}>
           <Route path="/leave" element={<Leave />} />
@@ -211,17 +207,8 @@ function AnimatedRoutes({ user, setUser }) {
           <Route element={<ProtectedRoute user={user} module="blockers" />}>
             <Route path="/blockers" element={<Blockers user={user} />} />
           </Route>
-          <Route element={<ProtectedRoute user={user} module="retro" />}>
-            <Route path="/retro" element={<Retro user={user} />} />
-          </Route>
-          <Route element={<ProtectedRoute user={user} module="employees" />}>
-            <Route path="/employees" element={<Employees />} />
-          </Route>
           <Route element={<ProtectedRoute user={user} module="analytics" />}>
             <Route path="/analytics" element={<Analytics />} />
-          </Route>
-          <Route element={<ProtectedRoute user={user} module="timesheets" />}>
-            <Route path="/timesheets" element={<TeamTimesheets />} />
           </Route>
           <Route element={<ProtectedRoute user={user} module="leaves" />}>
             <Route path="/leaves" element={<LeaveApprovals />} />
@@ -264,11 +251,9 @@ function AnimatedRoutes({ user, setUser }) {
             <Route element={<ProtectedRoute user={user} module="activity" />}>
               <Route path="activity" element={<Activity />} />
             </Route>
-            <Route element={<ProtectedRoute user={user} module="records" />}>
-              <Route path="records" element={<People user={user} />} />
-            </Route>
-            <Route element={<ProtectedRoute user={user} module="hiring" />}>
-              <Route path="hiring" element={<Hiring />} />
+            {/* Deciding on a hire is a view of Hiring, so either module opens it */}
+            <Route element={<ProtectedRoute user={user} module={["hiring", "approvals"]} />}>
+              <Route path="hiring" element={<Hiring user={user} />} />
             </Route>
             <Route element={<ProtectedRoute user={user} module="announce" />}>
               <Route path="announcements" element={<Announcements />} />
@@ -282,14 +267,8 @@ function AnimatedRoutes({ user, setUser }) {
                 one of them and any other tab swapped one layout for another
                 and rebuilt the tabs, which is the reload this is avoiding. */}
             <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
-              <Route element={<ProtectedRoute user={user} module="people" />}>
-                <Route path="admin" element={<AdminPanel user={user} />} />
-              </Route>
               <Route element={<ProtectedRoute user={user} module="roles" />}>
                 <Route path="roles" element={<Roles />} />
-              </Route>
-              <Route element={<ProtectedRoute user={user} module="approvals" />}>
-                <Route path="approvals" element={<Hiring decide />} />
               </Route>
               <Route element={<ProtectedRoute user={user} module="pay" />}>
                 <Route path="payroll" element={<Payroll />} />
@@ -313,10 +292,15 @@ function AnimatedRoutes({ user, setUser }) {
           element={<Navigate to="/workspace/integrations" replace />}
         />
         <Route path="/activity" element={<Navigate to="/workspace/activity" replace />} />
-
-        <Route element={<ProtectedRoute user={user} roles={["admin"]} />}>
-          <Route path="/admin" element={<Navigate to="/workspace/admin" replace />} />
-        </Route>
+        <Route path="/admin" element={<Navigate to="/people?tab=access" replace />} />
+        <Route path="/workspace/admin" element={<Navigate to="/people?tab=access" replace />} />
+        <Route path="/employees" element={<Navigate to="/people?tab=activity" replace />} />
+        <Route path="/workspace/records" element={<Navigate to="/people?tab=records" replace />} />
+        <Route path="/workspace/approvals" element={<Navigate to="/workspace/hiring?view=decide" replace />} />
+        {/* Folded into other pages */}
+        <Route path="/retro" element={<Navigate to="/reports" replace />} />
+        <Route path="/timesheet" element={<Navigate to="/attendance" replace />} />
+        <Route path="/timesheets" element={<Navigate to="/team-attendance" replace />} />
 
         {/* A silent redirect here made a stale bundle look like a broken
             link — say what happened instead */}

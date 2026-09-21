@@ -170,7 +170,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Print — used by the weekly retro "Save as PDF" action
+   Print — used by the "Download PDF" actions (weekly report, payslips, letters)
 --------------------------------------------------------------------------- */
 @media print {
   :root {

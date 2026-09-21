@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
@@ -9,13 +10,16 @@ import Skeleton from '../components/ui/Skeleton'
 import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
 import PageSizeSelect from '../components/ui/PageSizeSelect'
+import TabPills from '../components/ui/TabPills'
 import { Select } from '../components/ui/Field'
-import { IconAlert, IconPlus, IconUsers } from '../components/ui/icons'
+import { IconAlert, IconCheck, IconPlus, IconUsers } from '../components/ui/icons'
 import CandidateForm from '../components/CandidateForm'
 import CandidateList from '../components/CandidateList'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
 import { usePageSize } from '../lib/paging'
+import { can } from '../lib/permissions'
+import { getUser } from '../store/authStore'
 
 const STATUS_LABEL = { pending: 'Waiting', approved: 'Approved', rejected: 'Rejected' }
 
@@ -26,7 +30,42 @@ const STATUS_LABEL = { pending: 'Waiting', approved: 'Approved', rejected: 'Reje
  * with the record already in it. Nothing is retyped, and nobody is created
  * by mistake — a candidate who never joins simply stays a rejected row.
  */
-export default function Hiring({ decide = false }) {
+export default function Hiring({ user = getUser() }) {
+  const [params] = useSearchParams()
+  const mayPropose = can(user, 'hiring')
+  const mayDecide = can(user, 'approvals')
+
+  // Approvals used to be a Workspace tab of its own showing this same list,
+  // filtered to what waits on a decision. It is a view of this page now, kept
+  // in the address as ?view=decide. Somebody who may only decide gets that
+  // view whatever the address says, and no switch to a view they cannot use.
+  const decide = mayDecide && (params.get('view') === 'decide' || !mayPropose)
+
+  const views = mayPropose && mayDecide && (
+    <TabPills
+      label="Which candidates"
+      active={decide ? 'decide' : 'all'}
+      className="mb-5"
+      items={[
+        { key: 'all', label: 'All candidates', icon: IconUsers, to: { search: '' } },
+        { key: 'decide', label: 'Waiting for your decision', icon: IconCheck, to: { search: '?view=decide' } }
+      ]}
+    />
+  )
+
+  // Its own filter, page and page size per view, so switching starts that
+  // view afresh rather than carrying the other one's filter across
+  return (
+    <Candidates
+      key={decide ? 'decide' : 'all'}
+      decide={decide}
+      title={decide && !mayPropose ? 'Approvals' : 'Hiring'}
+      views={views}
+    />
+  )
+}
+
+function Candidates({ decide, title, views }) {
   // Reload in place when something new may have happened — see liveRefresh
   const live = useLiveRefresh()
   const [data, setData] = useState(null)
@@ -49,12 +88,11 @@ export default function Hiring({ decide = false }) {
     load()
   }, [load, live])
 
-  const title = decide ? 'Approvals' : 'Hiring'
-
   if (error) {
     return (
       <PageShell>
         <PageHeader title={title} />
+        {views}
         <EmptyState icon={<IconAlert className="h-6 w-6" />} tone="danger" title={error} />
       </PageShell>
     )
@@ -65,6 +103,7 @@ export default function Hiring({ decide = false }) {
       <PageShell>
         <Skeleton className="mb-2 h-9 w-44" />
         <Skeleton className="mb-7 h-4 w-80" />
+        {views}
         <Skeleton className="h-80 rounded-card" />
       </PageShell>
     )
@@ -90,6 +129,8 @@ export default function Hiring({ decide = false }) {
           )
         }
       />
+
+      {views}
 
       <Card padded={false}>
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-6">

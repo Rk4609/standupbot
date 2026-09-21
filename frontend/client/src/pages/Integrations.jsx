@@ -31,9 +31,10 @@ const EVENTS = [
     hint: 'Who posted, who is blocked — at 6pm in your timezone.'
   },
   {
+    // Named when this was the retro; kept so saved settings still apply
     key: 'weeklyRetro',
-    label: 'The weekly retro',
-    hint: 'The generated retrospective, every Friday evening.'
+    label: 'The weekly report',
+    hint: 'The written status report, every Friday afternoon.'
   }
 ]
 
@@ -160,7 +161,7 @@ export default function Integrations() {
     <PageShell>
       <PageHeader
         title="Integrations"
-        subtitle="Send standups, blockers and the weekly retro to a Slack channel."
+        subtitle="Send standups, blockers and the weekly report to a Slack channel."
         actions={
           state.teams?.length > 1 && (
             <div className="w-52">

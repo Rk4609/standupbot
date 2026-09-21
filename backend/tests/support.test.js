@@ -128,7 +128,7 @@ describe('answering', () => {
 
     const res = await request(app)
       .post(`/api/support/${ticket.body._id}/reply`).set(...authHeader(person))
-      .send({ body: 'It also happens on the timesheet page.' })
+      .send({ body: 'It also happens on the attendance page.' })
 
     // Nobody has answered them yet, and saying otherwise would hide it
     expect(res.body.status).toBe('open')
@@ -235,7 +235,7 @@ describe('telling somebody it happened', () => {
     const ticket = await raise(asha)
 
     await request(app).post(`/api/support/${ticket.body._id}/reply`)
-      .set(...authHeader(asha)).send({ body: 'It also happens on the timesheet page.' })
+      .set(...authHeader(asha)).send({ body: 'It also happens on the attendance page.' })
 
     const [latest] = await bellOf(admin)
     expect(latest.message).toMatch(/Asha Rao added to/)

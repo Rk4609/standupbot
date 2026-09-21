@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { resolveWeek, previousWeek, mondayOf, isoWeekNumber } from '../utils/week.js'
 
 /**
- * These are pure date helpers, but they decide which standups a retro reads,
- * so an off-by-one here silently produces a retro for the wrong week. The
+ * These are pure date helpers, but they decide which standups a weekly report reads,
+ * so an off-by-one here silently produces a report for the wrong week. The
  * seed script had exactly that bug by mixing local and UTC.
  */
 describe('week helpers', () => {

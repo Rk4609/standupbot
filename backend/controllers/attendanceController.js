@@ -8,6 +8,7 @@ const { ownTeam } = require('../utils/teams')
 const { addDays, instantIn, isWeekend, todayIn, zoneOf } = require('../utils/time')
 const { holidayOn, isOffDay } = require('../services/settingsService')
 const { readDay, policyForClient } = require('../utils/attendancePolicy')
+const { mondayOf, toISODate } = require('../utils/week')
 
 const isAdmin = (user) => user.role === 'admin'
 
@@ -21,6 +22,17 @@ const eachDay = (first, last) => {
   const days = []
   for (let day = first; day <= last; day = addDays(day, 1)) days.push(day)
   return days
+}
+
+/**
+ * Minutes worked on a row: check-in to check-out, or to now for today's day
+ * still open. A past day never closed counts nothing — there is no telling
+ * when it ended.
+ */
+const minutesWorked = (row, today) => {
+  if (row.checkOut) return Math.max(0, Math.round((new Date(row.checkOut) - new Date(row.checkIn)) / 60_000))
+  if (row.date === today) return Math.max(0, Math.round((Date.now() - new Date(row.checkIn)) / 60_000))
+  return 0
 }
 
 /** The approved leave covering a day, if any. */
@@ -51,15 +63,21 @@ const myAttendance = async (req, res) => {
     const today = todayIn(tz)
     const month = /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : today.slice(0, 7)
     const { first, last } = monthBounds(month)
+    // This week, Monday to Sunday, read apart from the month: a week can
+    // start in the month before, and the dashboard wants it whole
+    const weekStart = toISODate(mondayOf(new Date(`${today}T12:00:00.000Z`)))
+    const weekEnd = addDays(weekStart, 6)
 
-    const [rows, leaves, earliest, todayRow, todayLeave] = await Promise.all([
+    const [rows, leaves, earliest, todayRow, todayLeave, weekRows] = await Promise.all([
       Attendance.find({ user: req.user._id, date: { $gte: first, $lte: last } }).lean(),
       Leave.find({ user: req.user._id, status: 'approved', from: { $lte: last }, to: { $gte: first } })
         .select('type from to halfDay days').lean(),
       Attendance.findOne({ user: req.user._id }).sort({ date: 1 }).select('date').lean(),
       Attendance.findOne({ user: req.user._id, date: today }).lean(),
       Leave.findOne({ user: req.user._id, status: 'approved', from: { $lte: today }, to: { $gte: today } })
-        .select('type halfDay').lean()
+        .select('type halfDay').lean(),
+      Attendance.find({ user: req.user._id, date: { $gte: weekStart, $lte: weekEnd } })
+        .select('date checkIn checkOut').lean()
     ])
 
     const since = earliest?.date || null
@@ -108,7 +126,12 @@ const myAttendance = async (req, res) => {
       todayRecord: todayRow ? readDay(todayRow, { today, halfDayLeave: Boolean(todayLeave?.halfDay) }) : null,
       todayLeave,
       days,
-      summary
+      summary,
+      // Time worked each day of this week, so far for today
+      week: eachDay(weekStart, weekEnd).map(date => {
+        const row = weekRows.find(r => r.date === date)
+        return { date, minutes: row ? minutesWorked(row, today) : 0 }
+      })
     })
   } catch (err) {
     console.error('My attendance error:', err.message)

@@ -53,7 +53,6 @@ const getActiveTemplate = async (req, res) => {
       name: template.name,
       questions: template.questions,
       askMood: template.askMood,
-      trackTime: Boolean(template.trackTime),
       coreKeys: CORE_KEYS
     })
   } catch (err) {
@@ -122,7 +121,7 @@ const saveTemplate = async (req, res) => {
     const { team, error } = await editableTeam(req.user, req.body.team)
     if (error) return res.status(400).json({ message: error })
 
-    const { name, questions, askMood, trackTime } = req.body
+    const { name, questions, askMood } = req.body
 
     const problem = validateQuestions(questions)
     if (problem) return res.status(400).json({ message: problem })
@@ -134,7 +133,6 @@ const saveTemplate = async (req, res) => {
         name: name || 'Daily standup',
         questions,
         askMood: askMood !== false,
-        trackTime: Boolean(trackTime),
         updatedBy: req.user._id
       },
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
@@ -145,7 +143,6 @@ const saveTemplate = async (req, res) => {
       name: template.name,
       questions: template.questions,
       askMood: template.askMood,
-      trackTime: Boolean(template.trackTime),
       coreKeys: CORE_KEYS,
       requiredKeys: REQUIRED_KEYS,
       custom: true,
@@ -175,7 +172,6 @@ const resetTemplate = async (req, res) => {
       name: template.name,
       questions: template.questions,
       askMood: template.askMood,
-      trackTime: Boolean(template.trackTime),
       coreKeys: CORE_KEYS,
       requiredKeys: REQUIRED_KEYS,
       custom: Boolean(template._id),

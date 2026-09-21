@@ -99,13 +99,13 @@ export function ProfileCard({ profile, user }) {
 
 /* ------------------------------------------------------------------ */
 
-/** Hours per day this week, as the thin bars of the design's Progress card. */
+/** Hours worked per day this week, from attendance, as the design's Progress bars. */
 export function WeekBars({ dates, perDay, total, today }) {
   const peak = Math.max(8, ...dates.map(d => perDay?.[d] || 0))
 
   return (
     <Card className="flex min-h-[15.5rem] flex-col">
-      <CardHead title="Progress" to="/timesheet" label="Open your timesheet" />
+      <CardHead title="Progress" to="/attendance" label="Open your attendance" />
 
       <div className="mt-2 flex items-end gap-2">
         <span className="tabular text-[2.5rem] font-extralight leading-none tracking-tight text-content">
@@ -113,7 +113,7 @@ export function WeekBars({ dates, perDay, total, today }) {
           <span className="ml-0.5 text-lg">h</span>
         </span>
         <span className="pb-1 text-[11px] leading-tight text-content-subtle">
-          Work time
+          Worked
           <br />
           this week
         </span>
@@ -167,9 +167,9 @@ export function WeekBars({ dates, perDay, total, today }) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Today's hours against a working day, drawn as the design's time-tracker
- * ring. It is not a running clock — there is no timer in this app, and a dial
- * that pretended to tick would be a lie — it is what has been booked today.
+ * Today's hours against a full working day, drawn as the design's
+ * time-tracker ring. It is not a running clock: it is the time from today's
+ * check-in to the check-out, or to when the page was loaded if still in.
  */
 export function TodayRing({ hours, standup, onEdit, target = 8 }) {
   const share = Math.min((hours || 0) / target, 1)
@@ -203,7 +203,7 @@ export function TodayRing({ hours, standup, onEdit, target = 8 }) {
           <span className="tabular text-3xl font-extralight tracking-tight text-content">
             {hoursLabel(hours)}h
           </span>
-          <span className="text-[11px] text-content-subtle">of {target}h booked</span>
+          <span className="text-[11px] text-content-subtle">of {target}h worked</span>
         </div>
       </div>
 

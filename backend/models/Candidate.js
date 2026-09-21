@@ -5,7 +5,7 @@ const mongoose = require('mongoose')
  *
  * A candidate is not a User: half of them never join, and an account that
  * exists "pending approval" would show up in the roster, the standup
- * reminders and the timesheet counts from the day it was created. This is
+ * reminders and the attendance counts from the day it was created. This is
  * the same shape as a person's record, held to one side until an admin says
  * yes — at which point it becomes one, in a single step, with nothing
  * retyped.

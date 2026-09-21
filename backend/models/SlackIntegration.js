@@ -17,6 +17,8 @@ const EVENTS = [
   'standupSubmitted',
   'blockerRaised',
   'dailySummary',
+  // Posts the Friday weekly report. The name is from when that was the
+  // retro; it is kept so the settings teams have already saved still apply.
   'weeklyRetro'
 ]
 

@@ -114,13 +114,6 @@ export default function ProjectActivity() {
                       <span className="mt-1 block truncate text-xs text-content-muted">
                         {person.plan || 'No plan written'}
                       </span>
-                      {person.workedOn.length > 0 && (
-                        <span className="mt-1 block text-xs text-content-subtle">
-                          {person.workedOn
-                            .map(w => `${w.code || w.project} · ${w.hours}h`)
-                            .join('  ·  ')}
-                        </span>
-                      )}
                       {person.blocker && (
                         <span className="mt-1 flex items-start gap-1.5 text-xs text-red-600 dark:text-red-400">
                           <IconAlert className="mt-0.5 h-3 w-3 shrink-0" />

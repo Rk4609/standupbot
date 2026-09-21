@@ -9,7 +9,8 @@ export default function ProtectedRoute({ user, roles, module }) {
   // A silent bounce to the dashboard reads as a broken link. Saying which
   // part of the app this is, and who can turn it back on, is one screen and
   // saves somebody guessing.
-  if (module && !can(user, module)) return <NoAccess module={module} />
+  // A list means any one of them will do
+  if (module && !can(user, module)) return <NoAccess module={[].concat(module)[0]} />
 
   return <Outlet />
 }

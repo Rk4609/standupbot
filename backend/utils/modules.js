@@ -16,7 +16,6 @@ const MODULES = [
   { key: 'dashboard', label: 'Dashboard', group: 'Personal', minBase: 'employee', always: true },
   { key: 'standup', label: 'Submit a standup', group: 'Personal', minBase: 'employee' },
   { key: 'history', label: 'Own history', group: 'Personal', minBase: 'employee' },
-  { key: 'timesheet', label: 'Own timesheet', group: 'Personal', minBase: 'employee' },
   { key: 'leave', label: 'Leave — ask for time off', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'attendance', label: 'Attendance — check in and out', group: 'Personal', minBase: 'employee', rollOut: true },
   { key: 'payslips', label: 'Payslips — own salary slips', group: 'Personal', minBase: 'employee', rollOut: true },
@@ -28,11 +27,9 @@ const MODULES = [
 
   // What a lead does with other people's days
   { key: 'team', label: 'Team overview', group: 'Team', minBase: 'manager' },
-  { key: 'employees', label: 'Employees', group: 'Team', minBase: 'manager' },
+  { key: 'employees', label: 'People — standup activity', group: 'Team', minBase: 'manager' },
   { key: 'blockers', label: 'Blockers board', group: 'Team', minBase: 'manager' },
-  { key: 'timesheets', label: 'Timesheet approvals', group: 'Team', minBase: 'manager' },
   { key: 'analytics', label: 'Analytics & exports', group: 'Team', minBase: 'manager' },
-  { key: 'retro', label: 'Weekly retro', group: 'Team', minBase: 'manager' },
   { key: 'leaves', label: 'Leave approvals', group: 'Team', minBase: 'manager', rollOut: true },
   { key: 'team-attendance', label: 'Team attendance', group: 'Team', minBase: 'manager', rollOut: true },
   { key: 'expense-approvals', label: 'Expense approvals', group: 'Team', minBase: 'manager', rollOut: true },
@@ -45,14 +42,14 @@ const MODULES = [
   { key: 'templates', label: 'Standup template', group: 'Workspace', minBase: 'manager' },
   { key: 'integrations', label: 'Integrations', group: 'Workspace', minBase: 'manager' },
   { key: 'activity', label: 'Activity log', group: 'Workspace', minBase: 'manager' },
-  { key: 'records', label: 'People records', group: 'Workspace', minBase: 'manager' },
+  { key: 'records', label: 'People — HR details', group: 'Workspace', minBase: 'manager' },
   { key: 'hiring', label: 'Hiring — put people forward', group: 'Workspace', minBase: 'manager' },
   { key: 'announce', label: 'Announcements — post notices', group: 'Workspace', minBase: 'manager', rollOut: true },
   { key: 'onboarding', label: 'Onboarding — checklists for new joiners', group: 'Workspace', minBase: 'manager', rollOut: true },
-  { key: 'approvals', label: 'Approvals — decide on hires', group: 'Workspace', minBase: 'admin' },
+  { key: 'approvals', label: 'Hiring — decide on hires', group: 'Workspace', minBase: 'admin' },
   { key: 'letters', label: 'Letters — issue HR letters', group: 'Workspace', minBase: 'admin', rollOut: true },
   { key: 'pay', label: 'Pay details', group: 'Workspace', minBase: 'admin' },
-  { key: 'people', label: 'People & teams', group: 'Workspace', minBase: 'admin' },
+  { key: 'people', label: 'People — accounts, teams and access', group: 'Workspace', minBase: 'admin' },
   { key: 'roles', label: 'Roles & access', group: 'Workspace', minBase: 'admin' },
   { key: 'settings', label: 'Company settings — hours, leave, pay, holidays', group: 'Workspace', minBase: 'admin', rollOut: true }
 ]
@@ -83,10 +80,10 @@ const allowedFor = (base) =>
 
 /** What each built-in role starts with, and what a new role is offered. */
 const DEFAULTS = {
-  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support'],
+  employee: ['dashboard', 'standup', 'history', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support'],
   manager: [
-    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
+    'dashboard', 'standup', 'history', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support',
+    'team', 'employees', 'blockers', 'analytics', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
     'projects', 'templates', 'integrations', 'activity', 'records', 'hiring', 'onboarding', 'announce'
   ],
   admin: MODULE_KEYS

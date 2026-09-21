@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 vi.mock('../api/axios', () => ({
   default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() }
@@ -46,6 +47,25 @@ const payload = (over = {}) => ({
   ...over
 })
 
+const manager = { role: 'manager', modules: ['dashboard', 'hiring'] }
+const admin = { role: 'admin', modules: ['dashboard', 'hiring', 'approvals'] }
+const decider = { role: 'admin', modules: ['dashboard', 'approvals'] }
+
+/** Where the page thinks it is, so a test can see the switch move the address. */
+function Address() {
+  const { search } = useLocation()
+  return <output aria-label="address">{search}</output>
+}
+
+const renderAt = (ui, entry = '/workspace/hiring') =>
+  render(
+    <MemoryRouter initialEntries={[entry]}>
+      <Routes>
+        <Route path="/workspace/hiring" element={<>{ui}<Address /></>} />
+      </Routes>
+    </MemoryRouter>
+  )
+
 const answer = (over) => {
   API.get.mockResolvedValue({ data: payload(over) })
 }
@@ -69,7 +89,7 @@ describe('a manager putting somebody forward', () => {
       ]
     })
 
-    render(<Hiring />)
+    renderAt(<Hiring user={manager} />)
 
     expect(await screen.findByText('Meera Joshi')).toBeInTheDocument()
 
@@ -88,7 +108,7 @@ describe('a manager putting somebody forward', () => {
       })]
     })
 
-    render(<Hiring />)
+    renderAt(<Hiring user={manager} />)
     await userEvent.click(await screen.findByRole('button', { name: /Meera Joshi/ }))
 
     expect(screen.getByText(/No contract headcount until April/)).toBeInTheDocument()
@@ -98,7 +118,7 @@ describe('a manager putting somebody forward', () => {
     answer()
     API.post.mockResolvedValue({ data: candidate({ name: 'Kabir Sen' }) })
 
-    render(<Hiring />)
+    renderAt(<Hiring user={manager} />)
     await userEvent.click(await screen.findByRole('button', { name: /new joining/i }))
 
     await userEvent.type(screen.getByLabelText('Full name'), 'Kabir Sen')
@@ -118,7 +138,7 @@ describe('a manager putting somebody forward', () => {
   it('asks for the internship window only when there is one', async () => {
     answer()
 
-    render(<Hiring />)
+    renderAt(<Hiring user={manager} />)
     await userEvent.click(await screen.findByRole('button', { name: /new joining/i }))
 
     expect(screen.queryByLabelText('Internship ends')).not.toBeInTheDocument()
@@ -129,7 +149,7 @@ describe('a manager putting somebody forward', () => {
   it('will not send without a name, an email and a position', async () => {
     answer()
 
-    render(<Hiring />)
+    renderAt(<Hiring user={manager} />)
     await userEvent.click(await screen.findByRole('button', { name: /new joining/i }))
     await userEvent.type(screen.getByLabelText('Full name'), 'Kabir Sen')
 
@@ -139,7 +159,7 @@ describe('a manager putting somebody forward', () => {
   it('offers no approve button to the person who asked', async () => {
     answer()
 
-    render(<Hiring />)
+    renderAt(<Hiring user={manager} />)
     await screen.findByText('Meera Joshi')
 
     expect(screen.queryByRole('button', { name: /^approve$/i })).not.toBeInTheDocument()
@@ -149,7 +169,7 @@ describe('a manager putting somebody forward', () => {
   it('keeps the pay field out of the form when pay is not their business', async () => {
     answer()
 
-    render(<Hiring />)
+    renderAt(<Hiring user={manager} />)
     await userEvent.click(await screen.findByRole('button', { name: /new joining/i }))
 
     expect(screen.queryByLabelText('Agreed pay')).not.toBeInTheDocument()
@@ -167,7 +187,7 @@ describe('an admin deciding', () => {
       }
     })
 
-    render(<Hiring decide />)
+    renderAt(<Hiring user={admin} />, '/workspace/hiring?view=decide')
     await userEvent.click(await screen.findByRole('button', { name: /^approve$/i }))
 
     await waitFor(() => expect(API.post).toHaveBeenCalledWith('/hiring/c1/approve', {}))
@@ -177,7 +197,7 @@ describe('an admin deciding', () => {
   it('will not reject without saying why', async () => {
     answer({ canDecide: true })
 
-    render(<Hiring decide />)
+    renderAt(<Hiring user={admin} />, '/workspace/hiring?view=decide')
     await userEvent.click(await screen.findByRole('button', { name: /^reject$/i }))
 
     const dialog = within(screen.getByRole('dialog'))
@@ -188,7 +208,7 @@ describe('an admin deciding', () => {
     answer({ canDecide: true })
     API.post.mockResolvedValue({ data: { message: 'Meera Joshi rejected' } })
 
-    render(<Hiring decide />)
+    renderAt(<Hiring user={admin} />, '/workspace/hiring?view=decide')
     await userEvent.click(await screen.findByRole('button', { name: /^reject$/i }))
     const dialog = within(screen.getByRole('dialog'))
     await userEvent.type(screen.getByLabelText('Why'), 'No headcount until April')
@@ -197,5 +217,56 @@ describe('an admin deciding', () => {
     await waitFor(() => expect(API.post).toHaveBeenCalledWith('/hiring/c1/reject', {
       reason: 'No headcount until April'
     }))
+  })
+})
+
+describe('the switch between everybody and what waits on you', () => {
+  it('is not offered to somebody who cannot decide', async () => {
+    answer()
+
+    renderAt(<Hiring user={manager} />, '/workspace/hiring?view=decide')
+    await screen.findByText('Meera Joshi')
+
+    expect(screen.queryByRole('link', { name: /waiting for your decision/i })).not.toBeInTheDocument()
+    expect(API.get).toHaveBeenCalledWith(expect.not.stringContaining('status='))
+  })
+
+  it('opens on everybody, and moves to the waiting ones through the address', async () => {
+    answer({ canDecide: true })
+
+    renderAt(<Hiring user={admin} />)
+    await screen.findByText('Meera Joshi')
+
+    expect(screen.getByRole('link', { name: /all candidates/i })).toHaveAttribute('aria-current', 'page')
+    expect(API.get).toHaveBeenLastCalledWith(expect.not.stringContaining('status='))
+
+    await userEvent.click(screen.getByRole('link', { name: /waiting for your decision/i }))
+
+    expect(screen.getByRole('status', { name: 'address' })).toHaveTextContent('?view=decide')
+    await waitFor(() => expect(API.get).toHaveBeenLastCalledWith(expect.stringContaining('status=pending')))
+    expect(await screen.findByText('Waiting on you')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /new joining/i })).not.toBeInTheDocument()
+  })
+
+  it('goes back to everybody from the waiting ones', async () => {
+    answer({ canDecide: true })
+
+    renderAt(<Hiring user={admin} />, '/workspace/hiring?view=decide')
+    await screen.findByText('Waiting on you')
+    await userEvent.click(screen.getByRole('link', { name: /all candidates/i }))
+
+    expect(await screen.findByText('Your submissions')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'address' })).toHaveTextContent(/^$/)
+  })
+
+  it('gives somebody who may only decide the waiting ones, with no switch', async () => {
+    answer({ canDecide: true })
+
+    renderAt(<Hiring user={decider} />)
+
+    expect(await screen.findByText('Waiting on you')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Approvals' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /all candidates/i })).not.toBeInTheDocument()
+    expect(API.get).toHaveBeenCalledWith(expect.stringContaining('status=pending'))
   })
 })

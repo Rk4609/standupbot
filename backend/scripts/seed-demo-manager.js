@@ -13,7 +13,6 @@
 require('dotenv').config()
 const mongoose = require('mongoose')
 const connectDB = require('../config/db')
-const Project = require('../models/Project')
 const Standup = require('../models/Standup')
 const Team = require('../models/Team')
 const User = require('../models/User')
@@ -166,12 +165,6 @@ const run = async () => {
   const members = await User.find({ email: { $in: PEOPLE.map(p => p.email) } })
     .select('_id').lean()
 
-  // A new team books to the shared projects; the client ones belong to the
-  // teams that were already here
-  const shared = await Project.find({ team: null, active: true }).select('_id name').lean()
-  const meetings = shared.find(p => /meeting/i.test(p.name)) || shared[0]
-  const internal = shared.find(p => /internal/i.test(p.name)) || meetings
-
   const dates = [1, 2, 3, 4, 5]
     .map(isoDaysAgo)
     .filter(d => ![0, 6].includes(new Date(`${d}T00:00:00Z`).getUTCDay()))
@@ -191,13 +184,7 @@ const run = async () => {
         blockers: hasBlocker ? BLOCKERS[i % BLOCKERS.length] : 'None',
         hasBlocker,
         mood: ['great', 'good', 'good', 'okay'][(i + d) % 4],
-        date,
-        work: internal
-          ? [
-              { project: internal._id, hours: 6, note: '' },
-              { project: meetings._id, hours: 1.5, note: 'Standup and planning' }
-            ]
-          : []
+        date
       })
     }
   }

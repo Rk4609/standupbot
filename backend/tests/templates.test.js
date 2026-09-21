@@ -171,6 +171,19 @@ describe('saving a team template', () => {
     expect(res.status).toBe(400)
     expect(res.body.message).toMatch(/another team/i)
   })
+
+  it('drops the old hours switch from an editor opened before it went', async () => {
+    const { manager, member } = await withTeam()
+
+    const res = await save(manager, { questions: CORE, trackTime: true })
+
+    expect(res.status).toBe(200)
+    expect(res.body).not.toHaveProperty('trackTime')
+    const active = await request(app).get('/api/templates/active').set(...authHeader(member))
+    expect(active.body).not.toHaveProperty('trackTime')
+    const stored = await StandupTemplate.findOne({ team: res.body.team }).lean()
+    expect(stored).not.toHaveProperty('trackTime')
+  })
 })
 
 describe('resetting', () => {

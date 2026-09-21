@@ -7,13 +7,10 @@ import { IconLock } from './ui/icons'
 const LABEL = {
   standup: 'submitting a standup',
   history: 'your standup history',
-  timesheet: 'your timesheet',
   team: 'the team overview',
   employees: 'the employees list',
   blockers: 'the blockers board',
-  timesheets: 'timesheet approvals',
   analytics: 'analytics and exports',
-  retro: 'the weekly retro',
   projects: 'projects',
   templates: 'the standup template',
   integrations: 'integrations',

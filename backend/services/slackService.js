@@ -173,14 +173,14 @@ const summaryMessage = (teamName, date, standups, rosterSize) => {
   }
 }
 
-const retroMessage = (teamName, week, content) => ({
-  text: `Weekly retro for ${teamName}`,
+const weeklyReportMessage = (teamName, week, content) => ({
+  text: `Weekly report for ${teamName}`,
   blocks: [
     {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `:sparkles: *Weekly retro — ${teamName}*\n_${week.weekStart} to ${week.weekEnd}_`
+        text: `:sparkles: *Weekly report — ${teamName}*\n_${week.weekStart} to ${week.weekEnd}_`
       }
     },
     {
@@ -197,7 +197,7 @@ const testMessage = (teamName, byName) => ({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `:white_check_mark: *StandupBot is connected to ${teamName}.*\nWired up by ${byName}. Standups, blockers and the weekly retro will land here.`
+        text: `:white_check_mark: *StandupBot is connected to ${teamName}.*\nWired up by ${byName}. Standups, blockers and the weekly report will land here.`
       }
     }
   ]
@@ -210,6 +210,6 @@ module.exports = {
   standupMessage,
   blockerMessage,
   summaryMessage,
-  retroMessage,
+  weeklyReportMessage,
   testMessage
 }

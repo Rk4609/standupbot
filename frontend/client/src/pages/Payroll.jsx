@@ -175,7 +175,7 @@ export default function Payroll() {
             {counts.withoutSalary > 0 && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
                 {counts.withoutSalary} {counts.withoutSalary === 1 ? 'person has' : 'people have'} no salary on record and {counts.withoutSalary === 1 ? 'is' : 'are'} left out —{' '}
-                <Link to="/workspace/records" className="underline underline-offset-2">add it in People records</Link>.
+                <Link to="/people?tab=records" className="underline underline-offset-2">add it in People records</Link>.
               </p>
             )}
           </div>

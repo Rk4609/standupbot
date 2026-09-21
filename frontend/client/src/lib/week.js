@@ -1,7 +1,7 @@
 /**
  * Calendar-day arithmetic on 'YYYY-MM-DD' strings, done in UTC so a date
  * never slides a day because of the reader's clock. The same rule the server
- * follows for standups and timesheets.
+ * follows for standups and attendance.
  */
 
 export const addDaysIso = (iso, n) => {

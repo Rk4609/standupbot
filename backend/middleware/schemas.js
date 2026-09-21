@@ -65,13 +65,10 @@ const submitStandup = z.object({
     z.string().regex(/^[a-z][a-z0-9_]{0,39}$/),
     z.string().trim().max(2000, 'is too long')
   ).optional().default({}),
-  // Where the day went, when the team tracks time. Which projects are
-  // allowed is checked in the controller against the person's team.
-  work: z.array(z.object({
-    project: objectId,
-    hours: z.coerce.number().min(0.25, 'must be at least 15 minutes').max(24, 'is too many'),
-    note: z.string().trim().max(500, 'is too long').optional().default('')
-  }).strict()).max(20, 'is too many entries for one day').optional().default([])
+  // Project hours, from before the timesheet gave way to attendance. A form
+  // left open across the release may still send them; they are dropped
+  // rather than refused, so nobody loses a standup over it.
+  work: z.unknown().optional().transform(() => undefined)
 }).strict()
 
 const updateBlocker = {
@@ -161,7 +158,9 @@ const saveTemplate = z.object({
   team: objectId.optional(),
   name: z.string().trim().min(1, 'is required').max(80, 'is too long').optional(),
   askMood: z.boolean().optional(),
-  trackTime: z.boolean().optional(),
+  // The old "ask where the hours went" switch. Dropped, not refused, so an
+  // editor opened before the timesheet was removed can still save.
+  trackTime: z.unknown().optional().transform(() => undefined),
   questions: z.array(z.object({
     key: questionKey,
     label: z.string().trim().min(1, 'is required').max(160, 'is too long'),
@@ -175,7 +174,7 @@ const templateTeam = {
   query: z.object({ team: objectId.optional() }).strip()
 }
 
-/* projects and timesheets ------------------------------------------ */
+/* projects --------------------------------------------------------- */
 
 const createProject = z.object({
   name: z.string().trim().min(1, 'is required').max(120, 'is too long'),
@@ -210,26 +209,6 @@ const projectMembers = {
 const transferMember = {
   params: z.object({ id: objectId }),
   body: z.object({ user: objectId, toProject: objectId }).strict()
-}
-
-const weekQuery = {
-  query: z.object({ weekStart: isoDate.optional() }).strip()
-}
-
-const submitWeek = z.object({ weekStart: isoDate.optional() }).strict()
-
-const reviewWeek = {
-  params: z.object({ userId: objectId }),
-  body: z.object({
-    weekStart: isoDate.optional(),
-    action: z.enum(['approve', 'request_changes', 'reopen']),
-    note: z.string().trim().max(500, 'is too long').optional()
-  }).strict()
-}
-
-const personWeek = {
-  params: z.object({ userId: objectId }),
-  query: z.object({ weekStart: isoDate.optional() }).strip()
 }
 
 /* help and support -------------------------------------------------- */
@@ -758,6 +737,7 @@ const slackEvents = z.object({
   standupSubmitted: z.boolean().optional(),
   blockerRaised: z.boolean().optional(),
   dailySummary: z.boolean().optional(),
+  // Posts the weekly report; the key predates it and is kept for saved settings
   weeklyRetro: z.boolean().optional()
 }).strict()
 
@@ -788,10 +768,9 @@ const listAudit = {
   }).strip()
 }
 
-/* ai / retro ------------------------------------------------------- */
+/* ai --------------------------------------------------------------- */
 
 const analyzeTeam = z.object({ date: isoDate.optional() }).strict()
-const generateRetro = z.object({ weekStart: isoDate.optional() }).strict()
 
 module.exports = {
   register,
@@ -863,10 +842,6 @@ module.exports = {
   listTickets,
   replyTicket,
   ticketStatus,
-  weekQuery,
-  submitWeek,
-  reviewWeek,
-  personWeek,
   saveSlack,
   updateSlack,
   slackTeam,
@@ -881,6 +856,5 @@ module.exports = {
   setRole,
   listEmployees,
   analyticsRange,
-  analyzeTeam,
-  generateRetro
+  analyzeTeam
 }

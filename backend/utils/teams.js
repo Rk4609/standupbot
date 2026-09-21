@@ -6,8 +6,8 @@ const Team = require('../models/Team')
  * `user.team` only covers employees. A manager is linked to their team as its
  * manager instead, and an admin is linked to nothing at all — so reading the
  * field directly left leads with no team, which quietly filed their standups
- * against nobody, hid their team's template from them and kept their hours
- * out of the timesheet. Three separate bugs from one missing lookup, which is
+ * against nobody, hid their team's template from them and kept them out
+ * of their own team's reports. Three separate bugs from one missing lookup, which is
  * why it lives in one place now.
  *
  * This answers "whose work is this", not "what may they see" — for that, the

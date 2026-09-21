@@ -15,12 +15,12 @@ const MODULES = [
   { key: 'standup', label: 'Submit a standup', group: 'Personal', minBase: 'employee' },
   { key: 'support', label: 'Help & support', group: 'Personal', minBase: 'employee', always: true },
   { key: 'analytics', label: 'Analytics & exports', group: 'Team', minBase: 'manager' },
-  { key: 'retro', label: 'Weekly retro', group: 'Team', minBase: 'manager' },
+  { key: 'reports', label: 'Weekly report', group: 'Team', minBase: 'manager' },
   { key: 'roles', label: 'Roles & access', group: 'Workspace', minBase: 'admin' }
 ]
 
 const EMPLOYEE_ALLOWED = ['dashboard', 'standup', 'support']
-const MANAGER_ALLOWED = [...EMPLOYEE_ALLOWED, 'analytics', 'retro']
+const MANAGER_ALLOWED = [...EMPLOYEE_ALLOWED, 'analytics', 'reports']
 
 const role = (over = {}) => ({
   _id: 'r1',
@@ -85,7 +85,7 @@ describe('the list of roles', () => {
     await openDeliveryLead()
 
     expect(screen.getByRole('checkbox', { name: /Analytics & exports/ })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: /Weekly retro/ })).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: /Weekly report/ })).not.toBeChecked()
   })
 
   it('will not let anybody untick the ways back in', async () => {
@@ -122,16 +122,16 @@ describe('changing what a role reaches', () => {
   it('saves the moment a box is ticked', async () => {
     answer()
     API.patch.mockResolvedValue({
-      data: { ...role(), modules: ['dashboard', 'standup', 'support', 'analytics', 'retro'] }
+      data: { ...role(), modules: ['dashboard', 'standup', 'support', 'analytics', 'reports'] }
     })
 
     render(<Roles />)
     await openDeliveryLead()
-    await userEvent.click(screen.getByRole('checkbox', { name: /Weekly retro/ }))
+    await userEvent.click(screen.getByRole('checkbox', { name: /Weekly report/ }))
 
     await waitFor(() =>
       expect(API.patch).toHaveBeenCalledWith('/roles/r1', {
-        modules: ['dashboard', 'standup', 'support', 'analytics', 'retro']
+        modules: ['dashboard', 'standup', 'support', 'analytics', 'reports']
       })
     )
   })
@@ -142,10 +142,10 @@ describe('changing what a role reaches', () => {
 
     render(<Roles />)
     await openDeliveryLead()
-    await userEvent.click(screen.getByRole('checkbox', { name: /Weekly retro/ }))
+    await userEvent.click(screen.getByRole('checkbox', { name: /Weekly report/ }))
 
     await waitFor(() =>
-      expect(screen.getByRole('checkbox', { name: /Weekly retro/ })).not.toBeChecked()
+      expect(screen.getByRole('checkbox', { name: /Weekly report/ })).not.toBeChecked()
     )
   })
 })

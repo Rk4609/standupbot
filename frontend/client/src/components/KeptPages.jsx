@@ -16,7 +16,6 @@ import { todayForUser } from '../lib/timezone'
 const firstRequests = (user) => [
   ['history', '/templates/active'],
   ['history', '/standups/my'],
-  ['timesheet', '/timesheets/me', { params: {} }],
   ['attendance', '/attendance/me', { params: {} }],
   ['team-attendance', '/attendance/team', { params: {} }],
   ['brief', '/brief', { params: {} }],
@@ -36,7 +35,6 @@ const firstRequests = (user) => [
   ['employees', '/employees/summary'],
   ['employees', '/employees', { params: { page: 1, limit: 10 } }],
   ['blockers', '/standups/blockers'],
-  ['timesheets', '/timesheets', { params: {} }],
   ['analytics', '/analytics/overview', { params: { days: 30 } }],
   ['projects', '/projects/all']
 ]
@@ -54,7 +52,6 @@ const PAGES = [
   ['dashboard', () => import('../pages/Dashboard')],
   ['standup', () => import('../pages/NewStandup')],
   ['history', () => import('../pages/History')],
-  ['timesheet', () => import('../pages/Timesheet')],
   ['leave', () => import('../pages/Leave')],
   ['attendance', () => import('../pages/Attendance')],
   ['payslips', () => import('../pages/Payslips')],
@@ -68,9 +65,9 @@ const PAGES = [
   ['support', () => import('../pages/Support')],
   ['dashboard', () => import('../pages/Profile')],
   ['team', () => import('../pages/TeamView')],
+  [['employees', 'records', 'people'], () => import('../pages/PeopleHub')],
   ['employees', () => import('../pages/Employees')],
   ['blockers', () => import('../pages/Blockers')],
-  ['timesheets', () => import('../pages/TeamTimesheets')],
   ['leaves', () => import('../pages/LeaveApprovals')],
   ['expense-approvals', () => import('../pages/ExpenseApprovals')],
   ['team-reviews', () => import('../pages/TeamReviews')],
@@ -78,7 +75,6 @@ const PAGES = [
   ['brief', () => import('../pages/Brief')],
   ['reports', () => import('../pages/WeeklyReport')],
   ['analytics', () => import('../pages/Analytics')],
-  ['retro', () => import('../pages/Retro')],
   ['projects', () => import('./WorkspaceLayout')],
   ['projects', () => import('../pages/Projects')],
   ['templates', () => import('../pages/Templates')],

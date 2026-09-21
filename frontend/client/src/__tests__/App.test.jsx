@@ -11,8 +11,8 @@ vi.mock('../api/axios', () => ({
             data: {
               role: { key: 'admin', name: 'Admin', base: 'admin' },
               modules: [
-                'dashboard', 'standup', 'history', 'timesheet', 'support',
-                'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro',
+                'dashboard', 'standup', 'history', 'support',
+                'team', 'employees', 'blockers', 'analytics', 'retro',
                 'projects', 'templates', 'integrations', 'activity',
                 'records', 'hiring', 'approvals', 'pay', 'people', 'roles'
               ]

@@ -8,7 +8,7 @@ import API from '../api/axios'
 import CommandPalette from '../components/CommandPalette'
 import { rank, score } from '../lib/commandSearch'
 
-const employee = { _id: 'u1', name: 'Asha', role: 'employee', modules: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'support'] }
+const employee = { _id: 'u1', name: 'Asha', role: 'employee', modules: ['dashboard', 'standup', 'history', 'leave', 'attendance', 'payslips', 'support'] }
 const manager = { ...employee, role: 'manager', modules: [...employee.modules, 'team', 'employees', 'leaves', 'brief'] }
 
 function Where() {
@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe('matching', () => {
   it('prefers the start of a word, and still finds letters in order', () => {
-    expect(score('lea', 'Leave')).toBeGreaterThan(score('lea', 'Weekly retro'))
+    expect(score('lea', 'Leave')).toBeGreaterThan(score('lea', 'Weekly report'))
     expect(score('lvap', 'Leave approvals')).toBeGreaterThan(0)
     expect(score('xyz', 'Leave')).toBe(0)
     // Letters that only line up across the whole name are not a match

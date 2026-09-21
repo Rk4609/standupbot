@@ -180,6 +180,33 @@ describe('my month', () => {
     expect(res.body.days.find(d => d.date === '2026-09-16').state).toBe('no-checkout')
     expect(res.body.summary.noCheckout).toBe(1)
   })
+
+  it('adds up this week\'s time worked, today so far, whatever month is asked for', async () => {
+    const { employee } = await crew()
+    const day = (date, inAt, outAt) => Attendance.create({
+      user: employee._id, date, timezone: ZONE,
+      checkIn: instantIn(ZONE, date, inAt),
+      checkOut: outAt ? instantIn(ZONE, date, outAt) : null
+    })
+    await day('2026-09-14', '10:00', '18:30') // 510 minutes
+    await day('2026-09-15', '10:00', null) // never closed: counts nothing
+    await day('2026-09-17', '10:00', null) // today, still in
+    at('13:15')
+
+    // The dashboard asks for no month; a past one must not change the week
+    const res = await get(employee, '/me?month=2026-08')
+
+    expect(res.status).toBe(200)
+    expect(res.body.week).toEqual([
+      { date: '2026-09-14', minutes: 510 },
+      { date: '2026-09-15', minutes: 0 },
+      { date: '2026-09-16', minutes: 0 },
+      { date: '2026-09-17', minutes: 195 },
+      { date: '2026-09-18', minutes: 0 },
+      { date: '2026-09-19', minutes: 0 },
+      { date: '2026-09-20', minutes: 0 }
+    ])
+  })
 })
 
 describe('the team\'s day', () => {

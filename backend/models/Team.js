@@ -8,7 +8,7 @@ const teamSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 // "Which team does this lead run" is asked on nearly every manager request —
-// the template, the analytics scope, the audit scope, the timesheet review
+// the template, the analytics scope, the audit scope, the weekly report
 teamSchema.index({ manager: 1 })
 
 // Reuse an already-compiled model. The same file can be reached both as CJS

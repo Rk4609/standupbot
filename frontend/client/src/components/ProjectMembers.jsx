@@ -83,7 +83,7 @@ export default function ProjectMembers({ project, assignable, projects, onChange
         <div className="flex gap-2.5 rounded-xl border border-line bg-surface-sunken px-3.5 py-3">
           <IconUsers className="mt-0.5 h-4 w-4 shrink-0 text-content-subtle" />
           <p className="text-sm text-content-muted">
-            Nobody is named on this project, so the whole team can book to it.
+            Nobody is named on this project, so the whole team works on it.
             Add one person and it becomes theirs.
           </p>
         </div>
@@ -149,8 +149,8 @@ export default function ProjectMembers({ project, assignable, projects, onChange
                     >
                       <div className="border-t border-line bg-surface-sunken/50 px-3.5 py-3">
                         <p className="mb-2 text-xs text-content-subtle">
-                          Move {person.name} to another project. The hours already
-                          booked here stay here — that is where the work happened.
+                          Move {person.name} to another project. They come off this
+                          one and go on the one you pick.
                         </p>
                         <div className="flex flex-wrap gap-2">
                           <div className="min-w-0 flex-1">
@@ -216,8 +216,8 @@ export default function ProjectMembers({ project, assignable, projects, onChange
       {members.length > 0 && (
         <p className="text-xs text-content-subtle">
           <Badge tone="brand">{members.length}</Badge>{' '}
-          {members.length === 1 ? 'person books' : 'people book'} to this project.
-          Nobody else can.
+          {members.length === 1 ? 'person works' : 'people work'} on this project.
+          Nobody else is on it.
         </p>
       )}
     </div>

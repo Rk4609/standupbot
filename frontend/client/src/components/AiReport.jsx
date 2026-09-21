@@ -103,7 +103,7 @@ function formatReport(text) {
 }
 
 /**
- * Streaming AI output panel — shared by the team analysis and the weekly retro.
+ * Streaming AI output panel — shared by the team analysis and the weekly report.
  */
 export default function AiReport({
   title,

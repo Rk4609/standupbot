@@ -117,25 +117,25 @@ describe('keeping it honest', () => {
   it('sends a refresh of what is on screen to the network, and keeps the answer', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     let version = 'old'
-    mock.onGet('/timesheets').reply(() => [200, { version }])
+    mock.onGet('/expenses').reply(() => [200, { version }])
 
-    await warmUp('/timesheets')
-    const shown = await API.get('/timesheets') // the module opens
+    await warmUp('/expenses')
+    const shown = await API.get('/expenses') // the module opens
     expect(shown.data.version).toBe('old')
 
     version = 'new'
     later(1_500)
     live.requestRefresh()
-    const refreshed = await API.get('/timesheets') // the module refreshes
+    const refreshed = await API.get('/expenses') // the module refreshes
 
     expect(refreshed.data.version).toBe('new')
-    expect(calls('/timesheets')).toBe(2)
+    expect(calls('/expenses')).toBe(2)
 
     // Opening it again shows the newer answer, without another trip
     later(3_000)
-    const next = await API.get('/timesheets')
+    const next = await API.get('/expenses')
     expect(next.data.version).toBe('new')
-    expect(calls('/timesheets')).toBe(2)
+    expect(calls('/expenses')).toBe(2)
   })
 
   it('still lets a module opening for the first time use it, even just after a refresh', async () => {

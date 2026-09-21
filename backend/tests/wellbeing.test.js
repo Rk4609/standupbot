@@ -27,7 +27,7 @@ const day = (date, inAt, outAt) => ({
   checkOut: outAt ? new Date(`${date}T${outAt}:00.000Z`) : null
 })
 
-const standup = (date, over = {}) => ({ user: 'a', date, mood: 'good', hasBlocker: false, work: [], ...over })
+const standup = (date, over = {}) => ({ user: 'a', date, mood: 'good', hasBlocker: false, ...over })
 
 const signalsFor = (rows) => analyseWellbeing({
   people: [asha],
@@ -51,19 +51,18 @@ describe('signs of strain', () => {
     ])
   })
 
-  it('notices weekends worked, from check-ins or logged hours', () => {
+  it('notices weekends worked, from check-ins', () => {
     const signals = signalsFor({
-      attendance: [day('2026-09-12', '11:00', '15:00')],
-      standups: [standup('2026-09-06', { work: [{ hours: 4 }] })]
+      attendance: [day('2026-09-06', '11:00', '15:00'), day('2026-09-12', '11:00', '15:00')]
     }).signals
     expect(signals).toContainEqual({ kind: 'weekends', detail: 'Worked 2 weekend days this month' })
   })
 
-  it('notices a week of more than fifty logged hours', () => {
-    const standups = ['2026-09-07', '2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11']
-      .map(d => standup(d, { work: [{ hours: 10.5 }] }))
-    expect(signalsFor({ standups }).signals).toContainEqual({
-      kind: 'heavy-week', detail: '52.5h logged in the week of 2026-09-07'
+  it('notices a week of more than fifty hours worked', () => {
+    const attendance = ['2026-09-07', '2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11']
+      .map(d => day(d, '08:00', '18:30'))
+    expect(signalsFor({ attendance }).signals).toContainEqual({
+      kind: 'heavy-week', detail: '52.5h worked in the week of 2026-09-07'
     })
   })
 

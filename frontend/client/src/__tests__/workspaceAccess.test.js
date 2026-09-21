@@ -3,8 +3,8 @@ import { workspaceSectionsFor } from '../lib/workspaceSections'
 import { getUser, saveUser, updateUser } from '../store/authStore'
 
 const ALL = [
-  'dashboard', 'standup', 'history', 'timesheet', 'support',
-  'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro',
+  'dashboard', 'standup', 'history', 'support',
+  'team', 'employees', 'blockers', 'analytics',
   'projects', 'templates', 'integrations', 'activity',
   'records', 'hiring', 'approvals', 'pay', 'people', 'roles'
 ]
@@ -15,13 +15,21 @@ afterEach(() => {
 })
 
 describe('what an admin finds under Workspace', () => {
-  it('includes the admin panel and roles, by those names', () => {
+  it('includes roles and hiring; people and approvals live elsewhere now', () => {
     const labels = workspaceSectionsFor({ role: 'admin', modules: ALL }).map(s => s.label)
 
-    expect(labels).toContain('Admin panel')
     expect(labels).toContain('Roles & access')
     expect(labels).toContain('Hiring')
-    expect(labels).toContain('Approvals')
+    // The admin panel and people records are tabs of the People page, and
+    // deciding on hires is a view of Hiring
+    expect(labels).not.toContain('Admin panel')
+    expect(labels).not.toContain('People records')
+    expect(labels).not.toContain('Approvals')
+  })
+
+  it('shows Hiring to somebody who only decides on hires', () => {
+    const labels = workspaceSectionsFor({ role: 'admin', modules: ['dashboard', 'support', 'approvals'] }).map(s => s.label)
+    expect(labels).toEqual(['Hiring'])
   })
 
   it('leaves out what a manager cannot open', () => {
@@ -30,7 +38,6 @@ describe('what an admin finds under Workspace', () => {
       modules: ALL.filter(m => !['people', 'roles', 'approvals', 'pay'].includes(m))
     }).map(s => s.label)
 
-    expect(labels).not.toContain('Admin panel')
     expect(labels).not.toContain('Roles & access')
     expect(labels).toContain('Hiring')
   })

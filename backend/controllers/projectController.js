@@ -16,17 +16,17 @@ const leadTeam = async (user) => {
 }
 
 /**
- * What this person may book time against.
+ * The projects open to this person.
  *
  * A project with named members belongs to those people. One with none is
  * open to its whole team, which is how every project behaved before anyone
  * could be assigned — so naming members on one project does not quietly
  * lock everybody out of the rest.
  *
- * Shared projects — internal work, leave, training — belong to nobody's team
- * and are always bookable, or a week never adds up to a full week.
+ * Shared projects — internal work, training — belong to nobody's team and
+ * are open to everybody.
  */
-const bookableFilter = (userId, teamId) => ({
+const openToFilter = (userId, teamId) => ({
   active: true,
   $or: [
     { team: null },
@@ -41,10 +41,10 @@ const bookableFilter = (userId, teamId) => ({
   ]
 })
 
-// GET /api/projects — what I can book against
+// GET /api/projects — the projects I can work on
 const listProjects = async (req, res) => {
   try {
-    const projects = await Project.find(bookableFilter(req.user._id, req.user.team))
+    const projects = await Project.find(openToFilter(req.user._id, req.user.team))
       .select('name code client billable team')
       .sort({ name: 1 })
       .lean()
@@ -88,20 +88,8 @@ const listAllProjects = async (req, res) => {
       .sort({ name: 1 })
       .lean()
 
-    // How much has been booked to each, so a lead can see what is actually
-    // in use before archiving something
-    const usage = await Standup.aggregate([
-      { $unwind: '$work' },
-      { $group: { _id: '$work.project', hours: { $sum: '$work.hours' }, entries: { $sum: 1 } } }
-    ])
-    const usageBy = new Map(usage.map(u => [String(u._id), u]))
-
     res.json({
-      projects: projects.map(p => ({
-        ...p,
-        hours: Number((usageBy.get(String(p._id))?.hours || 0).toFixed(2)),
-        entries: usageBy.get(String(p._id))?.entries || 0
-      })),
+      projects,
       teams,
       assignable,
       defaultTeam: defaultTeam ? String(defaultTeam) : null,
@@ -248,13 +236,7 @@ const updateMembers = async (req, res) => {
   }
 }
 
-/**
- * POST /api/projects/:id/transfer — move somebody to another project.
- *
- * Only what they book from here on. The hours already against the old project
- * stay there, because that is where the work happened, and a timesheet that
- * changes retrospectively is worth nothing.
- */
+/** POST /api/projects/:id/transfer — move somebody to another project. */
 const transferMember = async (req, res) => {
   try {
     const from = await ownedProject(req.user, req.params.id)
@@ -331,10 +313,8 @@ const projectActivity = async (req, res) => {
 
     const ids = roster.map(u => u._id)
     const standups = await Standup.find({ user: { $in: ids }, date: { $in: week } })
-      .select('user date work hasBlocker blockers today')
+      .select('user date hasBlocker blockers today')
       .lean()
-
-    const projectBy = new Map(projects.map(p => [String(p._id), p]))
 
     const seen = new Map()
     for (const s of standups) {
@@ -368,12 +348,6 @@ const projectActivity = async (req, res) => {
         submittedToday: Boolean(s),
         plan: s?.today || '',
         blocker: s?.hasBlocker ? s.blockers : '',
-        workedOn: (s?.work || []).map(w => ({
-          project: projectBy.get(String(w.project))?.name || 'Removed project',
-          code: projectBy.get(String(w.project))?.code || '',
-          hours: w.hours,
-          note: w.note || ''
-        })),
         daysThisWeek: mine?.days.size || 0
       }
     })
@@ -404,6 +378,5 @@ module.exports = {
   updateProject,
   updateMembers,
   transferMember,
-  projectActivity,
-  bookableFilter
+  projectActivity
 }

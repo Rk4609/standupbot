@@ -34,9 +34,9 @@ const assign = (user, project, body) =>
   request(app).patch(`/api/projects/${project._id}/members`)
     .set(...authHeader(user)).send(body)
 
-const submit = (user, work) =>
+const submit = (user, today = 'b') =>
   request(app).post('/api/standups').set(...authHeader(user))
-    .send({ today: 'b', work })
+    .send({ today })
 
 describe('putting people on a project', () => {
   it('adds them, and hands back who is on it', async () => {
@@ -99,10 +99,10 @@ describe('putting people on a project', () => {
   })
 })
 
-describe('what a person may book to', () => {
+describe('the projects open to a person', () => {
   it('is the whole team while nobody is named', async () => {
     // Every project worked this way before anyone could be assigned, and
-    // turning assignment on must not make existing work unbookable
+    // turning assignment on must not shut anybody out of existing work
     const { team, asha } = await withTeam()
     await makeProject({ name: 'Open to all', team: team._id })
 
@@ -125,12 +125,11 @@ describe('what a person may book to', () => {
   it('always includes the shared ones, whoever is named on what', async () => {
     const { team, rohit, asha } = await withTeam()
     await makeProject({ name: 'Ashas project', team: team._id, members: [asha._id] })
-    await makeProject({ name: 'Leave', team: null, billable: false })
+    await makeProject({ name: 'Internal tooling', team: null, billable: false })
 
     const res = await request(app).get('/api/projects').set(...authHeader(rohit))
 
-    // Without these a week never adds up to a week
-    expect(res.body.map(p => p.name)).toContain('Leave')
+    expect(res.body.map(p => p.name)).toContain('Internal tooling')
   })
 
   it('follows an assignment across a team boundary', async () => {
@@ -144,27 +143,6 @@ describe('what a person may book to', () => {
 
     const res = await request(app).get('/api/projects').set(...authHeader(asha))
     expect(res.body.map(p => p.name)).toContain('Lent out')
-  })
-
-  it('refuses hours against a project somebody is not on', async () => {
-    const { team, asha, rohit } = await withTeam()
-    const hers = await makeProject({ team: team._id, members: [asha._id] })
-
-    onTuesday()
-    const res = await submit(rohit, [{ project: String(hers._id), hours: 4 }])
-
-    expect(res.status).toBe(400)
-    expect(res.body.message).toMatch(/not available/i)
-  })
-
-  it('accepts hours from somebody who is', async () => {
-    const { team, asha } = await withTeam()
-    const hers = await makeProject({ team: team._id, members: [asha._id] })
-
-    onTuesday()
-    const res = await submit(asha, [{ project: String(hers._id), hours: 4 }])
-
-    expect(res.status).toBe(201)
   })
 })
 
@@ -192,23 +170,6 @@ describe('moving somebody between projects', () => {
     ])
     expect(oldOne.members).toHaveLength(0)
     expect(newOne.members.map(String)).toContain(String(asha._id))
-  })
-
-  it('leaves the hours they already booked where they were worked', async () => {
-    const { manager, team, asha } = await withTeam()
-    const from = await makeProject({ name: 'Old', team: team._id, members: [asha._id] })
-    const to = await makeProject({ name: 'New', team: team._id })
-
-    onTuesday()
-    const standup = await submit(asha, [{ project: String(from._id), hours: 6 }])
-    vi.useRealTimers()
-
-    await transfer(manager, from, { user: String(asha._id), toProject: String(to._id) })
-
-    // A timesheet that changes retrospectively is worth nothing
-    const { default: Standup } = await import('../models/Standup.js')
-    const saved = await Standup.findById(standup.body._id).lean()
-    expect(String(saved.work[0].project)).toBe(String(from._id))
   })
 
   it('refuses a move to the same project', async () => {
@@ -256,12 +217,12 @@ describe('moving somebody between projects', () => {
 })
 
 describe('who is on what today', () => {
-  it('reports each person, what they booked and how often they report', async () => {
+  it('reports each person, what they are on and how often they report', async () => {
     const { manager, team, asha } = await withTeam()
-    const project = await makeProject({ name: 'Acme', team: team._id, members: [asha._id] })
+    await makeProject({ name: 'Acme', team: team._id, members: [asha._id] })
 
     onTuesday()
-    await submit(asha, [{ project: String(project._id), hours: 6 }])
+    await submit(asha, 'Checkout flow')
     vi.useRealTimers()
 
     onTuesday()
@@ -270,8 +231,8 @@ describe('who is on what today', () => {
 
     const row = res.body.people.find(p => p.name === 'Asha')
     expect(row.submittedToday).toBe(true)
-    expect(row.workedOn[0].project).toBe('Acme')
-    expect(row.workedOn[0].hours).toBe(6)
+    expect(row.plan).toBe('Checkout flow')
+    expect(row).not.toHaveProperty('workedOn')
     expect(row.assigned.map(a => a.name)).toContain('Acme')
     expect(row.daysThisWeek).toBe(1)
   })

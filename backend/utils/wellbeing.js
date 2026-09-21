@@ -48,24 +48,21 @@ const analyseWellbeing = ({ people, today, attendance, standups, leaves }) => {
     }
 
     /* weekends ------------------------------------------------------- */
-    const weekendDays = new Set([
-      ...rows.filter(r => r.date >= monthAgo && isWeekend(r.date)).map(r => r.date),
-      ...theirs.filter(s => s.date >= monthAgo && isWeekend(s.date) && (s.work || []).length).map(s => s.date)
-    ])
+    const weekendDays = new Set(rows.filter(r => r.date >= monthAgo && isWeekend(r.date)).map(r => r.date))
     if (weekendDays.size >= WEEKEND_DAYS) {
       signals.push({ kind: 'weekends', detail: `Worked ${weekendDays.size} weekend days this month` })
     }
 
     /* heavy weeks ---------------------------------------------------- */
+    // From check-in to check-out, so only days somebody closed count
     const byWeek = new Map()
-    for (const s of theirs.filter(x => x.date >= twoWeeksAgo)) {
-      const week = toISODate(mondayOf(new Date(`${s.date}T12:00:00.000Z`)))
-      const hours = (s.work || []).reduce((n, w) => n + w.hours, 0)
-      byWeek.set(week, (byWeek.get(week) || 0) + hours)
+    for (const r of rows.filter(x => x.date >= twoWeeksAgo && x.date <= today && x.checkOut)) {
+      const week = toISODate(mondayOf(new Date(`${r.date}T12:00:00.000Z`)))
+      byWeek.set(week, (byWeek.get(week) || 0) + readDay(r, { today }).minutes / 60)
     }
     const heaviest = [...byWeek.entries()].sort((a, b) => b[1] - a[1])[0]
     if (heaviest && heaviest[1] > HEAVY_WEEK_HOURS) {
-      signals.push({ kind: 'heavy-week', detail: `${hoursLabel(heaviest[1])} logged in the week of ${heaviest[0]}` })
+      signals.push({ kind: 'heavy-week', detail: `${hoursLabel(heaviest[1])} worked in the week of ${heaviest[0]}` })
     }
 
     /* mood ----------------------------------------------------------- */
@@ -119,7 +116,7 @@ const collectWellbeing = async ({ people, today }) => {
     Attendance.find({ user: { $in: ids }, date: { $gte: monthAgo, $lte: today } })
       .select('user date checkIn checkOut timezone').lean(),
     Standup.find({ user: { $in: ids }, date: { $gte: monthAgo, $lte: today } })
-      .select('user date mood hasBlocker work.hours').lean(),
+      .select('user date mood hasBlocker').lean(),
     // Only the latest end date matters, so a year back is plenty
     Leave.find({ user: { $in: ids }, status: 'approved', to: { $gte: addDays(today, -365) } })
       .select('user from to').lean()

@@ -24,6 +24,8 @@ const ACTIONS = [
   'review.shared',
   'letter.issued',
   'letter.declined',
+  // No longer written — the timesheet is gone — but kept so the rows it
+  // left in the trail still validate
   'timesheet.reviewed',
   'project.transfer',
   'user.record_updated',

@@ -4,10 +4,8 @@
  *   node scripts/seed-assignments.js          # create
  *   node scripts/seed-assignments.js --clear  # undo exactly this
  *
- * Assignments are derived from the hours already booked rather than invented:
- * whoever has been putting time against a project is who works on it. Made up
- * separately, the two would disagree, and the first thing anybody checks on
- * this screen is whether it matches what they did last week.
+ * Each person is put on one of their own team's client projects, spread
+ * evenly, so every squad has somebody on it and nobody is on everything.
  *
  * One client project per team is deliberately left with nobody named, because
  * that is still a real state — it means the whole team may book to it — and a
@@ -47,8 +45,6 @@ const BLOCKERS = [
   'Blocked on the client signing off the copy'
 ]
 
-const NOTES = ['', '', 'Client call', 'Review and fixes', 'Migration work', 'Pairing']
-
 const TICKETS = [
   {
     subject: 'CSV export opens as one long column in Excel',
@@ -65,23 +61,23 @@ const TICKETS = [
     status: 'closed'
   },
   {
-    subject: 'Cannot open the Timesheets page',
+    subject: 'Cannot open Team attendance',
     category: 'access',
-    body: 'Clicking Timesheets in the sidebar throws me back to the dashboard. I need to approve my team for last week.',
+    body: 'Clicking Team attendance in the sidebar throws me back to the dashboard. I need to fix a forgotten check-out for my team.',
     answer: 'You were still set to employee. I have moved you to manager — sign out and back in and it will be there.',
     status: 'closed'
   },
   {
-    subject: 'Weekly retro says the model is busy',
+    subject: 'Weekly report says the model is busy',
     category: 'bug',
-    body: 'Generating the retro on Friday afternoon fails about half the time with a message about the request being too large.',
+    body: 'Writing the weekly report on Friday afternoon fails about half the time with a message about the request being too large.',
     answer: 'That was us sending the whole week verbatim. The prompt is summarised now and the limit is not reached. Try it again and tell me if it comes back.',
     status: 'answered'
   },
   {
     subject: 'Hours do not add up to my week',
     category: 'question',
-    body: 'My timesheet shows 32.5 hours but I worked five full days. I think the day I was at the client site is missing.',
+    body: 'My dashboard shows 32.5 hours but I worked five full days. I think the day I was at the client site is missing a check-out.',
     status: 'open'
   },
   {
@@ -137,20 +133,8 @@ const run = async () => {
     if (team.manager) teamOfUser.set(String(team.manager._id), String(team._id))
   }
 
-  // Who has actually booked time against each project, and how much
-  const booked = await Standup.aggregate([
-    { $unwind: '$work' },
-    {
-      $group: {
-        _id: { user: '$user', project: '$work.project' },
-        hours: { $sum: '$work.hours' }
-      }
-    }
-  ])
-
   const clientProjects = await Project.find({ team: { $ne: null }, active: true })
     .select('_id name team').lean()
-  const teamOfProject = new Map(clientProjects.map(p => [String(p._id), String(p.team)]))
 
   // One client project per team stays open to everybody — the state the app
   // had before anyone could be assigned, and still the right answer for work
@@ -161,37 +145,14 @@ const run = async () => {
     if (first) leftOpen.add(String(first._id))
   }
 
-  /**
-   * Everybody who ever booked an hour is not the squad.
-   *
-   * Two months of seeded hours have most of a team touching most of its
-   * projects, and naming all of them says nothing — a project everybody is
-   * on is a project nobody is responsible for. Each person is named on the
-   * project they put the most time into, and on a second one only if it is a
-   * real share of their time rather than a stray afternoon.
-   */
-  const byPerson = new Map()
-  for (const row of booked) {
-    const user = String(row._id.user)
-    const project = String(row._id.project)
-    if (!teamOfProject.has(project)) continue
-    if (teamOfProject.get(project) !== teamOfUser.get(user)) continue
-
-    if (!byPerson.has(user)) byPerson.set(user, [])
-    byPerson.get(user).push({ project, hours: row.hours })
-  }
-
+  // Everybody on one project of their own team's, dealt out in turn
   const members = new Map(clientProjects.map(p => [String(p._id), []]))
-
-  for (const [user, rows] of byPerson) {
-    rows.sort((a, b) => b.hours - a.hours)
-    const [main, second] = rows
-
-    for (const row of [main, second]) {
-      if (!row) continue
-      if (row !== main && row.hours < main.hours * 0.4) continue
-      if (leftOpen.has(row.project)) continue
-      members.get(row.project).push(new mongoose.Types.ObjectId(user))
+  for (const team of teams) {
+    const squads = clientProjects.filter(p => String(p.team) === String(team._id) && !leftOpen.has(String(p._id)))
+    if (squads.length === 0) continue
+    const people = users.filter(u => u.role !== 'admin' && teamOfUser.get(String(u._id)) === String(team._id))
+    for (const [i, person] of people.entries()) {
+      members.get(String(squads[i % squads.length]._id)).push(person._id)
     }
   }
 
@@ -224,18 +185,6 @@ const run = async () => {
   const already = await Standup.find({ date: today }).select('user').lean()
   const filed = new Set(already.map(s => String(s.user)))
 
-  const assignedTo = new Map()
-  for (const [project, people] of members) {
-    for (const person of people) {
-      if (!assignedTo.has(String(person))) assignedTo.set(String(person), [])
-      assignedTo.get(String(person)).push(project)
-    }
-  }
-
-  const sharedProjects = await Project.find({ team: null, active: true })
-    .select('_id name').lean()
-  const meetings = sharedProjects.find(p => /meeting/i.test(p.name)) || sharedProjects[0]
-
   const employees = users.filter(u => u.role !== 'admin' && !filed.has(String(u._id)))
 
   const todayDocs = []
@@ -244,15 +193,7 @@ const run = async () => {
     // not worth opening
     if (i % 5 === 0) continue
 
-    const own = assignedTo.get(String(person._id)) || []
-    const main = own[i % Math.max(1, own.length)]
     const hasBlocker = i % 6 === 0
-
-    const work = []
-    if (main) work.push({ project: main, hours: 6, note: NOTES[i % NOTES.length] })
-    if (meetings) {
-      work.push({ project: meetings._id, hours: main ? 1.5 : 4, note: 'Standup and planning' })
-    }
 
     todayDocs.push({
       user: person._id,
@@ -262,8 +203,7 @@ const run = async () => {
       blockers: hasBlocker ? BLOCKERS[i % BLOCKERS.length] : 'None',
       hasBlocker,
       mood: ['great', 'good', 'good', 'okay', 'stressed'][i % 5],
-      date: today,
-      work
+      date: today
     })
   }
 

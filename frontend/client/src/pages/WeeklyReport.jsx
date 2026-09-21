@@ -4,7 +4,6 @@ import API from '../api/axios'
 import PageShell from '../components/ui/PageShell'
 import PageHeader from '../components/ui/PageHeader'
 import Card, { CardTitle } from '../components/ui/Card'
-import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Skeleton from '../components/ui/Skeleton'
 import StatCard from '../components/ui/StatCard'
@@ -16,14 +15,33 @@ import { AI_MODEL_LABEL } from '../lib/ai'
 import { apiErrorMessage } from '../lib/apiError'
 import { useLiveRefresh } from '../lib/liveRefresh'
 import { addDays } from '../lib/leave'
+import { weekdayShort } from '../lib/week'
 
-const hours = (n) => `${Number.isInteger(n) ? n : n.toFixed(1)}h`
+/** The change since last week, green when it is good news and red when not. */
+function SinceLastWeek({ now, before, unit = '', fewerIsBetter = false }) {
+  if (before == null || now === before) return null
+  const diff = now - before
+  const good = fewerIsBetter ? diff < 0 : diff > 0
+
+  return (
+    <span
+      title="Compared with last week"
+      className={good ? 'ml-1 font-semibold text-emerald-600 dark:text-emerald-400' : 'ml-1 font-semibold text-red-600 dark:text-red-400'}
+    >
+      {diff > 0 ? '↑' : '↓'}
+      {Math.abs(diff)}
+      {unit}
+      <span className="sr-only"> on last week</span>
+    </span>
+  )
+}
 
 /**
- * The week's work by project, and a written status report to send on.
+ * The week's work as the team's standups tell it, and a written status
+ * report to send on.
  *
- * Made to be forwarded: "Download PDF" prints just the report and the
- * project table. Moods and attendance are never on it — those stay in the
+ * Made to be forwarded: "Download PDF" prints just the report and what the
+ * team worked on. Moods and attendance are never on it — those stay in the
  * lead's daily brief.
  */
 export default function WeeklyReport() {
@@ -98,8 +116,8 @@ export default function WeeklyReport() {
     )
   }
 
-  const { facts, report } = data
-  const top = facts.projects[0]?.hours || 1
+  const { facts, report, lastWeek } = data
+  const reporting = facts.team.filter(p => p.standups > 0).length
 
   const copy = () => {
     navigator.clipboard?.writeText(report.content)
@@ -157,12 +175,12 @@ export default function WeeklyReport() {
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-        <StatCard value={hours(facts.hours.total)} label="Hours logged" tone="brand" />
-        <StatCard value={`${facts.hours.billablePercent}%`} label={`Billable · ${hours(facts.hours.billable)}`} tone="positive" />
-        <StatCard value={facts.projects.length} label="Projects worked on" tone="neutral" />
+        <StatCard value={facts.standups.submitted} label={`Standups filed · of ${facts.standups.expected}`} tone="brand" />
+        <StatCard value={reporting} label={`People reporting · of ${facts.people}`} tone="positive" />
+        <StatCard value={facts.blockersRaised} label="Blockers raised" tone="neutral" />
         <StatCard
           value={facts.openBlockers.length}
-          label="Open blockers"
+          label={<>Open blockers<SinceLastWeek now={facts.openBlockers.length} before={lastWeek?.openBlockers} fewerIsBetter /></>}
           tone={facts.openBlockers.length ? 'danger' : 'neutral'}
         />
       </div>
@@ -188,9 +206,9 @@ export default function WeeklyReport() {
           <IconSparkles className="h-8 w-8 shrink-0 text-brand-400" />
           <div className="min-w-0 flex-1">
             <p className="text-lg tracking-tight">
-              {facts.hours.total
-                ? `${hours(facts.hours.total)} across ${facts.projects.length} ${facts.projects.length === 1 ? 'project' : 'projects'} this week`
-                : 'No hours logged against projects yet'}
+              {facts.standups.submitted
+                ? `${facts.standups.submitted} ${facts.standups.submitted === 1 ? 'standup' : 'standups'} from ${reporting} ${reporting === 1 ? 'person' : 'people'} this week`
+                : 'No standups filed yet this week'}
             </p>
             <p className="mt-0.5 text-sm text-white/70 dark:text-content-muted">
               {data.aiAvailable
@@ -208,47 +226,29 @@ export default function WeeklyReport() {
         </div>
       )}
 
-      {/* minmax(0, …) on a phone too: a long project name set the column's width */}
+      {/* minmax(0, …) on a phone too: a long plan set the column's width */}
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Card padded={false} className="print-plain">
           <div className="px-4 pt-4 md:px-6 md:pt-5">
-            <CardTitle className="mb-0">Hours by project</CardTitle>
+            <CardTitle className="mb-0">What the team worked on</CardTitle>
           </div>
-          {facts.projects.length === 0 ? (
+          {reporting === 0 ? (
             <p className="px-4 pb-5 pt-3 text-sm text-content-subtle md:px-6">
-              Nobody logged hours against a project this week.
+              Nobody filed a standup this week.
             </p>
           ) : (
             <ul className="mt-3 divide-y divide-line">
-              {facts.projects.map(project => (
-                <li key={project.name} className="px-4 py-3.5 md:px-6">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="min-w-0 truncate text-sm font-medium text-content">
-                      {project.name}
-                      {project.client && <span className="font-normal text-content-subtle"> · {project.client}</span>}
-                    </p>
-                    <p className="tabular shrink-0 text-sm text-content">
-                      {hours(project.hours)} <span className="text-xs text-content-subtle">{project.share}%</span>
-                    </p>
-                  </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
-                    <div
-                      className={project.billable ? 'h-full rounded-full bg-brand-600 dark:bg-brand-400' : 'h-full rounded-full bg-content-subtle'}
-                      style={{ width: `${Math.max(3, (project.hours / top) * 100)}%` }}
-                    />
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-content-subtle">
-                    {!project.billable && <Badge>Non-billable</Badge>}
-                    <span>
-                      {project.contributors.slice(0, 5).map(c => `${c.name} ${hours(c.hours)}`).join(' · ')}
-                      {project.contributors.length > 5 && ` · +${project.contributors.length - 5} more`}
-                    </span>
-                    {project.blockers.length > 0 && (
-                      <span className="text-red-600 dark:text-red-400">
-                        {project.blockers.length} {project.blockers.length === 1 ? 'blocker' : 'blockers'} raised
-                      </span>
-                    )}
-                  </div>
+              {facts.team.filter(p => p.updates.length > 0).map(person => (
+                <li key={person.name} className="px-4 py-3.5 md:px-6">
+                  <p className="truncate text-sm font-medium text-content">{person.name}</p>
+                  <ul className="mt-1.5 space-y-1">
+                    {person.updates.map(u => (
+                      <li key={u.date} className="flex gap-3 text-sm text-content-muted">
+                        <span className="w-9 shrink-0 text-xs leading-5 text-content-subtle">{weekdayShort(u.date)}</span>
+                        <span className="min-w-0">{u.text}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ul>
@@ -277,6 +277,7 @@ export default function WeeklyReport() {
               <CardTitle className="mb-0">People</CardTitle>
               <span className="text-xs text-content-subtle">
                 {facts.standups.rate}% of standups filed
+                <SinceLastWeek now={facts.standups.rate} before={lastWeek?.standupRate} unit="%" />
               </span>
             </div>
             <ul className="divide-y divide-line/70 text-sm">
@@ -284,7 +285,8 @@ export default function WeeklyReport() {
                 <li key={p.name} className="flex items-center justify-between gap-3 py-2">
                   <span className="min-w-0 truncate text-content">{p.name}</span>
                   <span className="tabular shrink-0 text-xs text-content-muted">
-                    {hours(p.hours)} · {p.standups} {p.standups === 1 ? 'standup' : 'standups'}
+                    {p.standups} {p.standups === 1 ? 'standup' : 'standups'}
+                    {p.blocked > 0 && ` · blocked ${p.blocked}`}
                   </span>
                 </li>
               ))}

@@ -99,7 +99,6 @@ export default function Templates() {
       const { data } = await API.put('/templates', {
         name: template.name,
         askMood: template.askMood,
-        trackTime: Boolean(template.trackTime),
         questions: template.questions.map(q => ({
           key: q.key,
           label: q.label.trim(),
@@ -346,7 +345,7 @@ export default function Templates() {
               />
             </Field>
           </Card>
-          <Card className="space-y-5">
+          <Card>
             <div>
               <Checkbox
                 label="Ask how people are feeling"
@@ -356,19 +355,6 @@ export default function Templates() {
               <p className="ml-7 mt-1 text-xs text-content-subtle">
                 Mood is what the analytics trend and the at-risk list are built on. Turning
                 it off leaves those blank.
-              </p>
-            </div>
-
-            <div>
-              <Checkbox
-                label="Ask where the hours went"
-                checked={Boolean(template.trackTime)}
-                onChange={e => setTemplate(t => ({ ...t, trackTime: e.target.checked }))}
-              />
-              <p className="ml-7 mt-1 text-xs text-content-subtle">
-                Adds a project and hours section to the standup, and those hours become the
-                week's timesheet for you to approve. Turn this on and the standup stops being
-                optional — the week cannot be signed off without it.
               </p>
             </div>
           </Card>

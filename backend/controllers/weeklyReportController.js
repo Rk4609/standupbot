@@ -3,7 +3,7 @@ const { completeChat, DEFAULT_MODEL } = require('../services/groqService')
 const { resolveScope } = require('./briefController')
 const { collectWeekFacts } = require('../utils/weeklyReportFacts')
 const { clip } = require('../utils/promptBudget')
-const { todayIn, zoneOf } = require('../utils/time')
+const { addDays, todayIn, zoneOf } = require('../utils/time')
 const { resolveWeek } = require('../utils/week')
 
 const SYSTEM_PROMPT =
@@ -14,29 +14,23 @@ const SYSTEM_PROMPT =
 /**
  * The facts cut down to what the report is written from.
  *
- * A real team's week — seven projects, eight hundred hours, a note on every
- * entry — came to more than Groq's free tier takes in a minute, and the
- * request was refused. The page still shows everything; the model gets the
- * top projects, a few notes and blockers each, and no per-person table.
+ * A real team's week — a dozen people, a plan on every day — came to more
+ * than Groq's free tier takes in a minute, and the request was refused. The
+ * page still shows everything; the model gets each person's latest few
+ * updates, cut short, and the open blockers and plans.
  */
-const PROMPT_LIMITS = { projects: 6, notes: 4, contributors: 3, blockers: 2, open: 8, plans: 8, text: 110 }
+const PROMPT_LIMITS = { people: 15, updates: 3, open: 8, plans: 8, text: 110 }
 
 const forPrompt = (facts) => {
   const cut = (text) => clip(text, PROMPT_LIMITS.text)
   return {
     week: facts.week,
-    hours: facts.hours,
     standupRate: facts.standups.rate,
-    projects: facts.projects.slice(0, PROMPT_LIMITS.projects).map(p => ({
-      name: p.name,
-      client: p.client || undefined,
-      billable: p.billable,
-      hours: p.hours,
-      people: p.contributors.slice(0, PROMPT_LIMITS.contributors).map(c => `${c.name} ${c.hours}h`),
-      notes: p.notes.slice(0, PROMPT_LIMITS.notes).map(n => cut(n.note)),
-      blockers: p.blockers.slice(0, PROMPT_LIMITS.blockers).map(b => `${b.name}: ${cut(b.blocker)}`)
-    })),
-    otherProjects: facts.projects.slice(PROMPT_LIMITS.projects).map(p => `${p.name} ${p.hours}h`),
+    blockersRaised: facts.blockersRaised,
+    team: facts.team
+      .filter(p => p.updates.length > 0)
+      .slice(0, PROMPT_LIMITS.people)
+      .map(p => ({ name: p.name, updates: p.updates.slice(-PROMPT_LIMITS.updates).map(u => cut(u.text)) })),
     openBlockers: facts.openBlockers.slice(0, PROMPT_LIMITS.open).map(b => `${b.name}: ${cut(b.blocker)}`),
     nextWeek: facts.nextWeek.slice(0, PROMPT_LIMITS.plans).map(n => `${n.name}: ${cut(n.plan)}`)
   }
@@ -48,26 +42,26 @@ const weekOf = (date) => resolveWeek(new Date(`${date}T12:00:00.000Z`))
 const buildPrompt = ({ title, facts }) => `Team: ${title}
 Week: ${facts.week.label} (${facts.week.start} to ${facts.week.end})
 
-Facts from the team's standups and timesheet entries:
+Facts from the team's standups:
 ${JSON.stringify(forPrompt(facts))}
 
-"projects" are sorted by hours; "notes" are what people wrote against their hours; "blockers" were raised on a day they worked on that project. "otherProjects" had fewer hours. "openBlockers" were still open on each person's last standup of the week. "nextWeek" is each person's latest stated plan.
+"team" is what each person said they were working on through the week, oldest first. "openBlockers" were still open on each person's last standup of the week. "nextWeek" is each person's latest stated plan.
 
 Write the report in lightweight markdown, under 400 words, with these headings each on its own line in double asterisks:
 
 **Summary**
-Two or three sentences: total hours, the billable share, and the main thing each of the top projects moved forward.
+Two or three sentences: the main things the team moved forward, and how many of the week's standups were filed.
 
-**Project updates**
-For each project with hours, most hours first (at most six), a line "**<name>** — <hours>h" followed by one to three bullets on what was done, drawn from its notes, and a bullet on anything that blocked it. Name at most three people per project.
+**This week**
+Four to eight bullets on what was done, grouped by piece of work rather than by person, drawn from "team". Name at most three people per bullet.
 
 **Risks and blockers**
 Bullets from "openBlockers", each with the person and what they are waiting on. Write "No open blockers at the end of the week." if there are none.
 
 **Next week**
-Up to five bullets drawn from "nextWeek", grouped by project where the plan names one.
+Up to five bullets drawn from "nextWeek", grouped by piece of work where plans overlap.
 
-${facts.hours.total === 0 ? 'No hours were logged against projects this week: say so plainly in the summary and base the rest on the standups.\n' : ''}Do not mention moods, lateness or attendance. Use only these facts, in plain words: never quote field names such as "openBlockers".`
+${facts.standups.submitted === 0 ? 'No standups were filed this week: say so plainly in the summary and keep the rest short.\n' : ''}Do not mention moods, lateness or attendance. Use only these facts, in plain words: never quote field names such as "openBlockers".`
 
 const writeReport = async ({ scope, title, people, week, today, actor = null }) => {
   const facts = await collectWeekFacts({ people, week, today })
@@ -96,6 +90,12 @@ const writeReport = async ({ scope, title, people, week, today, actor = null }) 
   ).lean()
 }
 
+/** The headline numbers the page compares this week against. */
+const headline = (facts) => ({
+  standupRate: facts.standups.rate,
+  openBlockers: facts.openBlockers.length
+})
+
 const present = (stored) => stored && ({
   content: stored.content,
   generatedAt: stored.generatedAt,
@@ -113,9 +113,10 @@ const getWeeklyReport = async (req, res) => {
     const scope = await resolveScope(req.user, req.query.team)
     if (scope.error) return res.status(scope.teams ? 200 : 403).json({ message: scope.error, noTeam: Boolean(scope.teams) })
 
-    const [facts, stored] = await Promise.all([
+    const [facts, stored, lastWeek] = await Promise.all([
       collectWeekFacts({ people: scope.people, week, today }),
-      WeeklyReport.findOne({ scope: scope.scope, weekStart: week.weekStart }).lean()
+      WeeklyReport.findOne({ scope: scope.scope, weekStart: week.weekStart }).lean(),
+      collectWeekFacts({ people: scope.people, week: weekOf(addDays(week.weekStart, -7)), today })
     ])
 
     res.json({
@@ -126,6 +127,7 @@ const getWeeklyReport = async (req, res) => {
       canSeeAll: req.user.role === 'admin',
       isCurrentWeek: week.weekStart === weekOf(today).weekStart,
       facts,
+      lastWeek: headline(lastWeek),
       report: present(stored),
       aiAvailable: Boolean(process.env.GROQ_API_KEY)
     })

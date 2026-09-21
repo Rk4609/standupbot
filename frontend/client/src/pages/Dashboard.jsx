@@ -31,13 +31,6 @@ import { prettyDate } from '../lib/dates'
 import { hoursLabel, workWeek } from '../lib/week'
 import { useLiveRefresh } from '../lib/liveRefresh'
 
-const STATUS_LABEL = {
-  draft: 'Not submitted yet',
-  submitted: 'Submitted, waiting for review',
-  approved: 'Approved',
-  rejected: 'Sent back'
-}
-
 /** One labelled pill in the row under the greeting. */
 function StatPill({ label, children, className, style }) {
   return (
@@ -82,7 +75,7 @@ export default function Dashboard({ user }) {
   const live = useLiveRefresh()
   const [standups, setStandups] = useState([])
   const [profile, setProfile] = useState(null)
-  const [week, setWeek] = useState(null)
+  const [attendance, setAttendance] = useState(null)
   const [lead, setLead] = useState({})
   const [onboarding, setOnboarding] = useState(null)
   const [kudos, setKudos] = useState(null)
@@ -94,26 +87,26 @@ export default function Dashboard({ user }) {
   useEffect(() => {
     let cancelled = false
 
-    // Settled rather than all: a role without timesheets or projects should
+    // Settled rather than all: a role without attendance or projects should
     // still get its dashboard, just without that panel's numbers
     Promise.allSettled([
       API.get('/standups/my'),
       API.get('/users/profile'),
-      can(user, 'timesheet') ? API.get('/timesheets/me') : Promise.resolve(null),
+      can(user, 'attendance') ? API.get('/attendance/me') : Promise.resolve(null),
       can(user, 'employees') ? API.get('/employees/summary') : Promise.resolve(null),
       can(user, 'hiring') ? API.get('/hiring?status=pending&limit=10') : Promise.resolve(null),
       can(user, 'projects') ? API.get('/projects/all') : Promise.resolve(null),
       API.get('/onboarding/mine'),
       can(user, 'kudos') ? API.get('/kudos', { params: { page: 1 } }) : Promise.resolve(null),
       API.get('/auth/2fa')
-    ]).then(([mine, me, sheet, roster, hiring, projects, firstWeeks, thanks, security]) => {
+    ]).then(([mine, me, clock, roster, hiring, projects, firstWeeks, thanks, security]) => {
       if (cancelled) return
 
       const value = (r) => (r.status === 'fulfilled' ? r.value?.data : null)
 
       setStandups(value(mine) || [])
       setProfile(value(me))
-      setWeek(value(sheet))
+      setAttendance(value(clock))
       setOnboarding(value(firstWeeks)?.onboarding || null)
       setKudos(value(thanks)?.kudos || null)
       setTwoFactor(value(security))
@@ -133,16 +126,23 @@ export default function Dashboard({ user }) {
   }, [user, live])
 
   const today = todayForUser()
-  const dates = week?.dates?.length ? week.dates : workWeek(today)
+  const dates = workWeek(today)
 
   const byDate = useMemo(() => new Map(standups.map(s => [s.date, s])), [standups])
   const submitted = useMemo(() => new Set(standups.map(s => s.date)), [standups])
 
   const todayStandup = byDate.get(today) || null
-  const perDay = week?.perDayTotals || {}
-  const hoursToday = perDay[today] ??
-    (todayStandup?.work || []).reduce((sum, w) => sum + (Number(w.hours) || 0), 0)
-  const weekHours = week?.totalHours ?? 0
+  // Hours are what attendance says was worked, check-in to check-out, with
+  // today's open day counted up to now. A weekend worked still adds to the
+  // week's total, though the bars only show Monday to Friday.
+  const perDay = useMemo(
+    () => Object.fromEntries((attendance?.week || []).map(d => [d.date, d.minutes / 60])),
+    [attendance]
+  )
+  const hoursToday = perDay[today] || 0
+  const weekHours = Object.values(perDay).reduce((sum, h) => sum + h, 0)
+  const fullDay = attendance?.policy?.fullDayHours || 8
+  const clockedIn = attendance?.todayRecord || null
 
   const filedThisWeek = dates.filter(d => byDate.has(d)).length
   const blockedThisWeek = dates.filter(d => byDate.get(d)?.hasBlocker).length
@@ -201,15 +201,17 @@ export default function Dashboard({ user }) {
         <p>Nothing has blocked you yet.</p>
       )
     },
-    ...(week
+    ...(attendance
       ? [{
-          id: 'timesheet',
-          title: 'Timesheet',
+          id: 'attendance',
+          title: 'Attendance',
           body: (
             <p>
-              <span className="text-content">{hoursLabel(weekHours)} hours</span> this week ·{' '}
-              {STATUS_LABEL[week.status] || week.status}.{' '}
-              <Link to="/timesheet" className="text-content underline underline-offset-2">
+              {clockedIn
+                ? `In at ${clockedIn.inAt}${clockedIn.outAt ? `, out at ${clockedIn.outAt}` : ''} · `
+                : 'Not checked in today · '}
+              <span className="text-content">{hoursLabel(weekHours)} hours</span> this week.{' '}
+              <Link to="/attendance" className="text-content underline underline-offset-2">
                 Open it
               </Link>
             </p>
@@ -277,7 +279,7 @@ export default function Dashboard({ user }) {
               {Math.round((filedThisWeek / dates.length) * 100)}%
             </StatPill>
             <StatPill label="Hours" className="bg-brand-400 text-brand-700">
-              {Math.min(100, Math.round((weekHours / 40) * 100))}%
+              {Math.min(100, Math.round((weekHours / (fullDay * dates.length)) * 100))}%
             </StatPill>
             <StatPill
               label="Week left"
@@ -358,6 +360,7 @@ export default function Dashboard({ user }) {
         <WeekBars dates={dates} perDay={perDay} total={weekHours} today={today} />
         <TodayRing
           hours={hoursToday}
+          target={fullDay}
           standup={todayStandup}
           onEdit={() => setEditing(todayStandup)}
         />

@@ -1,6 +1,6 @@
 /**
  * Fill in this week's standups (Mon-Fri) for a handful of employees, so the
- * weekly retro has something substantial to work with.
+ * weekly report has something substantial to work with.
  *
  *   node scripts/fill-week-standups.js           # 10 employees, current week
  *   node scripts/fill-week-standups.js 20        # 20 employees
@@ -19,7 +19,7 @@ const { resolveWeek, previousWeek } = require('../utils/week')
 const COUNT = Number(process.argv[2]) || 10
 const TEAM_NAME = process.argv[3] || null
 
-/** Themed work so the retro can group it, rather than ten unrelated lines. */
+/** Themed work so the report can group it, rather than ten unrelated lines. */
 const THREADS = [
   {
     shipped: [
@@ -72,8 +72,8 @@ const THREADS = [
 ]
 
 /**
- * Deliberately reuse blockers from last week for some people — the retro's
- * recurring-blocker section only has something to find if repeats exist.
+ * Deliberately reuse blockers from last week for some people, so a blocker
+ * that runs on from one week into the next shows up the way it does for real.
  */
 const RECURRING = [
   'Waiting on API credentials from the platform team',
@@ -176,11 +176,11 @@ const run = async () => {
     console.log(`Added ${docs.length} standups (${docs.filter(d => d.hasBlocker).length} with blockers).`)
   }
 
-  // Report what the retro will now see
+  // Report what the weekly report will now see
   const total = await Standup.countDocuments({ date: { $in: dates } })
   const people = await Standup.distinct('user', { date: { $in: dates } })
   console.log(`\nThis week now has ${total} standups from ${people.length} people.`)
-  console.log('Open /retro and hit Generate.')
+  console.log('Open /reports and hit Write the report.')
 
   await mongoose.disconnect()
 }

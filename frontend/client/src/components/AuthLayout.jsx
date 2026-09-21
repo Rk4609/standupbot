@@ -5,7 +5,7 @@ import { IconBolt, IconClock, IconShieldCheck, IconSparkles, IconUsers } from '.
 const STATS = [
   { icon: IconClock, value: '2 min', label: 'Per standup' },
   { icon: IconBolt, value: 'Real-time', label: 'Blocker alerts' },
-  { icon: IconSparkles, value: 'Weekly', label: 'AI retros' }
+  { icon: IconSparkles, value: 'Weekly', label: 'AI reports' }
 ]
 
 /** Small product preview — shows what the app does before you are inside it. */
@@ -135,7 +135,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
               className="mt-5 text-[15px] leading-relaxed text-white/65"
             >
               Everyone posts in two minutes. Blockers surface the moment they appear,
-              and an AI retrospective lands every Friday.
+              and an AI weekly report lands every Friday.
             </motion.p>
 
             <div className="mt-9">

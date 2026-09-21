@@ -2,17 +2,7 @@ const cron = require('node-cron')
 const User = require('../models/User')
 const Standup = require('../models/Standup')
 const Team = require('../models/Team')
-const Retro = require('../models/Retro')
-const { sendReminderEmail, sendManagerSummary, sendRetroEmail } = require('./emailService')
-const { completeChat } = require('./groqService')
-const {
-  collectWeek,
-  summarise,
-  buildPrompt,
-  previousRetro,
-  SYSTEM_PROMPT
-} = require('../controllers/retroController')
-const { resolveWeek, previousWeek } = require('../utils/week')
+const { sendReminderEmail, sendManagerSummary, sendWeeklyReportEmail } = require('./emailService')
 const { hourIn, todayIn, weekdayIn, zoneOf } = require('../utils/time')
 const slack = require('./slackService')
 const { notify } = require('./notifyService')
@@ -32,85 +22,13 @@ const REMINDER_HOUR = 9
 const SUMMARY_HOUR = 18
 // Late enough that the morning's standups and check-ins are in
 const BRIEF_HOUR = 11
-// Friday afternoon, before the retro at half past six
+// Friday afternoon, while there is still time to send it on
 const REPORT_HOUR = 17
 
 /** Monday to Friday where this person is — nobody wants a Saturday nudge. */
 const isWorkday = (zone, at) => {
   const day = weekdayIn(zone, at)
   return day >= 1 && day <= 5
-}
-
-/** Generate, persist and email one team's weekly retro. */
-const runRetroForTeam = async (team, week) => {
-  const standups = await collectWeek(team._id, week)
-  if (standups.length === 0) {
-    console.log(`No standups for ${team.name} — skipping retro`)
-    return
-  }
-
-  const stats = summarise(standups, team.members?.length || 0)
-
-  const prev = previousWeek(new Date(week.weekStart))
-  const previousBlockers = (await collectWeek(team._id, prev))
-    .filter(s => s.hasBlocker)
-    .map(s => ({ member: s.user?.name || 'Unknown', blocker: s.blockers }))
-
-  // The Friday job writes the same report the page does, so it has to read
-  // last week's too or the two would disagree about what was promised
-  const lastRetro = await previousRetro(team._id, week)
-
-  const content = await completeChat({
-    system: SYSTEM_PROMPT,
-    prompt: buildPrompt({
-      teamName: team.name,
-      week,
-      standups,
-      stats,
-      previousBlockers,
-      lastRetro
-    }),
-    maxTokens: 2000
-  })
-
-  if (!content.trim()) {
-    console.log(`Empty retro for ${team.name} — not saving`)
-    return
-  }
-
-  const { byMember, ...persisted } = stats
-
-  await Retro.findOneAndUpdate(
-    { team: team._id, weekStart: week.weekStart },
-    {
-      team: team._id,
-      teamName: team.name,
-      ...week,
-      content,
-      stats: persisted,
-      generatedBy: null
-    },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  )
-
-  await slack.notifyTeam(
-    team._id,
-    'weeklyRetro',
-    slack.retroMessage(team.name, week, content)
-  )
-
-  if (team.manager?.email) {
-    await sendRetroEmail(
-      team.manager.email,
-      team.manager.name,
-      team.name,
-      week,
-      content,
-      persisted
-    )
-  }
-
-  console.log(`✅ Retro generated for ${team.name}`)
 }
 
 const startCronJobs = () => {
@@ -282,7 +200,7 @@ const startCronJobs = () => {
     if (!process.env.GROQ_API_KEY) return
     try {
       const at = new Date()
-      const teams = await Team.find({ manager: { $ne: null } }).populate('manager', 'name role timezone')
+      const teams = await Team.find({ manager: { $ne: null } }).populate('manager', 'name email role timezone')
 
       for (const team of teams) {
         const manager = team.manager
@@ -294,13 +212,24 @@ const startCronJobs = () => {
           const scope = await resolveScope(manager, team._id)
           if (scope.error || scope.people.length === 0) continue
           const today = todayIn(zone, at)
-          await writeReport({ ...scope, week: weekOf(today), today })
+          const week = weekOf(today)
+          const report = await writeReport({ ...scope, week, today })
           await notify(null, {
             recipient: manager._id,
             type: 'report_ready',
             message: `This week's project report for ${team.name} is ready to send`,
             link: '/reports'
           })
+
+          // The channel and the manager's inbox get the finished report too
+          await slack.notifyTeam(
+            team._id,
+            'weeklyRetro',
+            slack.weeklyReportMessage(team.name, week, report.content)
+          )
+          if (manager.email) {
+            await sendWeeklyReportEmail(manager.email, manager.name, scope.title, report.facts, report.content)
+          }
           console.log(`📑 Weekly report written for ${team.name}`)
         } catch (err) {
           console.error(`Weekly report failed for ${team.name}:`, err.message)
@@ -308,29 +237,6 @@ const startCronJobs = () => {
       }
     } catch (err) {
       console.error('Weekly report cron error:', err)
-    }
-  })
-
-  // 🗓️ Weekly Retro — 6:30pm on the manager's Friday, after their EOD summary
-  cron.schedule('30 * * * *', async () => {
-    try {
-      const at = new Date()
-      const week = resolveWeek(at)
-      const teams = await Team.find().populate('manager', 'name email timezone')
-
-      for (const team of teams) {
-        const zone = zoneOf(team.manager)
-        if (hourIn(zone, at) !== SUMMARY_HOUR || weekdayIn(zone, at) !== 5) continue
-
-        try {
-          await runRetroForTeam(team, week)
-        } catch (err) {
-          // One team's failure must not stop the rest
-          console.error(`Retro failed for ${team.name}:`, err.message)
-        }
-      }
-    } catch (err) {
-      console.error('Weekly retro cron error:', err)
     }
   })
 

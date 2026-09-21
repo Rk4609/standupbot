@@ -31,7 +31,7 @@ const projectSchema = new mongoose.Schema({
    */
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
-  // Archived rather than deleted: past timesheets still point at it
+  // Archived rather than deleted: people and history still point at it
   active: { type: Boolean, default: true },
 
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }

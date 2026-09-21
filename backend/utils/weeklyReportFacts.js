@@ -1,26 +1,23 @@
 const Leave = require('../models/Leave')
-const Project = require('../models/Project')
 const Standup = require('../models/Standup')
 const { clip } = require('./promptBudget')
 const { addDays } = require('./time')
 const { isOffDay } = require('../services/settingsService')
 
 /**
- * A week of a team's work, by project, as the records have it.
+ * A week of a team's work, as its standups have it.
  *
  * This is the report somebody outside the team reads — a client, a director —
- * so it is about the work: hours, what moved, what is stuck, what is next.
+ * so it is about the work: what moved, what is stuck, what is next.
  * Moods, lateness and who was absent are left out on purpose; they belong in
  * the lead's own brief, not in a document that gets forwarded.
  */
 
-const round = (n) => Math.round(n * 100) / 100
-const NOTES_PER_PROJECT = 8
+const UPDATES_PER_PERSON = 5
 
 /** Pure: the report's facts from the week's rows. */
-const analyseWeek = ({ week, today, people, standups, projects, leaves }) => {
+const analyseWeek = ({ week, today, people, standups, leaves }) => {
   const nameOf = new Map(people.map(p => [String(p._id), p.name]))
-  const projectOf = new Map(projects.map(p => [String(p._id), p]))
 
   const lastDay = week.weekEnd < today ? week.weekEnd : today
   const workdays = []
@@ -28,51 +25,23 @@ const analyseWeek = ({ week, today, people, standups, projects, leaves }) => {
     if (!isOffDay(day)) workdays.push(day)
   }
 
-  const byProject = new Map()
-  const byPerson = new Map(people.map(p => [String(p._id), { name: p.name, hours: 0, standups: 0, projects: new Set() }]))
-  let total = 0
-  let billable = 0
+  // What each person said they were on, day by day — the standup's plan is
+  // the closest thing to a record of the work now that hours are not booked
+  const byPerson = new Map(people.map(p => [String(p._id), { name: p.name, standups: 0, blocked: 0, updates: [] }]))
+  let blockersRaised = 0
 
   for (const s of standups) {
-    const who = String(s.user)
-    const name = nameOf.get(who)
-    if (!name) continue
-    const person = byPerson.get(who)
+    const person = byPerson.get(String(s.user))
+    if (!person) continue
     person.standups += 1
+    if (s.hasBlocker) {
+      person.blocked += 1
+      blockersRaised += 1
+    }
 
-    for (const entry of s.work || []) {
-      const project = projectOf.get(String(entry.project))
-      if (!project) continue
-
-      const key = String(project._id)
-      if (!byProject.has(key)) {
-        byProject.set(key, {
-          name: project.name,
-          code: project.code || '',
-          client: project.client || '',
-          billable: project.billable !== false,
-          hours: 0,
-          contributors: new Map(),
-          notes: [],
-          blockers: []
-        })
-      }
-      const row = byProject.get(key)
-      row.hours += entry.hours
-      row.contributors.set(name, (row.contributors.get(name) || 0) + entry.hours)
-
-      const note = clip(entry.note || '', 140)
-      if (note && row.notes.length < NOTES_PER_PROJECT && !row.notes.some(n => n.note === note)) {
-        row.notes.push({ name, date: s.date, note })
-      }
-      if (s.hasBlocker && !row.blockers.some(b => b.name === name)) {
-        row.blockers.push({ name, date: s.date, blocker: clip(s.blockers, 140) })
-      }
-
-      total += entry.hours
-      if (row.billable) billable += entry.hours
-      person.hours += entry.hours
-      person.projects.add(project.name)
+    const text = clip(s.today || '', 140)
+    if (text && person.updates.length < UPDATES_PER_PERSON && !person.updates.some(u => u.text === text)) {
+      person.updates.push({ date: s.date, text })
     }
   }
 
@@ -110,30 +79,13 @@ const analyseWeek = ({ week, today, people, standups, projects, leaves }) => {
   return {
     week: { start: week.weekStart, end: week.weekEnd, label: week.weekLabel },
     people: people.length,
-    hours: {
-      total: round(total),
-      billable: round(billable),
-      nonBillable: round(total - billable),
-      billablePercent: total ? Math.round((billable / total) * 100) : 0
-    },
     standups: {
       submitted,
       expected,
       rate: expected ? Math.round((Math.min(submitted, expected) / expected) * 100) : 0
     },
-    projects: [...byProject.values()]
-      .map(p => ({
-        ...p,
-        hours: round(p.hours),
-        share: total ? Math.round((p.hours / total) * 100) : 0,
-        contributors: [...p.contributors.entries()]
-          .map(([name, hours]) => ({ name, hours: round(hours) }))
-          .sort((a, b) => b.hours - a.hours)
-      }))
-      .sort((a, b) => b.hours - a.hours),
-    team: [...byPerson.values()]
-      .map(p => ({ name: p.name, hours: round(p.hours), standups: p.standups, projects: [...p.projects] }))
-      .sort((a, b) => b.hours - a.hours || a.name.localeCompare(b.name)),
+    blockersRaised,
+    team: [...byPerson.values()].sort((a, b) => a.name.localeCompare(b.name)),
     openBlockers,
     nextWeek,
     leave: {
@@ -149,19 +101,14 @@ const collectWeekFacts = async ({ people, week, today }) => {
 
   const [standups, leaves] = await Promise.all([
     Standup.find({ user: { $in: ids }, date: { $gte: week.weekStart, $lte: week.weekEnd } })
-      .select('user date today hasBlocker blockers work')
+      .select('user date today hasBlocker blockers')
       .sort({ date: 1 })
       .lean(),
     Leave.find({ user: { $in: ids }, status: 'approved', from: { $lte: week.weekEnd }, to: { $gte: week.weekStart } })
       .select('user from to halfDay').lean()
   ])
 
-  const projectIds = [...new Set(standups.flatMap(s => (s.work || []).map(w => String(w.project))))]
-  const projects = projectIds.length
-    ? await Project.find({ _id: { $in: projectIds } }).select('name code client billable').lean()
-    : []
-
-  return analyseWeek({ week, today, people, standups, projects, leaves })
+  return analyseWeek({ week, today, people, standups, leaves })
 }
 
 module.exports = { analyseWeek, collectWeekFacts }

@@ -8,15 +8,15 @@
  * suddenly lose its sidebar.
  */
 const FALLBACK = {
-  employee: ['dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support'],
+  employee: ['dashboard', 'standup', 'history', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support'],
   manager: [
-    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
+    'dashboard', 'standup', 'history', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support',
+    'team', 'employees', 'blockers', 'analytics', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
     'projects', 'templates', 'integrations', 'activity', 'onboarding', 'announce'
   ],
   admin: [
-    'dashboard', 'standup', 'history', 'timesheet', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support',
-    'team', 'employees', 'blockers', 'timesheets', 'analytics', 'retro', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
+    'dashboard', 'standup', 'history', 'leave', 'attendance', 'payslips', 'kudos', 'expenses', 'reviews', 'documents', 'support',
+    'team', 'employees', 'blockers', 'analytics', 'leaves', 'team-attendance', 'brief', 'reports', 'expense-approvals', 'team-reviews',
     'projects', 'templates', 'integrations', 'activity', 'onboarding', 'announce', 'people', 'roles', 'settings', 'letters'
   ]
 }
@@ -33,6 +33,7 @@ export const modulesOf = (user) => {
 /** Can this person open that part of the app? */
 export const can = (user, moduleKey) => {
   if (!moduleKey) return true
+  if (Array.isArray(moduleKey)) return moduleKey.some(key => can(user, key))
   if (ALWAYS.includes(moduleKey)) return Boolean(user)
   return modulesOf(user).includes(moduleKey)
 }

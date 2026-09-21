@@ -31,7 +31,7 @@ describe('role scoping', () => {
   it('keeps an employee out of the manager-only routes', async () => {
     const employee = await makeUser()
 
-    for (const path of ['/api/standups/team', '/api/standups/blockers', '/api/employees', '/api/retro']) {
+    for (const path of ['/api/standups/team', '/api/standups/blockers', '/api/employees', '/api/reports/weekly']) {
       const res = await request(app).get(path).set(...authHeader(employee))
       expect(res.status, `${path} should be forbidden`).toBe(403)
     }

@@ -53,7 +53,7 @@ describe('the roles that already existed', () => {
 
     const employee = body.roles.find(r => r.key === 'employee')
     expect(employee.allowed).not.toContain('activity')
-    expect(employee.allowed).toContain('timesheet')
+    expect(employee.allowed).toContain('attendance')
   })
 
   it('is closed to everybody but an admin', async () => {

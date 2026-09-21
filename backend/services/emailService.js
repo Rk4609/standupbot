@@ -5,7 +5,7 @@ const { Resend } = require('resend')
  *
  * It accepts anything and returns a success id, but it only *delivers* to the
  * address the Resend account was registered with. Left as the default, every
- * reminder, every end-of-day summary and every retro looks sent and reaches
+ * reminder, every end-of-day summary and every weekly report looks sent and reaches
  * nobody — which is exactly what was happening.
  */
 const SANDBOX_FROM = 'onboarding@resend.dev'
@@ -26,7 +26,7 @@ const warnOnce = () => {
     [
       'EMAIL_FROM is not set, so mail goes out from Resend\'s sandbox address.',
       'Resend only delivers those to the address the account is registered with,',
-      'so reminders, summaries and retros will not reach your team.',
+      'so reminders, summaries and reports will not reach your team.',
       'Verify a domain at resend.com/domains and set EMAIL_FROM.'
     ].join('\n    ')
   )
@@ -164,8 +164,8 @@ const sendResetPasswordEmail = async (toEmail, name, resetUrl) => {
   }
 }
 
-// ✅ Weekly retro — plain-text report rendered into the email body
-const sendRetroEmail = async (toEmail, managerName, teamName, week, content, stats) => {
+// ✅ Weekly report — the Friday status report rendered into the email body
+const sendWeeklyReportEmail = async (toEmail, managerName, title, facts, content) => {
   try {
     // The model returns lightweight markdown; convert the few constructs it uses
     const body = content
@@ -189,25 +189,25 @@ const sendRetroEmail = async (toEmail, managerName, teamName, week, content, sta
 
     const { data, error } = await send({
       to: [toEmail],
-      subject: `🗓️ ${teamName} — Weekly Retro (${week.weekLabel})`,
+      subject: `📑 ${title} — Weekly report (${facts.week.label})`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;padding:24px;">
-          <h2 style="color:#7c3aed;margin:0 0 4px;">${teamName} — Weekly Retro</h2>
-          <p style="color:#6b7280;font-size:13px;margin:0 0 20px;">${week.weekLabel}</p>
+          <h2 style="color:#7c3aed;margin:0 0 4px;">${title} — Weekly report</h2>
+          <p style="color:#6b7280;font-size:13px;margin:0 0 20px;">${facts.week.label}</p>
 
           <table style="width:100%;border-collapse:collapse;margin-bottom:20px;background:#f5f3ff;border-radius:10px;">
             <tr>
               <td style="padding:12px;text-align:center;">
-                <div style="font-size:20px;font-weight:700;color:#7c3aed;">${stats.submissions}</div>
-                <div style="font-size:11px;color:#6b7280;">Submissions</div>
+                <div style="font-size:20px;font-weight:700;color:#7c3aed;">${facts.standups.submitted}</div>
+                <div style="font-size:11px;color:#6b7280;">Standups</div>
               </td>
               <td style="padding:12px;text-align:center;">
-                <div style="font-size:20px;font-weight:700;color:#16a34a;">${stats.participationRate}%</div>
-                <div style="font-size:11px;color:#6b7280;">Participation</div>
+                <div style="font-size:20px;font-weight:700;color:#16a34a;">${facts.standups.rate}%</div>
+                <div style="font-size:11px;color:#6b7280;">Standups filed</div>
               </td>
               <td style="padding:12px;text-align:center;">
-                <div style="font-size:20px;font-weight:700;color:#dc2626;">${stats.blockerCount}</div>
-                <div style="font-size:11px;color:#6b7280;">Blockers</div>
+                <div style="font-size:20px;font-weight:700;color:#dc2626;">${facts.openBlockers.length}</div>
+                <div style="font-size:11px;color:#6b7280;">Open blockers</div>
               </td>
             </tr>
           </table>
@@ -215,7 +215,7 @@ const sendRetroEmail = async (toEmail, managerName, teamName, week, content, sta
           <p style="color:#4b5563;font-size:14px;">Hello ${managerName},</p>
           ${body}
 
-          <a href="${process.env.CLIENT_URL}/retro"
+          <a href="${process.env.CLIENT_URL}/reports"
              style="display:inline-block;background:#7c3aed;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;margin-top:20px;font-weight:bold;font-size:14px;">
             Open in StandupBot →
           </a>
@@ -225,10 +225,10 @@ const sendRetroEmail = async (toEmail, managerName, teamName, week, content, sta
       `
     })
 
-    if (error) console.error('Resend retro error:', error)
-    else console.log('✅ Retro email sent:', data?.id)
+    if (error) console.error('Resend weekly report error:', error)
+    else console.log('✅ Weekly report email sent:', data?.id)
   } catch (err) {
-    console.error('sendRetroEmail error:', err.message)
+    console.error('sendWeeklyReportEmail error:', err.message)
   }
 }
 
@@ -241,5 +241,5 @@ module.exports = {
   sendReminderEmail,
   sendManagerSummary,
   sendResetPasswordEmail,
-  sendRetroEmail
+  sendWeeklyReportEmail
 }

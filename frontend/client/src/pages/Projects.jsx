@@ -23,7 +23,7 @@ import { usePaged } from '../lib/paging'
 
 const blank = { name: '', code: '', client: '', billable: true }
 
-/** The value the picker uses for "every team can book to this". */
+/** The value the picker uses for "every team can work on this". */
 const SHARED = '__shared__'
 
 const TABS = [
@@ -116,7 +116,7 @@ export default function Projects() {
     <PageShell>
       <PageHeader
         title="Projects"
-        subtitle="Who works on what, and what your team books its hours against."
+        subtitle="Who works on what, across your team's projects."
         actions={
           tab === 'projects' && (
             <Button onClick={() => setAdding(v => !v)} variant={adding ? 'ghost' : 'solid'}>
@@ -202,7 +202,7 @@ export default function Projects() {
                     maxLength={120}
                   />
                 </Field>
-                <Field label="Short code" hint="Shown in the timesheet grid.">
+                <Field label="Short code" hint="Shown beside the name wherever it is listed.">
                   <Input
                     value={form.code}
                     onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
@@ -214,7 +214,7 @@ export default function Projects() {
 
               {data.canShare && (
                 <Field
-                  label="Who books to it"
+                  label="Whose project it is"
                   hint="Shared projects appear for every team — that is for internal work, not for a client."
                 >
                   <Select value={team || SHARED} onChange={e => setTeam(e.target.value)}>
@@ -246,7 +246,7 @@ export default function Projects() {
         <EmptyState
           icon={<IconBriefcase className="h-6 w-6" />}
           title="No projects yet"
-          description="Add one, and your team can start booking hours against it in their standup."
+          description="Add one, and name who works on it."
         />
       ) : (
         <>
@@ -328,10 +328,6 @@ function ProjectList({
                     {p.team?.name ? ` · ${p.team.name}` : ''}
                   </span>
                 </button>
-
-                <div className="tabular shrink-0 text-right text-sm text-content-muted">
-                  {p.hours > 0 ? `${p.hours} h` : '—'}
-                </div>
 
                 <div className="shrink-0">
                   {onArchive && (

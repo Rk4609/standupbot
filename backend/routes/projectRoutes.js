@@ -9,7 +9,7 @@ const {
   updateMembers, transferMember, projectActivity
 } = require('../controllers/projectController')
 
-// Everyone needs the list they can book against
+// Everyone may see the projects open to them
 router.get('/', protect, listProjects)
 
 // Maintaining the catalogue is a lead's job
